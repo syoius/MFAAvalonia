@@ -258,6 +258,11 @@ public partial class TaskQueueView : UserControl
     private static readonly ConcurrentDictionary<string, string> IntroductionsCache = new();
     private void SetMarkDown(string markDown)
     {
+        // 使用TaskQueueViewModel的增强方法
+        if (DataContext is TaskQueueViewModel viewModel)
+        {
+            viewModel.SetMarkdownIntroduction(markDown);
+        }
         Introduction.Markdown = markDown;
     }
 
@@ -534,6 +539,13 @@ public partial class TaskQueueView : UserControl
     {
         // 预处理换行符
         input = input.Replace(@"\n", "\n");
+
+        // 确保换行被正确处理
+        if (input.Contains("\n"))
+        {
+            // 先处理双换行为段落
+            input = Regex.Replace(input, @"(\n\s*\n)", "\n\n");
+        }
 
         // 定义替换规则字典
         var replacementRules = new Dictionary<string, Dictionary<string, string>>

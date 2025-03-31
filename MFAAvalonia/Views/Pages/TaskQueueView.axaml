@@ -267,8 +267,8 @@
         <!-- 中间列 -->
         <Grid Grid.Column="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="3*" MinHeight="100" />
+                <RowDefinition Height="2*" MinHeight="100" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,0,5" x:Name="Row1">
                 <suki:GroupBox>
@@ -290,7 +290,7 @@
                     </ScrollViewer>
                 </suki:GroupBox>
             </suki:GlassCard>
-            <suki:GlassCard Grid.Row="1" Margin="0,8,0,25" MaxHeight="{Binding Bounds.Height, ElementName=Row1}">
+            <suki:GlassCard Grid.Row="1" Margin="0,8,0,25">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -310,11 +310,12 @@
                     <!-- </avaloniaEdit:TextEditor> -->
                     <ScrollViewer
                         HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollBarVisibility="Auto">
+                        VerticalScrollBarVisibility="Auto"
+                        Padding="2,2,8,2"
+                        Margin="0">
                         <mdxaml:MarkdownScrollViewer
-
                             Focusable="True" x:Name="Introduction"
-                            Margin="10,0,10,0">
+                            Margin="10,0,5,0">
                             <mdxaml:MarkdownScrollViewer.Styles>
                                 <StaticResource ResourceKey="MdXamlDocStyle" />
                             </mdxaml:MarkdownScrollViewer.Styles>
