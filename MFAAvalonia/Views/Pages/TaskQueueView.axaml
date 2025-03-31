@@ -8,7 +8,9 @@
     xmlns:System="clr-namespace:System;assembly=System.Runtime"
     xmlns:avaloniaEdit="https://github.com/avaloniaui/avaloniaedit"
     xmlns:binding="clr-namespace:MaaFramework.Binding;assembly=MaaFramework.Binding"
+    xmlns:avalonia="https://github.com/projektanker/icons.avalonia"
     xmlns:calcBinding="clr-namespace:CalcBinding;assembly=CalcBindingAva"
+    xmlns:controls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
     xmlns:converters="clr-namespace:MFAAvalonia.Helper.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ex="clr-namespace:MFAAvalonia.Extensions"
@@ -17,15 +19,20 @@
     xmlns:maa="clr-namespace:MFAAvalonia.Extensions.MaaFW"
     xmlns:markup="https://codewf.com"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
     xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
     xmlns:suki="https://github.com/kikipoulet/SukiUI"
     xmlns:type="clr-namespace:MFAAvalonia.Helper.ValueType"
     xmlns:usersControls="clr-namespace:MFAAvalonia.ViewModels.UsersControls"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
+    xmlns:vm="using:MFAAvalonia.ViewModels"
     xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
     xmlns:markupExtensions="clr-namespace:FluentIcons.Avalonia.Fluent.MarkupExtensions;assembly=FluentIcons.Avalonia.Fluent"
-    xmlns:extensions="clr-namespace:SukiUI.Extensions;assembly=SukiUI">
+    xmlns:extensions="clr-namespace:SukiUI.Extensions;assembly=SukiUI"
+    xmlns:behaviors="using:Avalonia.Xaml.Interactions.Core"
+    xmlns:interaction="using:Avalonia.Xaml.Interactivity"
+    xmlns:i="using:Avalonia.Xaml.Interactivity"
+    xmlns:ia="using:Avalonia.Xaml.Interactions.Core">
     <Design.DataContext>
         <pages:TaskQueueViewModel />
     </Design.DataContext>
@@ -35,18 +42,22 @@
             <MenuItem Click="Delete" Header="{markup:I18n {x:Static helper:LangKeys.Delete}}"  />
         </ContextMenu>
     </UserControl.Resources>
-    <Grid ClipToBounds="False" Margin="0,0,0,0">
+    <Grid ClipToBounds="False" Margin="0,0,0,0" x:Name="MainGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition MaxWidth="330" Width="7*" />
-            <ColumnDefinition Width="6*" />
-            <ColumnDefinition Width="7*" />
+            <ColumnDefinition Width="{Binding Column1Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
+            <ColumnDefinition Width="15" />
+            <ColumnDefinition Width="{Binding Column2Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
+            <ColumnDefinition Width="15" />
+            <ColumnDefinition Width="{Binding Column3Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
         </Grid.ColumnDefinitions>
+        
+        <!-- 左侧列 -->
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" MaxHeight="150" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <suki:GlassCard Grid.Row="0" Margin="15,15,15,5">
+            <suki:GlassCard Grid.Row="0" Margin="15,15,0,5">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -70,7 +81,7 @@
 
             </suki:GlassCard>
             <Grid Grid.Row="1">
-                <suki:GlassCard Grid.Column="0" Margin="15,5,15,25">
+                <suki:GlassCard Grid.Column="0" Margin="15,5,0,25">
                     <suki:GroupBox>
                         <suki:GroupBox.Header>
                             <Grid Grid.Row="0">
@@ -213,12 +224,48 @@
                 </StackPanel>
             </Grid>
         </Grid>
-        <Grid Grid.Column="1">
+        
+        <!-- 第一个分隔条 -->
+        <GridSplitter Grid.Column="1" 
+                      Background="Transparent"
+                      Margin="0"
+                      Width="15"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      Name="Splitter1">
+            <GridSplitter.Template>
+                <ControlTemplate>
+                    <Border Background="Transparent"
+                            VerticalAlignment="Stretch"
+                            HorizontalAlignment="Stretch"
+                            Cursor="SizeWestEast">
+                        <StackPanel VerticalAlignment="Center" 
+                                    HorizontalAlignment="Center" 
+                                    Spacing="3">
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </GridSplitter.Template>
+            <i:Interaction.Behaviors>
+                <ia:EventTriggerBehavior EventName="DragStarted">
+                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}" CommandParameter="Splitter1" />
+                </ia:EventTriggerBehavior>
+                <ia:EventTriggerBehavior EventName="DragCompleted">
+                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}" CommandParameter="Splitter1" />
+                </ia:EventTriggerBehavior>
+            </i:Interaction.Behaviors>
+        </GridSplitter>
+        
+        <!-- 中间列 -->
+        <Grid Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <suki:GlassCard Grid.Row="0" Margin="5,15,15,5" x:Name="Row1">
+            <suki:GlassCard Grid.Row="0" Margin="0,15,0,5" x:Name="Row1">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -238,7 +285,7 @@
                     </ScrollViewer>
                 </suki:GroupBox>
             </suki:GlassCard>
-            <suki:GlassCard Grid.Row="1" Margin="5,8,15,25" MaxHeight="{Binding Bounds.Height, ElementName=Row1}">
+            <suki:GlassCard Grid.Row="1" Margin="0,8,0,25" MaxHeight="{Binding Bounds.Height, ElementName=Row1}">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -275,12 +322,48 @@
 
             </suki:GlassCard>
         </Grid>
-        <Grid Grid.Column="2">
+        
+        <!-- 第二个分隔条 -->
+        <GridSplitter Grid.Column="3" 
+                      Background="Transparent"
+                      Margin="0"
+                      Width="15"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      Name="Splitter2">
+            <GridSplitter.Template>
+                <ControlTemplate>
+                    <Border Background="Transparent"
+                            VerticalAlignment="Stretch"
+                            HorizontalAlignment="Stretch"
+                            Cursor="SizeWestEast">
+                        <StackPanel VerticalAlignment="Center" 
+                                    HorizontalAlignment="Center" 
+                                    Spacing="3">
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </GridSplitter.Template>
+            <i:Interaction.Behaviors>
+                <ia:EventTriggerBehavior EventName="DragStarted">
+                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}" CommandParameter="Splitter2" />
+                </ia:EventTriggerBehavior>
+                <ia:EventTriggerBehavior EventName="DragCompleted">
+                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}" CommandParameter="Splitter2" />
+                </ia:EventTriggerBehavior>
+            </i:Interaction.Behaviors>
+        </GridSplitter>
+        
+        <!-- 右侧列 -->
+        <Grid Grid.Column="4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" MaxHeight="250" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <suki:GlassCard Grid.Row="0" Margin="5,15,15,8">
+            <suki:GlassCard Grid.Row="0" Margin="0,15,15,8">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <Grid>
@@ -427,7 +510,7 @@
                     </WrapPanel>
                 </suki:GroupBox>
             </suki:GlassCard>
-            <suki:GlassCard Grid.Row="1" Margin="5,8,15,25">
+            <suki:GlassCard Grid.Row="1" Margin="0,8,15,25">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <Grid>

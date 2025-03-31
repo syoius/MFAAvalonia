@@ -27,14 +27,48 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Layout;
 
 namespace MFAAvalonia.ViewModels.Pages;
 
 public partial class TaskQueueViewModel : ViewModelBase
 {
+    public TaskQueueViewModel()
+    {
+        // 只在构造函数中加载列宽配置一次，不使用延迟任务
+        try
+        {
+            // 从配置中直接读取值
+            var config = ConfigurationManager.Current.FileName;
+            var col1Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
+            var col2Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
+            var col3Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
+            
+            LoggerHelper.Info($"加载列宽设置(构造函数): Col1={col1Str}, Col2={col2Str}, Col3={col3Str}, 配置={config}");
+            
+            // 禁用属性更改通知，避免触发保存
+            SuppressPropertyChangedCallbacks = true;
+            
+            // 直接设置值
+            Column1Width = GridLength.Parse(col1Str);
+            Column2Width = GridLength.Parse(col2Str);
+            Column3Width = GridLength.Parse(col3Str);
+            
+            // 恢复属性更改通知
+            SuppressPropertyChangedCallbacks = false;
+            
+            LoggerHelper.Info("构造函数中列宽设置成功");
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"构造函数中设置列宽失败: {ex.Message}");
+            SetDefaultColumnWidths();
+        }
+    }
+
     protected override void Initialize()
     {
-
+        // 其他初始化代码可以放在这里
     }
     
     #region 介绍
@@ -603,4 +637,288 @@ public partial class TaskQueueViewModel : ViewModelBase
     partial void OnCurrentResourceChanged(string value) => HandlePropertyChanged(ConfigurationKeys.Resource, value);
 
     #endregion
+
+    // 三列宽度配置
+    private const string DefaultColumn1Width = "350";
+    private const string DefaultColumn2Width = "1*";
+    private const string DefaultColumn3Width = "1*";
+
+    // 使用属性，标记为可通知属性，确保UI能正确绑定和监听变化
+    [ObservableProperty] private GridLength _column1Width;
+    [ObservableProperty] private GridLength _column2Width;
+    [ObservableProperty] private GridLength _column3Width;
+
+    // 添加记录拖拽开始的状态
+    private GridLength _dragStartCol1Width;
+    private GridLength _dragStartCol2Width;
+    private GridLength _dragStartCol3Width;
+    
+    [RelayCommand]
+    public void GridSplitterDragStarted(string splitterName)
+    {
+        try
+        {
+            // 记录拖拽开始时的列宽
+            _dragStartCol1Width = Column1Width;
+            _dragStartCol2Width = Column2Width;
+            _dragStartCol3Width = Column3Width;
+            
+            var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+            LoggerHelper.Info($"[{timestamp}] 开始拖拽分隔条: {splitterName}");
+            LoggerHelper.Info($"拖拽开始列宽值: 列1={_dragStartCol1Width} (类型={_dragStartCol1Width.GridUnitType}, 值={_dragStartCol1Width.Value:F2}), " +
+                           $"列2={_dragStartCol2Width} (类型={_dragStartCol2Width.GridUnitType}, 值={_dragStartCol2Width.Value:F2}), " +
+                           $"列3={_dragStartCol3Width} (类型={_dragStartCol3Width.GridUnitType}, 值={_dragStartCol3Width.Value:F2})");
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"记录拖拽开始状态失败: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    public void GridSplitterDragCompleted(string splitterName)
+    {
+        try
+        {
+            // 记录拖拽完成事件和时间戳，方便分析日志
+            var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+            LoggerHelper.Info($"[{timestamp}] 完成拖拽分隔条: {splitterName}");
+            
+            // 获取当前列宽
+            var col1 = Column1Width;
+            var col2 = Column2Width;
+            var col3 = Column3Width;
+            
+            // 输出当前内存中的列宽值和类型
+            // LoggerHelper.Info($"拖拽后列宽值: 列1={col1} (类型={col1.GridUnitType}, 值={col1.Value:F2}), " +
+            //                   $"列2={col2} (类型={col2.GridUnitType}, 值={col2.Value:F2}), " +
+            //                   $"列3={col3} (类型={col3.GridUnitType}, 值={col3.Value:F2})");
+            
+            // 检查是否有变化
+            bool col1Changed = !AreGridLengthsEqual(_dragStartCol1Width, col1);
+            bool col2Changed = !AreGridLengthsEqual(_dragStartCol2Width, col2);
+            bool col3Changed = !AreGridLengthsEqual(_dragStartCol3Width, col3);
+            bool changed = col1Changed || col2Changed || col3Changed;
+            
+            // LoggerHelper.Info($"列宽是否变化: 列1={col1Changed}, 列2={col2Changed}, 列3={col3Changed}");
+
+            // 获取当前配置值
+            var oldCol1Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
+            var oldCol2Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
+            var oldCol3Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
+            
+            // 转换为新的字符串
+            var newCol1Str = col1.ToString();
+            var newCol2Str = col2.ToString();
+            var newCol3Str = col3.ToString();
+            
+            // 始终设置新值
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn1Width, newCol1Str);
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn2Width, newCol2Str);
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn3Width, newCol3Str);
+            
+            // 始终保存配置
+            ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
+            
+            // 记录详细日志
+            if (changed)
+            {
+                LoggerHelper.Info($"保存列宽配置: 旧值=[{oldCol1Str},{oldCol2Str},{oldCol3Str}], 新值=[{newCol1Str},{newCol2Str},{newCol3Str}]");
+            }
+            else
+            {
+                LoggerHelper.Info($"列宽未实际变化，但仍保存配置: 值=[{newCol1Str},{newCol2Str},{newCol3Str}]");
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"保存列宽配置失败: {ex.Message}");
+        }
+    }
+    
+    // 添加辅助方法用于精确比较两个GridLength
+    private bool AreGridLengthsEqual(GridLength a, GridLength b)
+    {
+        if (a.GridUnitType != b.GridUnitType)
+            return false;
+            
+        if (a.GridUnitType == GridUnitType.Auto || b.GridUnitType == GridUnitType.Auto)
+            return a.GridUnitType == b.GridUnitType;
+            
+        // 对于像素值，允许0.5像素的误差
+        if (a.GridUnitType == GridUnitType.Pixel)
+            return Math.Abs(a.Value - b.Value) < 0.5;
+            
+        // 对于Star值，允许0.01的误差
+        if (a.GridUnitType == GridUnitType.Star)
+            return Math.Abs(a.Value - b.Value) < 0.01;
+            
+        return a.Value == b.Value;
+    }
+
+    partial void OnColumn1WidthChanged(GridLength value)
+    {
+        if (SuppressPropertyChangedCallbacks) return;
+        
+        try
+        {
+            // 获取旧值
+            var oldValue = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
+            var newValue = value.ToString();
+            
+            // 使用改进的比较方法
+            if (CompareGridLength(oldValue, value))
+            {
+                ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn1Width, newValue);
+                // 同步直接保存配置
+                ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
+                // LoggerHelper.Info($"已保存列宽1: {oldValue} -> {newValue}, 配置={ConfigurationManager.Current.FileName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"保存列宽1失败: {ex.Message}");
+        }
+    }
+    
+    partial void OnColumn2WidthChanged(GridLength value)
+    {
+        if (SuppressPropertyChangedCallbacks) return;
+        
+        try
+        {
+            // 获取旧值
+            var oldValue = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
+            var newValue = value.ToString();
+            
+            // 使用改进的比较方法
+            if (CompareGridLength(oldValue, value))
+            {
+                ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn2Width, newValue);
+                // 同步直接保存配置
+                ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
+                // LoggerHelper.Info($"已保存列宽2: {oldValue} -> {newValue}, 配置={ConfigurationManager.Current.FileName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"保存列宽2失败: {ex.Message}");
+        }
+    }
+    
+    partial void OnColumn3WidthChanged(GridLength value)
+    {
+        if (SuppressPropertyChangedCallbacks) return;
+        
+        try
+        {
+            // 获取旧值
+            var oldValue = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
+            var newValue = value.ToString();
+            
+            // 使用改进的比较方法
+            if (CompareGridLength(oldValue, value))
+            {
+                ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn3Width, newValue);
+                // 同步直接保存配置
+                ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
+                // LoggerHelper.Info($"已保存列宽3: {oldValue} -> {newValue}, 配置={ConfigurationManager.Current.FileName}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"保存列宽3失败: {ex.Message}");
+        }
+    }
+    
+    public bool SuppressPropertyChangedCallbacks { get; set; }
+
+    // 保存列宽配置到磁盘
+    public void SaveColumnWidths()
+    {
+        if (SuppressPropertyChangedCallbacks) return;
+        
+        try
+        {
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn1Width, Column1Width.ToString());
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn2Width, Column2Width.ToString());
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn3Width, Column3Width.ToString());
+            ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
+            LoggerHelper.Info($"保存所有列宽配置: Col1={Column1Width}, Col2={Column2Width}, Col3={Column3Width}");
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"保存列宽配置失败: {ex.Message}");
+        }
+    }
+
+    private void SetDefaultColumnWidths()
+    {
+        // 设置默认值
+        try
+        {
+            LoggerHelper.Info("正在设置默认列宽");
+            
+            // 禁用属性更改通知，避免触发保存
+            SuppressPropertyChangedCallbacks = true;
+            
+            Column1Width = GridLength.Parse(DefaultColumn1Width);
+            Column2Width = GridLength.Parse(DefaultColumn2Width);
+            Column3Width = GridLength.Parse(DefaultColumn3Width);
+            
+            // 恢复属性更改通知
+            SuppressPropertyChangedCallbacks = false;
+            
+            // 默认值需要保存，但只有在第一次启动时(无配置文件)
+            if (!ConfigurationManager.Current.Config.ContainsKey(ConfigurationKeys.TaskQueueColumn1Width))
+            {
+                SaveColumnWidths();
+            }
+            
+            LoggerHelper.Info("默认列宽设置成功");
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"设置默认列宽失败: {ex.Message}");
+        }
+    }
+
+    // 添加辅助方法用于比较GridLength
+    private bool CompareGridLength(string storedValue, GridLength newValue)
+    {
+        // 先检查字符串是否完全相同
+        var newValueStr = newValue.ToString();
+        if (string.Equals(storedValue, newValueStr, StringComparison.OrdinalIgnoreCase))
+        {
+            return false; // 字符串相同，没有变化
+        }
+        
+        try
+        {
+            // 尝试解析存储的值
+            var storedGridLength = GridLength.Parse(storedValue);
+            
+            // 对于像素值，比较数值是否有足够的差异
+            if (storedGridLength.GridUnitType == GridUnitType.Pixel && newValue.GridUnitType == GridUnitType.Pixel)
+            {
+                // 如果差异小于0.5像素，认为没有变化
+                return Math.Abs(storedGridLength.Value - newValue.Value) >= 0.5;
+            }
+            
+            // 对于Star类型，比较是否有足够的差异
+            if (storedGridLength.GridUnitType == GridUnitType.Star && newValue.GridUnitType == GridUnitType.Star)
+            {
+                // 对于比例值，如果差异小于0.01，认为没有变化
+                return Math.Abs(storedGridLength.Value - newValue.Value) >= 0.01;
+            }
+            
+            // 单位类型不同或其他情况，认为有变化
+            return true;
+        }
+        catch
+        {
+            // 如果解析失败，认为有变化
+            return true;
+        }
+    }
 }

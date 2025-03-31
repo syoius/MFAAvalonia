@@ -14,12 +14,14 @@
 
     <ItemGroup>
         <Folder Include="Img\" />
-        <Folder Include="Models\"/>
-        <AvaloniaResource Include="Assets\**"/>
+        <Folder Include="Models\" />
+        <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
 
 
 	<ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+		<PackageReference Include="Avalonia.Xaml.Interactions" Version="11.2.0.14" />
+		<PackageReference Include="Avalonia.Xaml.Interactivity" Version="11.2.0.14" />
 		<PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
 	</ItemGroup>
 
@@ -93,18 +95,14 @@
         <PackageReference Include="Serilog" Version="4.2.1-dev-02352" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0-dev-02301" />
         <PackageReference Include="SharpHook" Version="5.3.8" />
-	  <PackageReference Include="SkiaSharp" Version="3.118.0-preview.2.3"/>
+	  <PackageReference Include="SkiaSharp" Version="3.118.0-preview.2.3" />
         <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.0.2" />
         <PackageReference Include="System.Management" Version="10.0.0-preview.2.25163.2" />
 
-		<ProjectReference Include="../LazyStaticGenerator/LazyStaticGenerator.csproj"
-		OutputItemType="Analyzer" ExcludeAssets="runtime;build;native;contentfiles"
-		ReferenceOutputAssembly="false" />
-        <ProjectReference Include="..\MFAUpdater\MFAUpdater.csproj" 
-                        ReferenceOutputAssembly="false"
-                        SkipGetTargetFrameworkProperties="true" />
+		<ProjectReference Include="../LazyStaticGenerator/LazyStaticGenerator.csproj" OutputItemType="Analyzer" ExcludeAssets="runtime;build;native;contentfiles" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="..\MFAUpdater\MFAUpdater.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
 
-	    <ProjectReference Include="../SukiUI/SukiUI.csproj"  />
+	    <ProjectReference Include="../SukiUI/SukiUI.csproj" />
 	</ItemGroup>
 	<PropertyGroup>
 		<LazyStaticGeneratedDir>$(BaseIntermediateOutputPath)\LazyStaticGenerated</LazyStaticGeneratedDir>
@@ -112,8 +110,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="$(LazyStaticGeneratedDir)/**/*.cs" 
-				 Condition="'$(EnableLazyStaticGenerator)' == 'true'" />
+		<Compile Include="$(LazyStaticGeneratedDir)/**/*.cs" Condition="'$(EnableLazyStaticGenerator)' == 'true'" />
 		<Compile Update="Assets\Localization\LangKeys.cs">
 		  <AutoGen>True</AutoGen>
 		  <DesignTime>True</DesignTime>
@@ -184,23 +181,16 @@
 	  <!-- 平台智能匹配 -->
 	  <ItemGroup>
 		<!-- Windows 匹配 .exe -->
-		<WinUpdaterFiles Include="$(UpdaterOutputDir)MFAUpdater.exe" 
-					   Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-arm64'" />
+		<WinUpdaterFiles Include="$(UpdaterOutputDir)MFAUpdater.exe" Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-arm64'" />
 		
 		<!-- Linux/macOS 匹配无扩展名文件 -->
-		<UnixUpdaterFiles Include="$(UpdaterOutputDir)MFAUpdater" 
-					   Condition="'$(RuntimeIdentifier)' == 'linux-x64' OR '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'linux-arm64' OR '$(RuntimeIdentifier)' == 'osx-arm64'" />
+		<UnixUpdaterFiles Include="$(UpdaterOutputDir)MFAUpdater" Condition="'$(RuntimeIdentifier)' == 'linux-x64' OR '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'linux-arm64' OR '$(RuntimeIdentifier)' == 'osx-arm64'" />
 	  </ItemGroup>
 
 	  <!-- 执行复制操作 -->
-	  <Copy SourceFiles="@(WinUpdaterFiles);@(UnixUpdaterFiles)"
-			DestinationFolder="$(MainPublishDir)"
-			OverwriteReadOnlyFiles="true" />
-	  <Copy SourceFiles="@(WinUpdaterFiles);$(UpdaterOutputDir)MFAUpdater.dll"
-			DestinationFolder="$(MainPublishDir)"  Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'win-arm64' OR '$(RuntimeIdentifier)' == 'osx-arm64'"
-			OverwriteReadOnlyFiles="true" />
+	  <Copy SourceFiles="@(WinUpdaterFiles);@(UnixUpdaterFiles)" DestinationFolder="$(MainPublishDir)" OverwriteReadOnlyFiles="true" />
+	  <Copy SourceFiles="@(WinUpdaterFiles);$(UpdaterOutputDir)MFAUpdater.dll" DestinationFolder="$(MainPublishDir)" Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'win-arm64' OR '$(RuntimeIdentifier)' == 'osx-arm64'" OverwriteReadOnlyFiles="true" />
 
-	  <Exec Condition="'$(OS)' != 'Windows_NT' AND '$(RuntimeIdentifier)' != 'win-x64'"
-			Command="chmod +x '$(MainPublishDir)/MFAUpdater'" />
+	  <Exec Condition="'$(OS)' != 'Windows_NT' AND '$(RuntimeIdentifier)' != 'win-x64'" Command="chmod +x '$(MainPublishDir)/MFAUpdater'" />
 	</Target>
 </Project>
