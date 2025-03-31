@@ -160,33 +160,38 @@
                                         <Grid   
                                                 ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
                                                 Background="Transparent"
-                                                ColumnDefinitions="*,25"
+                                                ColumnDefinitions="30,1*,Auto"
                                                 ContextMenu="{StaticResource TaskMenu}"
+                                                Tapped="Grid_Tapped"
                                                 x:Name="ListGrid">
                                             <CheckBox
-                                                Content="{Binding Name}"
                                                 Grid.Column="0"
                                                 HorizontalAlignment="Left"
                                                 IsEnabled="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
                                                 IsChecked="{Binding IsCheckedWithNull}"
-                                              >
-                                                <CheckBox.ContentTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock
-                                                            Text="{Binding}"
-                                                            TextTrimming="CharacterEllipsis"
-                                                            TextWrapping="NoWrap"
-                                                            x:DataType="System:String" />
-                                                    </DataTemplate>
-                                                </CheckBox.ContentTemplate>
+                                                Margin="0,0,0,0"
+                                                Tapped="CheckBox_Tapped">
                                             </CheckBox>
+                                            
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding Name}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="NoWrap"
+                                                MinWidth="170"
+                                                Margin="3,0,25,0"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                Tapped="TextBlock_Tapped" />
 
                                             <!--  ReSharper disable once Xaml.StaticResourceNotResolved  -->
                                             <RadioButton
                                                 Background="Transparent"
                                                 BorderThickness="0"
-                                                Grid.Column="1"
+                                                Grid.Column="2"
                                                 GroupName="TaskSettings"
+                                                Width="25"
+                                                HorizontalAlignment="Right"
                                                 HorizontalContentAlignment="Left"
                                                 IsChecked="{Binding EnableSetting}"
                                                 IsVisible="False" />
@@ -456,6 +461,8 @@
                                 IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
                                 MinWidth="{Binding Bounds.Width, ElementName=SecondButton}"
+                                Height="55"
+                                VerticalContentAlignment="Center"
                                 x:Name="FirstButton" />
                             <RadioButton
                                 Classes="GigaChips"
@@ -466,6 +473,8 @@
                                 IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
                                 MinWidth="{Binding Bounds.Width, ElementName=FirstButton}"
+                                Height="55"
+                                VerticalContentAlignment="Center"
                                 x:Name="SecondButton" />
                         </WrapPanel>
                         <DockPanel

@@ -639,7 +639,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     #endregion
 
     // 三列宽度配置
-    private const string DefaultColumn1Width = "350";
+    private const string DefaultColumn1Width = "300";
     private const string DefaultColumn2Width = "1*";
     private const string DefaultColumn3Width = "1*";
 

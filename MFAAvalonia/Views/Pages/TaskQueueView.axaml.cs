@@ -148,9 +148,95 @@ public partial class TaskQueueView : UserControl
 
     private void SelectingItemsControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (sender is ListBox { SelectedItem: DragItemViewModel itemViewModel })
+        if (sender is ListBox listBox && listBox.SelectedItem is DragItemViewModel itemViewModel)
         {
-            itemViewModel.EnableSetting = true;
+            // 如果是由Grid_Tapped触发的选择变更，则不重复设置
+            if (DataContext is TaskQueueViewModel vm)
+            {
+                // 先将所有任务项的EnableSetting设置为false
+                foreach (var item in vm.TaskItemViewModels)
+                {
+                    if (item != itemViewModel)
+                    {
+                        item.EnableSetting = false;
+                    }
+                }
+                // 然后设置当前项为true
+                itemViewModel.EnableSetting = true;
+            }
+        }
+    }
+
+    private void Grid_Tapped(object? sender, TappedEventArgs e)
+    {
+        // 如果点击源是CheckBox或TextBlock，让专门的事件处理程序来处理
+        if (e.Source is CheckBox || e.Source is TextBlock)
+        {
+            return;
+        }
+
+        // 如果点击到Grid的其他区域，则选中该项（显示设置面板）
+        if (sender is Grid grid && grid.DataContext is DragItemViewModel itemViewModel)
+        {
+            if (DataContext is TaskQueueViewModel vm)
+            {
+                // 先将所有任务项的EnableSetting设置为false
+                foreach (var item in vm.TaskItemViewModels)
+                {
+                    if (item != itemViewModel)
+                    {
+                        item.EnableSetting = false;
+                    }
+                }
+                // 然后设置当前项为true
+                itemViewModel.EnableSetting = true;
+                
+                // 同时更新ListBox的选中项
+                var listBox = this.FindControl<ListBox>("TaskListBox");
+                if (listBox != null && listBox.SelectedItem != itemViewModel)
+                {
+                    listBox.SelectedItem = itemViewModel;
+                }
+            }
+            
+            e.Handled = true;
+        }
+    }
+    
+    private void CheckBox_Tapped(object? sender, TappedEventArgs e)
+    {
+        // 阻止事件冒泡，这样Grid_Tapped不会处理这个事件
+        e.Handled = true;
+        // CheckBox的勾选状态由Binding自动处理，不需要额外代码
+    }
+    
+    private void TextBlock_Tapped(object? sender, TappedEventArgs e)
+    {
+        // 当点击任务名称时，显示该任务的设置
+        if (sender is TextBlock textBlock && textBlock.DataContext is DragItemViewModel itemViewModel)
+        {
+            if (DataContext is TaskQueueViewModel vm)
+            {
+                // 先将所有任务项的EnableSetting设置为false
+                foreach (var item in vm.TaskItemViewModels)
+                {
+                    if (item != itemViewModel)
+                    {
+                        item.EnableSetting = false;
+                    }
+                }
+                // 然后设置当前项为true
+                itemViewModel.EnableSetting = true;
+                
+                // 同时更新ListBox的选中项
+                var listBox = this.FindControl<ListBox>("TaskListBox");
+                if (listBox != null && listBox.SelectedItem != itemViewModel)
+                {
+                    listBox.SelectedItem = itemViewModel;
+                }
+            }
+            
+            e.Handled = true;
         }
     }
 
