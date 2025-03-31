@@ -16,7 +16,7 @@ public class DeviceDisplayConverter : MarkupExtension, IValueConverter
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is AdbDeviceInfo device)
-            return $"{device.Name} ({device.AdbSerial})";
+            return $"{device.AdbSerial} ({device.Name})";
 
         return value?.ToString() ?? string.Empty;
     }

@@ -1053,4 +1053,10 @@
     <data name="StartingAgent" xml:space="preserve">
         <value>正在启动 Agent(耗时可能较久)</value>
     </data>
+    <data name="Manual" xml:space="preserve">
+        <value>使用指南</value>
+    </data>
+    <data name="QQChannel" xml:space="preserve">
+        <value>交流反馈: QQ频道搜索Maa鸢</value>
+    </data>
 </root>
