@@ -195,9 +195,13 @@ public class DragDropExtensions
     {
         if (sender is not ListBox listBox || !e.GetCurrentPoint(listBox).Properties.IsLeftButtonPressed)
             return;
-        var sourceItem = GetSourceIndex(listBox, e.GetPosition(listBox), -1);
+            
+        // 获取鼠标点击位置的项目索引
+        var position = e.GetPosition(listBox);
+        var sourceItem = GetSourceIndex(listBox, position, -1);
         if (sourceItem == -1) return;
 
+        // 设置选中项并开始拖拽
         var data = new DataObject();
         listBox.SelectedIndex = Math.Clamp(sourceItem, 0, listBox.Items.Count - 1);
         data.Set(DataFormats.Text, sourceItem.ToString());
@@ -352,26 +356,30 @@ public class DragDropExtensions
 
     private static int GetSourceIndex(ListBox listBox, Point position, int defaultValue)
     {
+        // 获取滚动视图和相关项
         var scrollViewer = listBox.GetVisualDescendants()
             .OfType<ScrollViewer>()
             .FirstOrDefault();
         var items = listBox.GetVisualDescendants()
             .OfType<ListBoxItem>()
             .ToList();
+            
+        if (items.Count == 0) return defaultValue;
 
-        var adjustedPosition = position + (scrollViewer?.Offset ?? new Vector(0, 0));
+        // 执行命中测试，使用原始位置
+        var hitControl = listBox.InputHitTest(position) as Visual;
+        if (hitControl == null) return defaultValue;
 
-        var hitControl = listBox.InputHitTest(adjustedPosition) as Visual;
-
-        var hitItem = hitControl?
+        // 查找命中的ListBoxItem
+        var hitItem = hitControl
             .GetVisualAncestors()
             .OfType<ListBoxItem>()
             .FirstOrDefault();
 
         if (hitItem != null)
         {
-            var targetIndex = listBox.IndexFromContainer(hitItem);
-            return targetIndex;
+            // 返回命中项的索引
+            return listBox.IndexFromContainer(hitItem);
         }
 
         return defaultValue;
@@ -379,23 +387,35 @@ public class DragDropExtensions
 
     private static int GetTargetIndex(ListBox listBox, Point position)
     {
+        // 获取滚动视图和可见项
         var scrollViewer = listBox.GetVisualDescendants()
             .OfType<ScrollViewer>()
             .FirstOrDefault();
         var items = listBox.GetVisualDescendants()
             .OfType<ListBoxItem>()
             .ToList();
-        var firstItem = items.FirstOrDefault();
+            
+        if (items.Count == 0) return -1;
+        
+        // 获取滚动偏移
+        var scrollOffset = scrollViewer?.Offset ?? new Vector(0, 0);
+        
+        // 执行命中测试 - 使用原始位置
+        var hitControl = listBox.InputHitTest(position) as Visual;
+        
+        // 如果命中测试没有结果，检查是否拖到了列表底部
         var lastItem = items.LastOrDefault();
-
-        if (firstItem == null) return -1;
-
-        var adjustedPosition = position + (scrollViewer?.Offset ?? new Vector(0, 0));
-
-        var hitControl = listBox.InputHitTest(adjustedPosition) as Visual;
-
-        if (hitControl == null && position.Y > lastItem.Bounds.Y) return listBox.ItemCount;
-
+        if (hitControl == null && lastItem != null) 
+        {
+            var lastItemBottom = lastItem.Bounds.Y + lastItem.Bounds.Height;
+            if (position.Y > lastItemBottom - scrollOffset.Y)
+            {
+                return listBox.ItemCount;
+            }
+            return -1;
+        }
+        
+        // 查找命中的ListBoxItem
         var hitItem = hitControl?
             .GetVisualAncestors()
             .OfType<ListBoxItem>()
@@ -403,17 +423,20 @@ public class DragDropExtensions
 
         if (hitItem != null)
         {
+            // 获取目标索引
             var targetIndex = listBox.IndexFromContainer(hitItem);
             var itemBounds = hitItem.Bounds;
-            var result = (adjustedPosition.Y > itemBounds.Top + itemBounds.Height / 2)
-                ? targetIndex + 1
-                : targetIndex;
+            
+            // 计算项目中心点，考虑滚动偏移
+            double itemY = itemBounds.Y - scrollOffset.Y;
+            double itemCenter = itemY + itemBounds.Height / 2;
+            
+            // 根据位置是在项目上半部分还是下半部分确定目标索引
+            var result = (position.Y > itemCenter) ? targetIndex + 1 : targetIndex;
             return result;
         }
 
-        var itemHeight = lastItem.Bounds.Height;
-        var index = Convert.ToInt32(Math.Round(adjustedPosition.Y / itemHeight));
-        return Math.Clamp(index, 0, listBox.ItemCount);
+        return -1;
     }
 
 
@@ -422,41 +445,68 @@ public class DragDropExtensions
     {
         var adornerLayer = AdornerLayer.GetAdornerLayer(listBox);
         if (adornerLayer == null) return;
+        
+        // 处理特殊情况：拖到列表末尾
         var end = index == count;
-        if (end) index--;
-        var container = listBox.ContainerFromIndex(index);
+        var displayIndex = end ? index - 1 : index;
+        
+        // 确保索引有效
+        if (displayIndex < 0 || displayIndex >= listBox.ItemCount) return;
+        
+        // 获取容器和位置
+        var container = listBox.ContainerFromIndex(displayIndex);
+        if (container == null) return;
+        
+        // 获取容器相对于adornerLayer的实际位置
         var absolutePos = GetAbsolutePosition(container, adornerLayer);
-        if (end)
+        
+        // 如果是拖到末尾，调整位置到容器底部
+        if (end && container != null)
             absolutePos += new Point(0, container.Bounds.Height);
 
+        // 计算ListBox相对于adornerLayer的左侧位置，考虑可能的菜单展开
+        var listBoxLeftPos = GetAbsolutePosition(listBox, adornerLayer);
+        
+        // 创建或更新adorner
         if (listBox.GetValue(DragAdornerProperty) is not DragAdorner adorner)
         {
             adorner = new DragAdorner(
-                absolutePos.X,
-                listBox.Bounds.Width, SukiTheme.GetInstance().ActiveColorTheme.PrimaryBrush
+                listBoxLeftPos.X, // 使用ListBox的左侧实际位置
+                listBox.Bounds.Width,
+                SukiTheme.GetInstance().ActiveColorTheme.PrimaryBrush
             );
             listBox.SetValue(DragAdornerProperty, adorner);
         }
+        else
+        {
+            // 确保已有adorner的X位置也会更新
+            adorner.UpdateXPosition(listBoxLeftPos.X);
+        }
+        
+        // 确保adorner已添加到层
         if (!adornerLayer.Children.Contains(adorner))
             adornerLayer.Children.Add(adorner);
+            
+        // 更新Y位置
         adorner.UpdatePosition(absolutePos.Y, index == 0, end);
     }
 
     private static Point GetAbsolutePosition(Control item, Visual relativeTo)
     {
-        // 递归计算所有父容器的偏移
-        var position = item.TranslatePoint(new Point(0, 0), relativeTo) ?? new Point(0, 0);
-
-        // 处理滚动偏移
-        var scrollViewer = item.GetVisualParent()?.GetVisualDescendants()
-            .OfType<ScrollViewer>()
-            .FirstOrDefault();
-
-        return position
-            + new Point(
-                scrollViewer?.Offset.X ?? 0,
-                scrollViewer?.Offset.Y ?? 0
-            );
+        if (item == null) return new Point(0, 0);
+        
+        try
+        {
+            // 获取item相对于relativeTo(adornerLayer)的绝对位置
+            // TranslatePoint会计算所有中间元素的偏移，包括侧边菜单引起的偏移
+            var position = item.TranslatePoint(new Point(0, 0), relativeTo) ?? new Point(0, 0);
+            return position;
+        }
+        catch
+        {
+            // 如果有任何异常，返回默认位置
+            return new Point(0, 0);
+        }
     }
 
     private static void ClearAdorner(ListBox listBox)
@@ -468,3 +518,52 @@ public class DragDropExtensions
         }
     }
 }
+
+// 添加DragAdorner类的XPosition更新方法
+public class DragAdorner : Decorator
+{
+    private readonly double _width;
+    private double _y;
+    private readonly IBrush _brush;
+    private readonly Line _line;
+    private double _x;
+
+    public DragAdorner(double x, double width, IBrush brush)
+    {
+        _width = width;
+        _x = x;
+        _brush = brush;
+
+        _line = new Line
+        {
+            StartPoint = new Point(_x, 0),
+            EndPoint = new Point(_x + _width - 10, 0),
+            Stroke = _brush,
+            StrokeThickness = 2,
+            IsHitTestVisible = false,
+        };
+
+        this.Child = _line;
+    }
+
+    public void UpdateXPosition(double x)
+    {
+        _x = x;
+        if (_line != null)
+        {
+            _line.StartPoint = new Point(_x, _y);
+            _line.EndPoint = new Point(_x + _width - 10, _y);
+        }
+    }
+
+    public void UpdatePosition(double y, bool first = false, bool last = false)
+    {
+        _y = y;
+        if (_line != null)
+        {
+            _line.StartPoint = new Point(_x, _y);
+            _line.EndPoint = new Point(_x + _width - 10, _y);
+        }
+    }
+}
+
