@@ -25,9 +25,8 @@
             Source="{x:Static helper:IconHelper.Icon}"
             Stretch="Uniform"
             Width="18" />
-
-
     </suki:SukiWindow.LogoContent>
+    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />

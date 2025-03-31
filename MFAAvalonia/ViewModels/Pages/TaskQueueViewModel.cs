@@ -33,28 +33,20 @@ namespace MFAAvalonia.ViewModels.Pages;
 
 public partial class TaskQueueViewModel : ViewModelBase
 {
-    public TaskQueueViewModel()
+    protected override void Initialize()
     {
-        // 只在构造函数中加载列宽配置一次，不使用延迟任务
         try
         {
-            // 从配置中直接读取值
-            var config = ConfigurationManager.Current.FileName;
-            var col1Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
-            var col2Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
-            var col3Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
+            var col1Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
+            var col2Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
+            var col3Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
             
-            LoggerHelper.Info($"加载列宽设置(构造函数): Col1={col1Str}, Col2={col2Str}, Col3={col3Str}, 配置={config}");
-            
-            // 禁用属性更改通知，避免触发保存
             SuppressPropertyChangedCallbacks = true;
             
-            // 直接设置值
             Column1Width = GridLength.Parse(col1Str);
             Column2Width = GridLength.Parse(col2Str);
             Column3Width = GridLength.Parse(col3Str);
             
-            // 恢复属性更改通知
             SuppressPropertyChangedCallbacks = false;
             
             LoggerHelper.Info("构造函数中列宽设置成功");
@@ -64,11 +56,6 @@ public partial class TaskQueueViewModel : ViewModelBase
             LoggerHelper.Error($"构造函数中设置列宽失败: {ex.Message}");
             SetDefaultColumnWidths();
         }
-    }
-
-    protected override void Initialize()
-    {
-        // 其他初始化代码可以放在这里
     }
     
     #region 介绍
@@ -677,16 +664,9 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         try
         {
-            // 记录拖拽开始时的列宽
             _dragStartCol1Width = Column1Width;
             _dragStartCol2Width = Column2Width;
             _dragStartCol3Width = Column3Width;
-            
-            var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-            LoggerHelper.Info($"[{timestamp}] 开始拖拽分隔条: {splitterName}");
-            LoggerHelper.Info($"拖拽开始列宽值: 列1={_dragStartCol1Width} (类型={_dragStartCol1Width.GridUnitType}, 值={_dragStartCol1Width.Value:F2}), " +
-                           $"列2={_dragStartCol2Width} (类型={_dragStartCol2Width.GridUnitType}, 值={_dragStartCol2Width.Value:F2}), " +
-                           $"列3={_dragStartCol3Width} (类型={_dragStartCol3Width.GridUnitType}, 值={_dragStartCol3Width.Value:F2})");
         }
         catch (Exception ex)
         {
@@ -701,17 +681,10 @@ public partial class TaskQueueViewModel : ViewModelBase
         {
             // 记录拖拽完成事件和时间戳，方便分析日志
             var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-            LoggerHelper.Info($"[{timestamp}] 完成拖拽分隔条: {splitterName}");
-            
             // 获取当前列宽
             var col1 = Column1Width;
             var col2 = Column2Width;
             var col3 = Column3Width;
-            
-            // 输出当前内存中的列宽值和类型
-            // LoggerHelper.Info($"拖拽后列宽值: 列1={col1} (类型={col1.GridUnitType}, 值={col1.Value:F2}), " +
-            //                   $"列2={col2} (类型={col2.GridUnitType}, 值={col2.Value:F2}), " +
-            //                   $"列3={col3} (类型={col3.GridUnitType}, 值={col3.Value:F2})");
             
             // 检查是否有变化
             bool col1Changed = !AreGridLengthsEqual(_dragStartCol1Width, col1);
@@ -719,14 +692,10 @@ public partial class TaskQueueViewModel : ViewModelBase
             bool col3Changed = !AreGridLengthsEqual(_dragStartCol3Width, col3);
             bool changed = col1Changed || col2Changed || col3Changed;
             
-            // LoggerHelper.Info($"列宽是否变化: 列1={col1Changed}, 列2={col2Changed}, 列3={col3Changed}");
-
-            // 获取当前配置值
-            var oldCol1Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
-            var oldCol2Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
-            var oldCol3Str = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
+            var oldCol1Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
+            var oldCol2Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
+            var oldCol3Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
             
-            // 转换为新的字符串
             var newCol1Str = col1.ToString();
             var newCol2Str = col2.ToString();
             var newCol3Str = col3.ToString();
@@ -739,15 +708,6 @@ public partial class TaskQueueViewModel : ViewModelBase
             // 始终保存配置
             ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
             
-            // 记录详细日志
-            if (changed)
-            {
-                LoggerHelper.Info($"保存列宽配置: 旧值=[{oldCol1Str},{oldCol2Str},{oldCol3Str}], 新值=[{newCol1Str},{newCol2Str},{newCol3Str}]");
-            }
-            else
-            {
-                LoggerHelper.Info($"列宽未实际变化，但仍保存配置: 值=[{newCol1Str},{newCol2Str},{newCol3Str}]");
-            }
         }
         catch (Exception ex)
         {
@@ -789,9 +749,6 @@ public partial class TaskQueueViewModel : ViewModelBase
             if (CompareGridLength(oldValue, value))
             {
                 ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn1Width, newValue);
-                // 同步直接保存配置
-                ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
-                // LoggerHelper.Info($"已保存列宽1: {oldValue} -> {newValue}, 配置={ConfigurationManager.Current.FileName}");
             }
         }
         catch (Exception ex)
@@ -814,9 +771,6 @@ public partial class TaskQueueViewModel : ViewModelBase
             if (CompareGridLength(oldValue, value))
             {
                 ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn2Width, newValue);
-                // 同步直接保存配置
-                ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
-                // LoggerHelper.Info($"已保存列宽2: {oldValue} -> {newValue}, 配置={ConfigurationManager.Current.FileName}");
             }
         }
         catch (Exception ex)
@@ -839,9 +793,6 @@ public partial class TaskQueueViewModel : ViewModelBase
             if (CompareGridLength(oldValue, value))
             {
                 ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn3Width, newValue);
-                // 同步直接保存配置
-                ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
-                // LoggerHelper.Info($"已保存列宽3: {oldValue} -> {newValue}, 配置={ConfigurationManager.Current.FileName}");
             }
         }
         catch (Exception ex)
@@ -862,8 +813,6 @@ public partial class TaskQueueViewModel : ViewModelBase
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn1Width, Column1Width.ToString());
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn2Width, Column2Width.ToString());
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn3Width, Column3Width.ToString());
-            ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
-            LoggerHelper.Info($"保存所有列宽配置: Col1={Column1Width}, Col2={Column2Width}, Col3={Column3Width}");
         }
         catch (Exception ex)
         {
@@ -876,9 +825,6 @@ public partial class TaskQueueViewModel : ViewModelBase
         // 设置默认值
         try
         {
-            LoggerHelper.Info("正在设置默认列宽");
-            
-            // 禁用属性更改通知，避免触发保存
             SuppressPropertyChangedCallbacks = true;
             
             Column1Width = GridLength.Parse(DefaultColumn1Width);

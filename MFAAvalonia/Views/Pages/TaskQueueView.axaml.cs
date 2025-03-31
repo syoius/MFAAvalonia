@@ -49,61 +49,39 @@ namespace MFAAvalonia.Views.Pages;
 
 public partial class TaskQueueView : UserControl
 {
-    private Grid _mainGrid;
-    
     public TaskQueueView()
     {
         DataContext = Instances.TaskQueueViewModel;
         InitializeComponent();
         MaaProcessor.Instance.InitializeData();
         // Introduction.TextArea.TextView.LineTransformers.Add(new RichTextLineTransformer());
-        
-        // 获取主Grid引用
-        _mainGrid = this.FindControl<Grid>("MainGrid");
-        
-        // 添加自定义的拖拽完成事件处理
-        var splitter1 = this.FindControl<GridSplitter>("Splitter1");
-        var splitter2 = this.FindControl<GridSplitter>("Splitter2");
-        
-        if (splitter1 != null)
-        {
-            splitter1.DragCompleted += GridSplitter_DragCompleted;
-        }
-        
-        if (splitter2 != null)
-        {
-            splitter2.DragCompleted += GridSplitter_DragCompleted;
-        }
     }
+
+    #region UI
 
     private void GridSplitter_DragCompleted(object sender, VectorEventArgs e)
     {
-        if (_mainGrid == null) 
+        if (MainGrid == null)
         {
             LoggerHelper.Error("GridSplitter_DragCompleted: MainGrid is null");
             return;
         }
-        
+
         // 强制在UI线程上执行
         Dispatcher.UIThread.Post(() =>
         {
             try
             {
                 // 获取当前Grid的实际列宽
-                var actualCol1Width = _mainGrid.ColumnDefinitions[0].ActualWidth;
-                var actualCol2Width = _mainGrid.ColumnDefinitions[2].ActualWidth;
-                var actualCol3Width = _mainGrid.ColumnDefinitions[4].ActualWidth;
-                
-                // 记录当前Grid的实际列宽到日志
-                LoggerHelper.Info($"Grid实际列宽: 列1={actualCol1Width}px, 列2={actualCol2Width}px, 列3={actualCol3Width}px");
-                
+                var actualCol1Width = MainGrid.ColumnDefinitions[0].ActualWidth;
+                // var actualCol2Width = MainGrid.ColumnDefinitions[2].ActualWidth;
+                // var actualCol3Width = MainGrid.ColumnDefinitions[4].ActualWidth;
+
                 // 获取当前列定义中的Width属性
-                var col1Width = _mainGrid.ColumnDefinitions[0].Width;
-                var col2Width = _mainGrid.ColumnDefinitions[2].Width;
-                var col3Width = _mainGrid.ColumnDefinitions[4].Width;
-                
-                LoggerHelper.Info($"Grid列宽定义: 列1={col1Width}, 列2={col2Width}, 列3={col3Width}");
-                
+                var col1Width = MainGrid.ColumnDefinitions[0].Width;
+                var col2Width = MainGrid.ColumnDefinitions[2].Width;
+                var col3Width = MainGrid.ColumnDefinitions[4].Width;
+
                 // 更新ViewModel中的列宽值
                 var viewModel = Instances.TaskQueueViewModel;
                 if (viewModel != null)
@@ -111,9 +89,9 @@ public partial class TaskQueueView : UserControl
                     // 更新ViewModel中的列宽值
                     // 临时禁用回调以避免循环更新
                     viewModel.SuppressPropertyChangedCallbacks = true;
-                    
+
                     // 对于第一列，使用像素值
-                    if (col1Width.IsStar && col1Width.Value == 0 && actualCol1Width > 0)
+                    if (col1Width is { IsStar: true, Value: 0 } && actualCol1Width > 0)
                     {
                         // 如果是自动或星号但实际有宽度，使用像素值
                         viewModel.Column1Width = new GridLength(actualCol1Width, GridUnitType.Pixel);
@@ -122,17 +100,15 @@ public partial class TaskQueueView : UserControl
                     {
                         viewModel.Column1Width = col1Width;
                     }
-                    
+
                     // 其他列保持原来的类型
                     viewModel.Column2Width = col2Width;
                     viewModel.Column3Width = col3Width;
-                    
+
                     viewModel.SuppressPropertyChangedCallbacks = false;
-                    
+
                     // 手动保存配置
                     viewModel.SaveColumnWidths();
-                    
-                    LoggerHelper.Info($"已更新ViewModel列宽: 列1={viewModel.Column1Width}, 列2={viewModel.Column2Width}, 列3={viewModel.Column3Width}");
                 }
                 else
                 {
@@ -145,6 +121,8 @@ public partial class TaskQueueView : UserControl
             }
         });
     }
+
+    #endregion
 
     private void SelectingItemsControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {

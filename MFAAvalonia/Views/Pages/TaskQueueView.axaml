@@ -236,8 +236,8 @@
                       Margin="0"
                       Width="15"
                       HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch"
-                      Name="Splitter1">
+                      VerticalAlignment="Stretch" DragCompleted="GridSplitter_DragCompleted"
+                      x:Name="Splitter1">
             <GridSplitter.Template>
                 <ControlTemplate>
                     <Border Background="Transparent"
@@ -331,12 +331,12 @@
         
         <!-- 第二个分隔条 -->
         <GridSplitter Grid.Column="3" 
-                      Background="Transparent"
+                      Background="Transparent" DragCompleted="GridSplitter_DragCompleted"
                       Margin="0"
                       Width="15"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch"
-                      Name="Splitter2">
+                      x:Name="Splitter2">
             <GridSplitter.Template>
                 <ControlTemplate>
                     <Border Background="Transparent"
