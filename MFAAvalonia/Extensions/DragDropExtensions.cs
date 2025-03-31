@@ -467,20 +467,24 @@ public class DragDropExtensions
         // 计算ListBox相对于adornerLayer的左侧位置，考虑可能的菜单展开
         var listBoxLeftPos = GetAbsolutePosition(listBox, adornerLayer);
         
+        // 获取ListBox的实际可见宽度
+        double effectiveWidth = GetListBoxEffectiveWidth(listBox);
+        
         // 创建或更新adorner
         if (listBox.GetValue(DragAdornerProperty) is not DragAdorner adorner)
         {
             adorner = new DragAdorner(
                 listBoxLeftPos.X, // 使用ListBox的左侧实际位置
-                listBox.Bounds.Width,
+                effectiveWidth,
                 SukiTheme.GetInstance().ActiveColorTheme.PrimaryBrush
             );
             listBox.SetValue(DragAdornerProperty, adorner);
         }
         else
         {
-            // 确保已有adorner的X位置也会更新
+            // 确保已有adorner的X位置和宽度也会更新
             adorner.UpdateXPosition(listBoxLeftPos.X);
+            adorner.UpdateWidth(effectiveWidth);
         }
         
         // 确保adorner已添加到层
@@ -489,6 +493,28 @@ public class DragDropExtensions
             
         // 更新Y位置
         adorner.UpdatePosition(absolutePos.Y, index == 0, end);
+    }
+
+    // 获取ListBox的实际可见宽度
+    private static double GetListBoxEffectiveWidth(ListBox listBox)
+    {
+        // 尝试获取滚动视图
+        var scrollViewer = listBox.GetVisualDescendants()
+            .OfType<ScrollViewer>()
+            .FirstOrDefault();
+
+        if (scrollViewer != null)
+        {
+            // 尝试获取内容宽度
+            var content = scrollViewer.Content as Visual;
+            if (content != null)
+            {
+                return Math.Min(listBox.Bounds.Width, content.Bounds.Width);
+            }
+        }
+
+        // 退回到ListBox的宽度，减去边距
+        return listBox.Bounds.Width - 20; // 减去一些边距以获得更好的视觉效果
     }
 
     private static Point GetAbsolutePosition(Control item, Visual relativeTo)
@@ -522,11 +548,12 @@ public class DragDropExtensions
 // 添加DragAdorner类的XPosition更新方法
 public class DragAdorner : Decorator
 {
-    private readonly double _width;
+    private double _width;
     private double _y;
     private readonly IBrush _brush;
     private readonly Line _line;
     private double _x;
+    private readonly Canvas _canvas;
 
     public DragAdorner(double x, double width, IBrush brush)
     {
@@ -534,35 +561,51 @@ public class DragAdorner : Decorator
         _x = x;
         _brush = brush;
 
+        // 创建简单的水平线
         _line = new Line
         {
             StartPoint = new Point(_x, 0),
-            EndPoint = new Point(_x + _width - 10, 0),
+            EndPoint = new Point(_x + _width, 0),
             Stroke = _brush,
-            StrokeThickness = 2,
-            IsHitTestVisible = false,
+            StrokeThickness = 2,  // 稍微增加粗细以增强可见性
+            IsHitTestVisible = false
         };
+        
+        // 使用Canvas来包含线条
+        _canvas = new Canvas();
+        _canvas.Children.Add(_line);
 
-        this.Child = _line;
+        this.Child = _canvas;
+        
+        // 初始位置
+        UpdatePosition(0);
+    }
+
+    public void UpdateWidth(double width)
+    {
+        _width = width;
+        UpdatePositionsAndSizes();
     }
 
     public void UpdateXPosition(double x)
     {
         _x = x;
-        if (_line != null)
-        {
-            _line.StartPoint = new Point(_x, _y);
-            _line.EndPoint = new Point(_x + _width - 10, _y);
-        }
+        UpdatePositionsAndSizes();
     }
 
     public void UpdatePosition(double y, bool first = false, bool last = false)
     {
         _y = y;
+        UpdatePositionsAndSizes();
+    }
+    
+    private void UpdatePositionsAndSizes()
+    {
         if (_line != null)
         {
+            // 更新线条位置
             _line.StartPoint = new Point(_x, _y);
-            _line.EndPoint = new Point(_x + _width - 10, _y);
+            _line.EndPoint = new Point(_x + _width, _y);
         }
     }
 }
