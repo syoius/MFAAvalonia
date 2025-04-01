@@ -62,6 +62,25 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     [ObservableProperty] private string _introduction = string.Empty;
 
+    // 确保Markdown内容能够正确处理换行
+    public void SetMarkdownIntroduction(string markdown)
+    {
+        // 确保换行符被正确处理
+        if (!string.IsNullOrEmpty(markdown))
+        {
+            // 替换Windows风格的换行符
+            markdown = markdown.Replace("\r\n", "\n");
+            
+            // 确保段落间有空行
+            markdown = Regex.Replace(markdown, @"(?<!\n)\n(?!\n)", "  \n");
+            
+            // 替换连续换行为段落分隔
+            markdown = Regex.Replace(markdown, @"(\n\s*\n)", "\n\n");
+        }
+        
+        Introduction = markdown;
+    }
+
     #endregion
 
     #region 任务
@@ -626,7 +645,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     #endregion
 
     // 三列宽度配置
-    private const string DefaultColumn1Width = "350";
+    private const string DefaultColumn1Width = "300";
     private const string DefaultColumn2Width = "1*";
     private const string DefaultColumn3Width = "1*";
 

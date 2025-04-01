@@ -183,7 +183,7 @@ public static class VersionChecker
             if (isGithub)
                 GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion);
             else
-                GetDownloadUrlFromMirror(localVersion, "MFAAvalonia", CDK(), out _, out latestVersion, isUI: true, onlyCheck: true);
+                GetDownloadUrlFromMirror(localVersion, "YuanMFA", CDK(), out _, out latestVersion, isUI: true, onlyCheck: true);
 
             if (IsNewVersionAvailable(latestVersion, localVersion))
             {
@@ -845,7 +845,7 @@ public static class VersionChecker
     }
 
 
-    public static void GetLatestVersionAndDownloadUrlFromGithub(out string url, out string latestVersion, string owner = "SweetSmellFox", string repo = "MFAAvalonia")
+    public static void GetLatestVersionAndDownloadUrlFromGithub(out string url, out string latestVersion, string owner = "syoius", string repo = "MFAAvalonia")
     {
         url = string.Empty;
         latestVersion = string.Empty;
@@ -1023,7 +1023,7 @@ public static class VersionChecker
         string cdk,
         out string url,
         out string latestVersion,
-        string userAgent = "MFA",
+        string userAgent = "YuanMFA",
         bool isUI = false,
         bool onlyCheck = false)
     {
@@ -1173,7 +1173,6 @@ public static class VersionChecker
     {
         return Instances.VersionUpdateSettingsUserControlModel.ResourceVersion;
     }
-
 
     private static string GetResourceID()
     {

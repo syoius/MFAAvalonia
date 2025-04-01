@@ -183,13 +183,26 @@
                                                     </DataTemplate>
                                                 </CheckBox.ContentTemplate>
                                             </CheckBox>
+                                            
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding Name}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="NoWrap"
+                                                MinWidth="170"
+                                                Margin="3,0,25,0"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                Tapped="TextBlock_Tapped" />
 
                                             <!--  ReSharper disable once Xaml.StaticResourceNotResolved  -->
                                             <RadioButton
                                                 Background="Transparent"
                                                 BorderThickness="0"
-                                                Grid.Column="1"
+                                                Grid.Column="2"
                                                 GroupName="TaskSettings"
+                                                Width="25"
+                                                HorizontalAlignment="Right"
                                                 HorizontalContentAlignment="Left"
                                                 IsChecked="{Binding EnableSetting}"
                                                 IsVisible="False" />
@@ -266,8 +279,8 @@
         <!-- 中间列 -->
         <Grid Grid.Column="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="3*" MinHeight="100" />
+                <RowDefinition Height="2*" MinHeight="100" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,0,5" x:Name="Row1">
                 <suki:GroupBox>
@@ -289,7 +302,7 @@
                     </ScrollViewer>
                 </suki:GroupBox>
             </suki:GlassCard>
-            <suki:GlassCard Grid.Row="1" Margin="0,8,0,25" MaxHeight="{Binding Bounds.Height, ElementName=Row1}">
+            <suki:GlassCard Grid.Row="1" Margin="0,8,0,25">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -309,9 +322,10 @@
                     <!-- </avaloniaEdit:TextEditor> -->
                     <ScrollViewer
                         HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollBarVisibility="Auto">
+                        VerticalScrollBarVisibility="Auto"
+                        Padding="2,2,8,2"
+                        Margin="0">
                         <mdxaml:MarkdownScrollViewer
-
                             Focusable="True" x:Name="Introduction"
                             Margin="10,0,10,0">
                             <mdxaml:MarkdownScrollViewer.Styles>
@@ -462,6 +476,8 @@
                                 IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
                                 MinWidth="{Binding Bounds.Width, ElementName=SecondButton}"
+                                Height="55"
+                                VerticalContentAlignment="Center"
                                 x:Name="FirstButton" />
                             <RadioButton
                                 Classes="GigaChips"
@@ -472,6 +488,8 @@
                                 IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
                                 MinWidth="{Binding Bounds.Width, ElementName=FirstButton}"
+                                Height="55"
+                                VerticalContentAlignment="Center"
                                 x:Name="SecondButton" />
                         </WrapPanel>
                         <DockPanel

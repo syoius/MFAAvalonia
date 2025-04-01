@@ -25,7 +25,12 @@ public class TitleConverter : MarkupExtension, IMultiValueConverter
         var result = $"{appName} {appVersion}";
         // 主逻辑
         if (isCustomVisible && !string.IsNullOrEmpty(customTitle))
-            result = customTitle;
+        {
+            if (!string.IsNullOrEmpty(resourceVersion))
+                result = $"{customTitle}  {resourceVersion}";
+            else
+                result = customTitle;
+        }
 
         if (isResourceVisible && !string.IsNullOrEmpty(resourceName))
             result = $"{appName} {appVersion} | {resourceName} {resourceVersion}";
