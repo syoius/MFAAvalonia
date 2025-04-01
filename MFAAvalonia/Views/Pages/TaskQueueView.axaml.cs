@@ -522,7 +522,7 @@ public partial class TaskQueueView : UserControl
         var combo = new ComboBox
         {
             DisplayMemberBinding = new Binding("Name"),
-            MinWidth = 150,
+            MinWidth = 170,
             Margin = new Thickness(0, 5, 5, 5),
             ItemsSource = interfaceOption.Cases?.Select(c => new
             {
@@ -539,7 +539,7 @@ public partial class TaskQueueView : UserControl
 
         // 直接设置ComboBox的属性
         combo.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-        combo.Padding = new Thickness(2, 0, 0, 0);
+        combo.Padding = new Thickness(2, 0, 2, 0);
 
         combo.SelectionChanged += (_, _) =>
         {
@@ -551,7 +551,7 @@ public partial class TaskQueueView : UserControl
         var textBlock = new TextBlock
         {
             FontSize = 14,
-            MinWidth = 180,
+            MinWidth = 150,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left,
             Text = LanguageHelper.GetLocalizedString(option.Name),

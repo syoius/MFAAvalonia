@@ -147,123 +147,138 @@
         </suki:GlassCard>
         
         <suki:GlassCard Padding="25,15,25,15">
-            <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" Margin="0" HorizontalAlignment="Stretch">
-                <!-- 第一行 - 检查功能 -->
-                <Border Grid.Row="0" Grid.Column="0" Margin="5">
-                    <DockPanel>
-                        <Button
-                            BorderBrush="Transparent"
-                            BorderThickness="0"
-                            Command="{Binding CheckMFAUpdateCommand}"
-                            Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
-                            IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
-                            DockPanel.Dock="Right"
-                            Height="40"
-                            HorizontalAlignment="Center"
-                            Margin="0,0,4,0"
-                            ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.CheckMFA}}" />
-                        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Text="{markup:I18n {x:Static helper:LangKeys.CheckMFA}}"
-                                VerticalAlignment="Center" />
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+            <Grid ColumnDefinitions="*,Auto,*,Auto,*" RowDefinitions="Auto" Margin="0" HorizontalAlignment="Stretch">
+                <!-- 第一列 - MFA检查与更新 -->
+                <StackPanel Grid.Column="0" Spacing="10" Margin="5" VerticalAlignment="Center">
+                    <Border Margin="0,5,0,5">
+                        <DockPanel>
+                            <Button
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding CheckMFAUpdateCommand}"
+                                Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
+                                IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
+                                DockPanel.Dock="Right"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,5,0"
+                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.CheckMFA}}" />
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="{markup:I18n {x:Static helper:LangKeys.CheckMFA}}"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    
+                    <Border Margin="0,5,0,5">
+                        <DockPanel>
+                            <Button
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding UpdateMFACommand}"
+                                Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
+                                IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
+                                DockPanel.Dock="Right"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,4,0"
+                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.SoftwareUpdate}}" />
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="{markup:I18n {x:Static helper:LangKeys.SoftwareUpdate}}"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
                 
-                <Border Grid.Row="0" Grid.Column="1" Margin="5">
-                    <DockPanel>
-                        <Button
-                            BorderBrush="Transparent"
-                            BorderThickness="0"
-                            Command="{Binding CheckResourceUpdateCommand}"
-                            Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
-                            IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
-                            DockPanel.Dock="Right"
-                            Height="40"
-                            HorizontalAlignment="Center"
-                            Margin="0,0,4,0"
-                            ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.CheckResource}}" />
-                        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Text="{markup:I18n {x:Static helper:LangKeys.CheckResource}}"
-                                VerticalAlignment="Center" />
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+                <!-- 分隔线1 -->
+                <Rectangle Grid.Column="1" Width="1" Margin="5,10,10,10" Fill="{DynamicResource SukiControlBorderBrush}" VerticalAlignment="Stretch" />
                 
-                <!-- 第二行 - 更新功能 -->
-                <Border Grid.Row="1" Grid.Column="0" Margin="5">
-                    <DockPanel>
-                        <Button
-                            BorderBrush="Transparent"
-                            BorderThickness="0"
-                            Command="{Binding UpdateMFACommand}"
-                            Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
-                            IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
-                            DockPanel.Dock="Right"
-                            Height="40"
-                            HorizontalAlignment="Center"
-                            Margin="0,0,4,0"
-                            ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.SoftwareUpdate}}" />
-                        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Text="{markup:I18n {x:Static helper:LangKeys.SoftwareUpdate}}"
-                                VerticalAlignment="Center" />
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+                <!-- 第二列 - 资源检查与更新 -->
+                <StackPanel Grid.Column="2" Spacing="10" Margin="5" VerticalAlignment="Center">
+                    <Border Margin="20,5,0,5">
+                        <DockPanel>
+                            <Button
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding CheckResourceUpdateCommand}"
+                                Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
+                                IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
+                                DockPanel.Dock="Right"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,4,0"
+                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.CheckResource}}" />
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="{markup:I18n {x:Static helper:LangKeys.CheckResource}}"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    
+                    <Border Margin="20,5,0,5">
+                        <DockPanel>
+                            <Button
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding UpdateResourceCommand}"
+                                Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
+                                IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
+                                DockPanel.Dock="Right"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,4,0"
+                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.UpdateResource}}" />
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="{markup:I18n {x:Static helper:LangKeys.UpdateResource}}"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
                 
-                <Border Grid.Row="1" Grid.Column="1" Margin="5">
-                    <DockPanel>
-                        <Button
-                            BorderBrush="Transparent"
-                            BorderThickness="0"
-                            Command="{Binding UpdateResourceCommand}"
-                            Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
-                            IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
-                            DockPanel.Dock="Right"
-                            Height="40"
-                            HorizontalAlignment="Center"
-                            Margin="0,0,4,0"
-                            ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.UpdateResource}}" />
-                        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Text="{markup:I18n {x:Static helper:LangKeys.UpdateResource}}"
-                                VerticalAlignment="Center" />
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+                <!-- 分隔线2 -->
+                <Rectangle Grid.Column="3" Width="1" Margin="5,10,10,10" Fill="{DynamicResource SukiControlBorderBrush}" VerticalAlignment="Stretch" />
                 
-                <Border Grid.Row="1" Grid.Column="2" Margin="5">
-                    <DockPanel>
-                        <Button
-                            BorderBrush="Transparent"
-                            BorderThickness="0"
-                            Command="{Binding UpdateMaaFWCommand}"
-                            Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
-                            IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
-                            DockPanel.Dock="Right"
-                            Height="40"
-                            HorizontalAlignment="Center"
-                            Margin="0,0,4,0"
-                            ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.UpdateMaaFW}}" />
-                        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                            <TextBlock
-                                FontSize="16"
-                                FontWeight="SemiBold"
-                                Text="{markup:I18n {x:Static helper:LangKeys.UpdateMaaFW}}"
-                                VerticalAlignment="Center" />
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+                <!-- 第三列 - MaaFW更新 -->
+                <StackPanel Grid.Column="4" Spacing="10" Margin="5" VerticalAlignment="Center">
+                    <Border Margin="20,5,0,5">
+                        <DockPanel>
+                            <Button
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding UpdateMaaFWCommand}"
+                                Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll, IconSize=Size16}"
+                                IsEnabled="{calcBinding:Binding '!IsUpdating and Idle', Source={x:Static helper:Instances.RootViewModel}}"
+                                DockPanel.Dock="Right"
+                                Height="40"
+                                HorizontalAlignment="Right"
+                                Margin="0,0,4,0"
+                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.UpdateMaaFW}}" />
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="{markup:I18n {x:Static helper:LangKeys.UpdateMaaFW}}"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
             </Grid>
         </suki:GlassCard>
     </StackPanel>

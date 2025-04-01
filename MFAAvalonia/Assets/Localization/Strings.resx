@@ -826,7 +826,7 @@
         <value>软件路径</value>
     </data>
     <data name="SoftwareUpdate" xml:space="preserve">
-        <value>软件更新</value>
+        <value>更新软件</value>
     </data>
     <data name="SoftwareVersion" xml:space="preserve">
         <value>软件版本</value>
@@ -952,10 +952,10 @@
         <value>更新完成</value>
     </data>
     <data name="UpdateMaaFW" xml:space="preserve">
-        <value>框架更新</value>
+        <value>更新框架</value>
     </data>
     <data name="UpdateResource" xml:space="preserve">
-        <value>资源更新</value>
+        <value>更新资源</value>
     </data>
     <data name="UpdateSettings" xml:space="preserve">
         <value>更新设置</value>

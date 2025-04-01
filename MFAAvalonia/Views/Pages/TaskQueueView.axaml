@@ -24,6 +24,7 @@
     xmlns:suki="https://github.com/kikipoulet/SukiUI"
     xmlns:type="clr-namespace:MFAAvalonia.Helper.ValueType"
     xmlns:usersControls="clr-namespace:MFAAvalonia.ViewModels.UsersControls"
+    xmlns:settingsControls="clr-namespace:MFAAvalonia.ViewModels.UsersControls.Settings"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:MFAAvalonia.ViewModels"
     xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
@@ -57,10 +58,10 @@
         <!-- 左侧列 -->
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" MaxHeight="150" />
+                <RowDefinition Height="Auto" MaxHeight="220" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <suki:GlassCard Grid.Row="0" Margin="15,15,0,5">
+            <suki:GlassCard Grid.Row="0" Margin="15,0,0,0">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -69,19 +70,59 @@
                             Foreground="{DynamicResource SukiLowText}"
                             HorizontalAlignment="Left"
                             Margin="2,0,0,0"
-                            Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
+                            Text="运行环境"
                             VerticalAlignment="Center" />
                     </suki:GroupBox.Header>
-                    <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                              DisplayMemberBinding="{Binding Name}"
-                              IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                              ItemsSource="{Binding CurrentResources}"
-                              Margin="10,0,10,0"
-                              SelectedValue="{Binding CurrentResource}"
-                              SelectedValueBinding="{Binding Name}"
-                              VerticalAlignment="Center" />
+                    <StackPanel Spacing="4">
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
+                                VerticalAlignment="Center"
+                                Margin="10,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding CurrentResources}"
+                                      Margin="15,0,0,0"
+                                      SelectedValue="{Binding CurrentResource}"
+                                      SelectedValueBinding="{Binding Name}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                        
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.AutoStartOption}}"
+                                VerticalAlignment="Center"
+                                Margin="2,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding BeforeTaskList}"
+                                      Margin="10,0,0,0"
+                                      SelectedValue="{Binding BeforeTask}"
+                                      SelectedValueBinding="{Binding ResourceKey}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                        
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.AfterTaskOption}}"
+                                VerticalAlignment="Center"
+                                Margin="2,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding AfterTaskList}"
+                                      Margin="10,0,0,0"
+                                      SelectedValue="{Binding AfterTask}"
+                                      SelectedValueBinding="{Binding ResourceKey}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
                 </suki:GroupBox>
-
             </suki:GlassCard>
             <Grid Grid.Row="1">
                 <suki:GlassCard Grid.Column="0" Margin="15,5,0,25">

@@ -18,42 +18,6 @@
         <suki:GlassCard Padding="25">
             <StackPanel Spacing="8">
                 <DockPanel>
-                    <ComboBox extensions:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                              DisplayMemberBinding="{Binding Name}"
-                              DockPanel.Dock="Right"
-                              IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                              ItemsSource="{Binding BeforeTaskList}"
-                              SelectedValue="{Binding BeforeTask}"
-                              SelectedValueBinding="{Binding ResourceKey}"
-                              Width="215" />
-                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock
-                            FontSize="16"
-                            FontWeight="SemiBold"
-                            Text="{markup:I18n {x:Static helper:LangKeys.AutoStartOption}}" />
-                    </StackPanel>
-                </DockPanel>
-                <DockPanel>
-                    <ComboBox extensions:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                              DisplayMemberBinding="{Binding Name}"
-                              DockPanel.Dock="Right"
-                              IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                              ItemsSource="{Binding AfterTaskList}"
-                              SelectedValue="{Binding AfterTask}"
-                              SelectedValueBinding="{Binding ResourceKey}"
-                              Width="215" />
-                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock
-                            FontSize="16"
-                            FontWeight="SemiBold"
-                            Text="{markup:I18n {x:Static helper:LangKeys.AfterTaskOption}}" />
-                    </StackPanel>
-                </DockPanel>
-            </StackPanel>
-        </suki:GlassCard>
-        <suki:GlassCard Padding="25">
-            <StackPanel Spacing="8">
-                <DockPanel>
                     <TextBox
                         DockPanel.Dock="Right"
                         HorizontalAlignment="Center"

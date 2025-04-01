@@ -26,9 +26,9 @@
                                                               IconSize=Size16}"
                         DockPanel.Dock="Right"
                         Height="40"
-                        HorizontalAlignment="Center"
+                        HorizontalAlignment="Right"
                         Margin="0,0,4,0" />
-                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                         <TextBlock
                             FontSize="16"
                             FontWeight="SemiBold"
@@ -49,9 +49,9 @@
                                                               IconSize=Size16}"
                         DockPanel.Dock="Right"
                         Height="40"
-                        HorizontalAlignment="Center"
+                        HorizontalAlignment="Right"
                         Margin="0,0,4,0" />
-                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                         <TextBlock
                             FontSize="16"
                             FontWeight="SemiBold"

@@ -886,4 +886,41 @@ public partial class TaskQueueViewModel : ViewModelBase
             return true;
         }
     }
+    
+    #region 启动设置
+
+    // 从StartSettingsUserControlModel复制的列表，供UI绑定使用
+    public Avalonia.Collections.AvaloniaList<MFAAvalonia.ViewModels.Other.LocalizationViewModel> BeforeTaskList =>
+    [
+        new("None"),
+        new("StartupSoftware"),
+        new("StartupSoftwareAndScript"),
+    ];
+
+    public Avalonia.Collections.AvaloniaList<MFAAvalonia.ViewModels.Other.LocalizationViewModel> AfterTaskList =>
+    [
+        new("None"),
+        new("CloseMFA"),
+        new("CloseEmulator"),
+        new("CloseEmulatorAndMFA"),
+        new("ShutDown"),
+        new("CloseEmulatorAndRestartMFA"),
+        new("RestartPC"),
+    ];
+
+    [ObservableProperty] private string? _beforeTask = ConfigurationManager.Current.GetValue(ConfigurationKeys.BeforeTask, "None");
+
+    partial void OnBeforeTaskChanged(string? value)
+    {
+        ConfigurationManager.Current.SetValue(ConfigurationKeys.BeforeTask, value);
+    }
+
+    [ObservableProperty] private string? _afterTask = ConfigurationManager.Current.GetValue(ConfigurationKeys.AfterTask, "None");
+
+    partial void OnAfterTaskChanged(string? value)
+    {
+        ConfigurationManager.Current.SetValue(ConfigurationKeys.AfterTask, value);
+    }
+
+    #endregion
 }
