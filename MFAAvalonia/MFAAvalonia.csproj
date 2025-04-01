@@ -64,6 +64,8 @@
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.6" />
         <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.6" />
         <PackageReference Include="Avalonia.Themes.Simple" Version="11.2.6" />
+        <PackageReference Include="Avalonia.Xaml.Interactions" Version="11.2.0.14" />
+        <PackageReference Include="Avalonia.Xaml.Interactivity" Version="11.2.0.14" />
         <PackageReference Include="AvaloniaEdit.TextMate" Version="11.2.0" />
         <PackageReference Include="AvaloniaExtensions.Axaml" Version="1.0.3" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
