@@ -164,24 +164,16 @@
                                         <Grid
                                             ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
                                             Background="Transparent"
-                                            ColumnDefinitions="9*,1*"
+                                            ColumnDefinitions="30,1*,Auto"
                                             ContextMenu="{StaticResource TaskMenu}"
                                             x:Name="ListGrid">
                                             <CheckBox
-                                                Content="{Binding Name}"
-                                                Grid.Column="0" MinWidth="150"
+                                                Grid.Column="0"
                                                 HorizontalAlignment="Left"
                                                 IsEnabled="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                                IsChecked="{Binding IsCheckedWithNull}">
-                                                <CheckBox.ContentTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock
-                                                            Text="{Binding}"
-                                                            TextTrimming="CharacterEllipsis"
-                                                            TextWrapping="NoWrap"
-                                                            x:DataType="System:String" />
-                                                    </DataTemplate>
-                                                </CheckBox.ContentTemplate>
+                                                IsChecked="{Binding IsCheckedWithNull}"
+                                                Margin="0,0,0,0"
+                                                Tapped="CheckBox_Tapped">
                                             </CheckBox>
                                             
                                             <TextBlock
