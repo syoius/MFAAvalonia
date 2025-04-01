@@ -16,7 +16,7 @@ using System.Collections.ObjectModel;
 
 namespace SukiUI.Controls;
 
-public class SukiSideMenu : ItemsControl
+public class SukiSideMenu : TreeView
 {
     public static readonly StyledProperty<string?> SearchTextProperty =
         AvaloniaProperty.Register<SukiSideMenu, string?>(nameof(SearchText));

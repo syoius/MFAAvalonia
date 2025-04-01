@@ -247,13 +247,12 @@ public partial class TaskQueueView : UserControl
     public void SetOption(DragItemViewModel dragItem, bool value)
     {
         var cacheKey = $"{dragItem.Name}_{dragItem.InterfaceItem.GetHashCode()}";
-
         if (!value)
         {
             HideCurrentPanel(cacheKey);
             return;
         }
-
+        HideAllPanels();
         var newPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
         {
             var p = new StackPanel();
@@ -325,13 +324,12 @@ public partial class TaskQueueView : UserControl
             {
                 new ColumnDefinition
                 {
-                    Width = new GridLength(7, GridUnitType.Star),
+                    Width = new GridLength(7, GridUnitType.Star)
                 },
                 new ColumnDefinition
                 {
-                    Width = new GridLength(4, GridUnitType.Star),
-                    MinWidth = 146
-                },
+                    Width = new GridLength(4, GridUnitType.Star)
+                }
             },
             Margin = new Thickness(8, 0, 5, 5)
         };
@@ -339,9 +337,11 @@ public partial class TaskQueueView : UserControl
         var textBlock = new TextBlock
         {
             FontSize = 14,
+            MinWidth = 180,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left
         };
+
         Grid.SetColumn(textBlock, 0);
         textBlock.Bind(TextBlock.TextProperty, new I18nBinding("RepeatOption"));
         textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
@@ -349,7 +349,9 @@ public partial class TaskQueueView : UserControl
         var numericUpDown = new NumericUpDown
         {
             Value = source.InterfaceItem.RepeatCount ?? 1,
-            Margin = new Thickness(13, 5, 5, 5),
+            MinWidth = 146,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 0, 5, 0),
             Increment = 1,
             Minimum = -1,
         };
@@ -363,6 +365,54 @@ public partial class TaskQueueView : UserControl
             SaveConfiguration();
         };
         Grid.SetColumn(numericUpDown, 1);
+        grid.SizeChanged += (sender, e) =>
+        {
+            var currentGrid = sender as Grid;
+            if (currentGrid == null) return;
+            // 计算所有列的 MinWidth 总和
+            double totalMinWidth = currentGrid.Children.Sum(c => c.MinWidth);
+            double availableWidth = currentGrid.Bounds.Width - currentGrid.Margin.Left - currentGrid.Margin.Right;
+
+            if (availableWidth < totalMinWidth)
+            {
+                // 切换为上下结构（两行）
+                currentGrid.ColumnDefinitions.Clear();
+                currentGrid.RowDefinitions.Clear();
+                currentGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+                currentGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+
+                Grid.SetRow(textBlock, 0);
+                Grid.SetRow(numericUpDown, 1);
+                Grid.SetColumn(textBlock, 0);
+                Grid.SetColumn(numericUpDown, 0);
+            }
+            else
+            {
+                // 恢复左右结构（两列）
+                currentGrid.RowDefinitions.Clear();
+                currentGrid.ColumnDefinitions.Clear();
+                currentGrid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(7, GridUnitType.Star)
+                });
+                currentGrid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(4, GridUnitType.Star)
+                });
+
+                Grid.SetRow(textBlock, 0);
+                Grid.SetRow(numericUpDown, 0);
+                Grid.SetColumn(textBlock, 0);
+                Grid.SetColumn(numericUpDown, 1);
+            }
+        };
+
         grid.Children.Add(numericUpDown);
         panel.Children.Add(grid);
     }
@@ -458,7 +508,7 @@ public partial class TaskQueueView : UserControl
             {
                 new ColumnDefinition
                 {
-                    Width = new GridLength(7, GridUnitType.Star),
+                    Width = new GridLength(7, GridUnitType.Star)
                 },
                 new ColumnDefinition
                 {
@@ -466,14 +516,14 @@ public partial class TaskQueueView : UserControl
                     MinWidth = 180
                 },
             },
-            Margin = new Thickness(8, 0, 0, 5)
+            Margin = new Thickness(8, 0, 5, 5)
         };
 
         var combo = new ComboBox
         {
             DisplayMemberBinding = new Binding("Name"),
-            Margin = new Thickness(5, 5, 2, 5),
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            MinWidth = 150,
+            Margin = new Thickness(0, 5, 5, 5),
             ItemsSource = interfaceOption.Cases?.Select(c => new
             {
                 Name = LanguageHelper.GetLocalizedString(c.Name)
@@ -501,6 +551,7 @@ public partial class TaskQueueView : UserControl
         var textBlock = new TextBlock
         {
             FontSize = 14,
+            MinWidth = 180,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left,
             Text = LanguageHelper.GetLocalizedString(option.Name),
@@ -509,6 +560,54 @@ public partial class TaskQueueView : UserControl
         Grid.SetColumn(textBlock, 0);
         grid.Children.Add(combo);
         grid.Children.Add(textBlock);
+        grid.SizeChanged += (sender, e) =>
+        {
+            var currentGrid = sender as Grid;
+
+            if (currentGrid == null) return;
+
+            // 计算所有列的 MinWidth 总和
+            var totalMinWidth = currentGrid.Children.Sum(c => c.MinWidth);
+            var availableWidth = currentGrid.Bounds.Width;
+            if (availableWidth < totalMinWidth)
+            {
+                // 切换为上下结构（两行）
+                currentGrid.ColumnDefinitions.Clear();
+                currentGrid.RowDefinitions.Clear();
+                currentGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+                currentGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+
+                Grid.SetRow(textBlock, 0);
+                Grid.SetRow(combo, 1);
+                Grid.SetColumn(textBlock, 0);
+                Grid.SetColumn(combo, 0);
+            }
+            else
+            {
+                // 恢复左右结构（两列）
+                currentGrid.RowDefinitions.Clear();
+                currentGrid.ColumnDefinitions.Clear();
+                currentGrid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(7, GridUnitType.Star)
+                });
+                currentGrid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(4, GridUnitType.Star)
+                });
+
+                Grid.SetRow(textBlock, 0);
+                Grid.SetRow(combo, 0);
+                Grid.SetColumn(textBlock, 0);
+                Grid.SetColumn(combo, 1);
+            }
+        };
         return grid;
     }
 

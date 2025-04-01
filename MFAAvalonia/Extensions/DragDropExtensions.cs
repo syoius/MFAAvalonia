@@ -471,9 +471,9 @@ public class DragDropExtensions
         double effectiveWidth = GetListBoxEffectiveWidth(listBox);
         
         // 创建或更新adorner
-        if (listBox.GetValue(DragAdornerProperty) is not Views.UserControls.DragAdorner adorner)
+        if (listBox.GetValue(DragAdornerProperty) is not DragAdorner adorner)
         {
-            adorner = new Views.UserControls.DragAdorner(
+            adorner = new DragAdorner(
                 listBoxLeftPos.X, // 使用ListBox的左侧实际位置
                 effectiveWidth,
                 SukiTheme.GetInstance().ActiveColorTheme.PrimaryBrush

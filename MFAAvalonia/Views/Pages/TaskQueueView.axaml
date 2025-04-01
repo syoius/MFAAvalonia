@@ -39,18 +39,21 @@
 
     <UserControl.Resources>
         <ContextMenu x:Key="TaskMenu">
-            <MenuItem Click="Delete" Header="{markup:I18n {x:Static helper:LangKeys.Delete}}"  />
+            <MenuItem Click="Delete" Header="{markup:I18n {x:Static helper:LangKeys.Delete}}" />
         </ContextMenu>
     </UserControl.Resources>
     <Grid ClipToBounds="False" Margin="0,0,0,0" x:Name="MainGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="{Binding Column1Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
+            <ColumnDefinition Width="{Binding Column1Width, Source={x:Static helper:Instances.TaskQueueViewModel}}"
+                              MinWidth="200" />
             <ColumnDefinition Width="15" />
-            <ColumnDefinition Width="{Binding Column2Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
+            <ColumnDefinition Width="{Binding Column2Width, Source={x:Static helper:Instances.TaskQueueViewModel}}"
+                              MinWidth="200" />
             <ColumnDefinition Width="15" />
-            <ColumnDefinition Width="{Binding Column3Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
+            <ColumnDefinition Width="{Binding Column3Width, Source={x:Static helper:Instances.TaskQueueViewModel}}"
+                              MinWidth="200" />
         </Grid.ColumnDefinitions>
-        
+
         <!-- 左侧列 -->
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
@@ -105,7 +108,7 @@
                                         IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
                                         Margin="7,0,0,0"
                                         Padding="0"
-                                        
+
                                         ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.SelectAll}}"
                                         Width="16">
                                         <fluent:FluentIcon
@@ -120,7 +123,7 @@
                                         IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
                                         Margin="7,0,0,0"
                                         Padding="0"
-                                        
+
                                         ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.DeselectAll}}"
                                         Width="16">
                                         <fluent:FluentIcon
@@ -135,7 +138,7 @@
                                         IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
                                         Margin="7,0,8,0"
                                         Padding="0"
-                                        
+
                                         ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.AddTask}}">
                                         <fluent:FluentIcon
                                             Icon="AddSquareMultiple"
@@ -148,7 +151,8 @@
                         <Grid>
                             <ListBox
                                 DragDrop.AllowDrop="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                ex:DragDropExtensions.EnableDragDrop="True"  ex:DragDropExtensions.EnableAnimation="True"
+                                ex:DragDropExtensions.EnableDragDrop="True"
+                                ex:DragDropExtensions.EnableAnimation="True"
                                 ItemsSource="{Binding Path=TaskItemViewModels}"
                                 Margin="0,3,0,0"
                                 MinHeight="220"
@@ -157,13 +161,12 @@
                                 x:Name="TaskListBox">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid   
-                                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
-                                                Background="Transparent"
-                                                ColumnDefinitions="30,1*,Auto"
-                                                ContextMenu="{StaticResource TaskMenu}"
-                                                Tapped="Grid_Tapped"
-                                                x:Name="ListGrid">
+                                        <Grid
+                                            ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
+                                            Background="Transparent"
+                                            ColumnDefinitions="30,1*,Auto"
+                                            ContextMenu="{StaticResource TaskMenu}"
+                                            x:Name="ListGrid">
                                             <CheckBox
                                                 Grid.Column="0"
                                                 HorizontalAlignment="Left"
@@ -205,7 +208,7 @@
                     </suki:GroupBox>
 
                 </suki:GlassCard>
-                <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                <StackPanel HorizontalAlignment="Center" Margin="15 0 0  7" Orientation="Horizontal">
                     <StackPanel.Resources>
                         <markup:IfConditionConverter x:Key="StatusConditionConverter">
                             <markup:IfConditionConverter.True>
@@ -223,15 +226,14 @@
                         FontWeight="DemiBold"
                         Height="40"
                         HorizontalAlignment="Center"
-                        Margin="0,0,0,7"
                         VerticalAlignment="Bottom"
-                        Width="160" />
+                        Width="150" />
                 </StackPanel>
             </Grid>
         </Grid>
-        
+
         <!-- 第一个分隔条 -->
-        <GridSplitter Grid.Column="1" 
+        <GridSplitter Grid.Column="1"
                       Background="Transparent"
                       Margin="0"
                       Width="15"
@@ -244,8 +246,8 @@
                             VerticalAlignment="Stretch"
                             HorizontalAlignment="Stretch"
                             Cursor="SizeWestEast">
-                        <StackPanel VerticalAlignment="Center" 
-                                    HorizontalAlignment="Center" 
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
                                     Spacing="3">
                             <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
                             <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
@@ -256,14 +258,16 @@
             </GridSplitter.Template>
             <i:Interaction.Behaviors>
                 <ia:EventTriggerBehavior EventName="DragStarted">
-                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}" CommandParameter="Splitter1" />
+                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}"
+                                            CommandParameter="Splitter1" />
                 </ia:EventTriggerBehavior>
                 <ia:EventTriggerBehavior EventName="DragCompleted">
-                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}" CommandParameter="Splitter1" />
+                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}"
+                                            CommandParameter="Splitter1" />
                 </ia:EventTriggerBehavior>
             </i:Interaction.Behaviors>
         </GridSplitter>
-        
+
         <!-- 中间列 -->
         <Grid Grid.Column="2">
             <Grid.RowDefinitions>
@@ -328,9 +332,9 @@
 
             </suki:GlassCard>
         </Grid>
-        
+
         <!-- 第二个分隔条 -->
-        <GridSplitter Grid.Column="3" 
+        <GridSplitter Grid.Column="3"
                       Background="Transparent" DragCompleted="GridSplitter_DragCompleted"
                       Margin="0"
                       Width="15"
@@ -343,8 +347,8 @@
                             VerticalAlignment="Stretch"
                             HorizontalAlignment="Stretch"
                             Cursor="SizeWestEast">
-                        <StackPanel VerticalAlignment="Center" 
-                                    HorizontalAlignment="Center" 
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
                                     Spacing="3">
                             <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
                             <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
@@ -355,14 +359,16 @@
             </GridSplitter.Template>
             <i:Interaction.Behaviors>
                 <ia:EventTriggerBehavior EventName="DragStarted">
-                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}" CommandParameter="Splitter2" />
+                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}"
+                                            CommandParameter="Splitter2" />
                 </ia:EventTriggerBehavior>
                 <ia:EventTriggerBehavior EventName="DragCompleted">
-                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}" CommandParameter="Splitter2" />
+                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}"
+                                            CommandParameter="Splitter2" />
                 </ia:EventTriggerBehavior>
             </i:Interaction.Behaviors>
         </GridSplitter>
-        
+
         <!-- 右侧列 -->
         <Grid Grid.Column="4">
             <Grid.RowDefinitions>
@@ -395,7 +401,7 @@
                                                 Height="11"
                                                 Margin="3,2,4,0"
                                                 Stretch="Uniform"
-                                                
+
                                                 ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Connected}}" />
                                         </markup:IfConditionConverter.True>
                                         <markup:IfConditionConverter.False>
@@ -405,7 +411,7 @@
                                                 Height="16"
                                                 Margin="3,3,4,0"
                                                 Stretch="Uniform"
-                                                
+
                                                 ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Unconnected}}"
                                                 VerticalAlignment="Center" />
                                         </markup:IfConditionConverter.False>
@@ -419,7 +425,7 @@
                                     IsVisible="{calcBinding:Binding 'CurrentController == maa:MaaControllerTypes.Adb'}"
                                     Margin="3,0,2,0"
                                     Padding="0"
-                                    
+
                                     ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Custom}}">
                                     <fluent:FluentIcon
                                         Height="18"
@@ -434,10 +440,10 @@
                                     IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
                                     Margin="3,0,3,0"
                                     Padding="0"
-                                    
+
                                     ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipRefresh}}"
                                     VerticalAlignment="Center">
-                                    
+
                                     <fluent:FluentIcon
                                         Height="18"
                                         Icon="ArrowSync"
@@ -542,7 +548,7 @@
                                 HorizontalAlignment="Right"
                                 ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ButtonClear}}"
                                 VerticalAlignment="Center">
-                                    
+
                                 <fluent:FluentIcon
                                     Height="18"
                                     Icon="ArrowSync"
@@ -550,7 +556,7 @@
                                     IconVariant="Regular" />
                             </Button>
                         </Grid>
-                      
+
                     </suki:GroupBox.Header>
                     <ScrollViewer
                         BorderBrush="LightGray"

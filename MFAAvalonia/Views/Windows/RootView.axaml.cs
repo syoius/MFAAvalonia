@@ -237,6 +237,7 @@ public partial class RootView : SukiWindow
 
             Instances.RootViewModel.LockController = (MaaProcessor.Interface?.Controller?.Count ?? 0) < 2;
             ConfigurationManager.Current.SetValue(ConfigurationKeys.EnableEdit, ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableEdit, false));
+           
             foreach (var task in Instances.TaskQueueViewModel.TaskItemViewModels)
             {
                 if (task.InterfaceItem?.Option is { Count: > 0 } || task.InterfaceItem?.Document != null || task.InterfaceItem?.Repeatable == true)
@@ -245,6 +246,7 @@ public partial class RootView : SukiWindow
                     break;
                 }
             }
+            
             if (!string.IsNullOrWhiteSpace(MaaProcessor.Interface?.Message))
             {
                 ToastHelper.Info(MaaProcessor.Interface.Message);
@@ -353,9 +355,6 @@ public partial class RootView : SukiWindow
                     // 保存窗口大小到配置并立即写入文件
                     ConfigurationManager.Current.SetValue(ConfigurationKeys.MainWindowWidth, width.ToString());
                     ConfigurationManager.Current.SetValue(ConfigurationKeys.MainWindowHeight, height.ToString());
-                    ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
-
-                    LoggerHelper.Info($"已保存窗口大小: 宽度={width}, 高度={height}, 配置={ConfigurationManager.Current.FileName}");
                 }
             }
         }

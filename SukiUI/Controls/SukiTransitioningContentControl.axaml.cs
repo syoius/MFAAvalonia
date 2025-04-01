@@ -157,8 +157,16 @@ namespace SukiUI.Controls
                 return;
             }
             
-            _animCancellationToken.Cancel();
-            _animCancellationToken.Dispose();
+            try
+            {
+                _animCancellationToken.Cancel();
+                _animCancellationToken.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
             _animCancellationToken = new CancellationTokenSource();
             
             if (_isFirstBufferActive) SecondBuffer = content;

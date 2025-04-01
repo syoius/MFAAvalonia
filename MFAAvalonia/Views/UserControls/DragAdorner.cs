@@ -28,7 +28,6 @@ public class DragAdorner : Control
 
     public void UpdatePosition(double y, bool begin = false, bool end = false)
     {
-        if (_yPosition == y && _begin == begin && _end == end) return;
         _yPosition = y;
         _begin = begin;
         _end = end;

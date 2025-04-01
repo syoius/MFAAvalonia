@@ -61,7 +61,6 @@
                     <Border.Styles>
 
 
-
                         <Style Selector="ContentControl.ghost TextBlock">
                             <Setter Property="Foreground" Value="Transparent" />
                         </Style>
@@ -114,7 +113,7 @@
                                             Foreground="{DynamicResource SukiText}" />
                             <ToggleButton Name="toggle"
                                           Grid.Column="1"
-                                          Margin="10,0,0,0"
+                                       
                                           Background="Transparent"
                                           BorderThickness="0"
                                           ClickMode="Press"
@@ -123,12 +122,19 @@
                                           IsChecked="{TemplateBinding IsDropDownOpen,
                                                                       Mode=TwoWay}">
                                 <Path Width="8"
-                                      Height="4"
+                                      Height="4" Name="PART_DropDownIcon"
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       Data="F1 M 301.14,-189.041L 311.57,-189.041L 306.355,-182.942L 301.14,-189.041 Z"
                                       Fill="{DynamicResource SukiText}"
-                                      Stretch="Uniform" />
+                                      Stretch="Uniform" >
+                                    <Path.Transitions>
+                                        <Transitions>
+                                            <TransformOperationsTransition Property="RenderTransform"
+                                                                           Duration="{StaticResource ShortAnimationDuration}" />
+                                        </Transitions>
+                                    </Path.Transitions>
+                                </Path>
                             </ToggleButton>
                             <Popup Name="PART_Popup"
                                    MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
@@ -149,8 +155,11 @@
                                                     BoxShadow="{DynamicResource SukiSmallPopupShadow}"
                                                     CornerRadius="{DynamicResource SmallCornerRadius}">
                                                 <Panel Background="{DynamicResource PopupGradientBrush}">
-                                                    <suki:GlassCard Margin="-1" CornerRadius="{DynamicResource SmallCornerRadius}" />
-                                                    <ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}" VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}">
+                                                    <suki:GlassCard Margin="-1"
+                                                                    CornerRadius="{DynamicResource SmallCornerRadius}" />
+                                                    <ScrollViewer
+                                                        HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                                        VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}">
 
                                                         <ItemsPresenter Name="PART_ItemsPresenter"
                                                                         Margin="0,3,0,0"
@@ -169,7 +178,7 @@
         </Setter>
     </Style>
 
-    <Style Selector="ComboBox[IsDropDownOpen=true] /template/ LayoutTransformControl#PART_LayoutTransform">
+    <Style Selector="ComboBox[IsDropDownOpen=True] /template/ LayoutTransformControl#PART_LayoutTransform">
         <Style.Resources>
             <theme:PlusNineConverter x:Key="NineConverter" />
         </Style.Resources>
@@ -191,7 +200,7 @@
         </Style.Animations>
     </Style>
 
-    <Style Selector="ComboBox[IsDropDownOpen=false] /template/ LayoutTransformControl#PART_LayoutTransform">
+    <Style Selector="ComboBox[IsDropDownOpen=False] /template/ LayoutTransformControl#PART_LayoutTransform">
         <Style.Resources>
             <theme:PlusNineConverter x:Key="NineConverter" />
         </Style.Resources>
@@ -212,7 +221,13 @@
             </Animation>
         </Style.Animations>
     </Style>
-
+    
+    <Style Selector="ComboBox[IsDropDownOpen=True]">
+        <Style Selector="^ /template/ Path#PART_DropDownIcon">
+            <Setter Property="RenderTransform" Value="rotate(180deg)" />
+        </Style>
+    </Style>
+    
     <Style Selector="ComboBox:pointerover /template/ suki|GlassCard#border">
         <Setter Property="BorderBrush" Value="{DynamicResource SukiLightBorderBrush}" />
     </Style>

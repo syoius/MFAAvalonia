@@ -8,7 +8,7 @@ using System;
 
 namespace SukiUI.Controls;
 
-public class SukiSideMenuItem : ListBoxItem
+public class SukiSideMenuItem : TreeViewItem
 {
     public static readonly StyledProperty<object?> IconProperty =
         AvaloniaProperty.Register<SukiSideMenuItem, object?>(nameof(Icon));
@@ -66,15 +66,15 @@ public class SukiSideMenuItem : ListBoxItem
     {
         base.OnApplyTemplate(e);
 
-        _border = e.NameScope.Get<Border>("PART_Border");
-
-        if (e.NameScope.Get<ContentPresenter>("PART_AltDisplay") is { } contentControl)
-        {
-            if (Header is not null || Icon is not null)
-            {
-                contentControl.IsVisible = false;
-            }
-        }
+        // _border = e.NameScope.Get<Border>("PART_Border");
+        //
+        // if (e.NameScope.Get<ContentPresenter>("PART_AltDisplay") is { } contentControl)
+        // {
+        //     if (Header is not null || Icon is not null)
+        //     {
+        //         contentControl.IsVisible = false;
+        //     }
+        // }
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
