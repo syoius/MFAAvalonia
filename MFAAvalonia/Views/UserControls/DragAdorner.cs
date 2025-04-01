@@ -11,8 +11,8 @@ namespace MFAAvalonia.Views.UserControls;
 public class DragAdorner : Control
 {
     private readonly Pen _linePen;
-    private readonly double _originX;
-    private readonly double _totalWidth;
+    private double _originX;
+    private double _totalWidth;
     private double _yPosition;
     private bool _begin;
     private bool _end;
@@ -26,15 +26,28 @@ public class DragAdorner : Control
         IsHitTestVisible = false;
     }
 
-    public void UpdatePosition(double y, bool begin, bool end)
+    public void UpdatePosition(double y, bool begin = false, bool end = false)
     {
-        if (_yPosition == y) return;
+        if (_yPosition == y && _begin == begin && _end == end) return;
         _yPosition = y;
         _begin = begin;
         _end = end;
         InvalidateVisual();
     }
 
+    public void UpdateWidth(double width)
+    {
+        if (_totalWidth == width) return;
+        _totalWidth = width;
+        InvalidateVisual();
+    }
+
+    public void UpdateXPosition(double x)
+    {
+        if (_originX == x) return;
+        _originX = x;
+        InvalidateVisual();
+    }
 
     public override void Render(DrawingContext context)
     {

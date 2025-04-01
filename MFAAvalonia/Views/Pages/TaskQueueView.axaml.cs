@@ -463,7 +463,7 @@ public partial class TaskQueueView : UserControl
                 new ColumnDefinition
                 {
                     Width = new GridLength(4, GridUnitType.Star),
-                    MinWidth = 150
+                    MinWidth = 180
                 },
             },
             Margin = new Thickness(8, 0, 0, 5)
@@ -472,7 +472,8 @@ public partial class TaskQueueView : UserControl
         var combo = new ComboBox
         {
             DisplayMemberBinding = new Binding("Name"),
-            Margin = new Thickness(5),
+            Margin = new Thickness(5, 5, 2, 5),
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
             ItemsSource = interfaceOption.Cases?.Select(c => new
             {
                 Name = LanguageHelper.GetLocalizedString(c.Name)
@@ -485,6 +486,10 @@ public partial class TaskQueueView : UserControl
         {
             Source = Instances.RootViewModel
         });
+
+        // 直接设置ComboBox的属性
+        combo.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+        combo.Padding = new Thickness(2, 0, 0, 0);
 
         combo.SelectionChanged += (_, _) =>
         {

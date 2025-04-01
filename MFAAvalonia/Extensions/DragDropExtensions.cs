@@ -93,8 +93,8 @@ public class DragDropExtensions
             defaultValue: false);
 
     // 存储当前拖拽项的私有属性
-    private static readonly AttachedProperty<DragAdorner?> DragAdornerProperty =
-        AvaloniaProperty.RegisterAttached<ListBox, DragAdorner?>(
+    private static readonly AttachedProperty<Views.UserControls.DragAdorner?> DragAdornerProperty =
+        AvaloniaProperty.RegisterAttached<ListBox, Views.UserControls.DragAdorner?>(
             "DragAdorner",
             typeof(DragDropExtensions));
 
@@ -471,9 +471,9 @@ public class DragDropExtensions
         double effectiveWidth = GetListBoxEffectiveWidth(listBox);
         
         // 创建或更新adorner
-        if (listBox.GetValue(DragAdornerProperty) is not DragAdorner adorner)
+        if (listBox.GetValue(DragAdornerProperty) is not Views.UserControls.DragAdorner adorner)
         {
-            adorner = new DragAdorner(
+            adorner = new Views.UserControls.DragAdorner(
                 listBoxLeftPos.X, // 使用ListBox的左侧实际位置
                 effectiveWidth,
                 SukiTheme.GetInstance().ActiveColorTheme.PrimaryBrush
@@ -538,74 +538,9 @@ public class DragDropExtensions
     private static void ClearAdorner(ListBox listBox)
     {
         var adornerLayer = AdornerLayer.GetAdornerLayer(listBox);
-        if (listBox.GetValue(DragAdornerProperty) is DragAdorner adorner)
+        if (listBox.GetValue(DragAdornerProperty) is Views.UserControls.DragAdorner adorner)
         {
             adornerLayer?.Children.Remove(adorner);
-        }
-    }
-}
-
-// 添加DragAdorner类的XPosition更新方法
-public class DragAdorner : Decorator
-{
-    private double _width;
-    private double _y;
-    private readonly IBrush _brush;
-    private readonly Line _line;
-    private double _x;
-    private readonly Canvas _canvas;
-
-    public DragAdorner(double x, double width, IBrush brush)
-    {
-        _width = width;
-        _x = x;
-        _brush = brush;
-
-        // 创建简单的水平线
-        _line = new Line
-        {
-            StartPoint = new Point(_x, 0),
-            EndPoint = new Point(_x + _width, 0),
-            Stroke = _brush,
-            StrokeThickness = 2,  // 稍微增加粗细以增强可见性
-            IsHitTestVisible = false
-        };
-        
-        // 使用Canvas来包含线条
-        _canvas = new Canvas();
-        _canvas.Children.Add(_line);
-
-        this.Child = _canvas;
-        
-        // 初始位置
-        UpdatePosition(0);
-    }
-
-    public void UpdateWidth(double width)
-    {
-        _width = width;
-        UpdatePositionsAndSizes();
-    }
-
-    public void UpdateXPosition(double x)
-    {
-        _x = x;
-        UpdatePositionsAndSizes();
-    }
-
-    public void UpdatePosition(double y, bool first = false, bool last = false)
-    {
-        _y = y;
-        UpdatePositionsAndSizes();
-    }
-    
-    private void UpdatePositionsAndSizes()
-    {
-        if (_line != null)
-        {
-            // 更新线条位置
-            _line.StartPoint = new Point(_x, _y);
-            _line.EndPoint = new Point(_x + _width, _y);
         }
     }
 }
