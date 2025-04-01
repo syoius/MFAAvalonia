@@ -18,7 +18,7 @@ jobs:
         with:
           filetype: latest-release
           fileName: "MFAAvalonia-*-${{ matrix.os }}-${{ matrix.arch }}.zip"
-          mirrorchyan_rid: MFAAvalonia
+          mirrorchyan_rid: YuanMFA
 
           github_token: ${{ secrets.GITHUB_TOKEN }}
           owner: ${{ github.repository_owner }}

@@ -119,7 +119,7 @@
                         <TextBlock
                             FontSize="16"
                             FontWeight="SemiBold"
-                            Text="{markup:I18n {x:Static helper:LangKeys.AutomaticUpdateResource}}"
+                            Text="CDKey"
                             VerticalAlignment="Center" />
                     </StackPanel>
                 </DockPanel>

@@ -58,10 +58,10 @@
         <!-- 左侧列 -->
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" MaxHeight="220" />
+                <RowDefinition Height="Auto" MaxHeight="230" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <suki:GlassCard Grid.Row="0" Margin="15,0,0,0">
+            <suki:GlassCard Grid.Row="0" Margin="15,15,0,0">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock

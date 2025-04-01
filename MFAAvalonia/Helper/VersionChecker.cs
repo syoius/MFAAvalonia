@@ -617,7 +617,7 @@ rm $0
                 if (isGithub)
                     GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion);
                 else
-                    GetDownloadUrlFromMirror(GetLocalVersion(), "MFAAvalonia", CDK(), out downloadUrl, out latestVersion, isUI: true);
+                    GetDownloadUrlFromMirror(GetLocalVersion(), "YuanMFA", CDK(), out downloadUrl, out latestVersion, isUI: true);
             }
             catch (Exception ex)
             {
