@@ -421,6 +421,105 @@ public static class VersionChecker
 
         SetProgress(progress, 70);
 
+        // 检查是否存在config文件夹，如果存在，安排程序关闭后更新
+        var sourceConfigDir = Path.Combine(tempExtractDir, "config");
+        if (Directory.Exists(sourceConfigDir))
+        {
+            var configBackupDir = Path.Combine(AppContext.BaseDirectory, "backup_config");
+            Directory.CreateDirectory(configBackupDir);
+            
+            // 将配置文件复制到备份目录
+            DirectoryMerge(sourceConfigDir, configBackupDir);
+            
+            // 准备启动Updater进行配置更新
+            string updaterName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? "ConfigUpdater.exe"
+                : "ConfigUpdater";
+                
+            // 创建更新配置的脚本
+            var updaterScriptPath = Path.Combine(AppContext.BaseDirectory, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
+                ? "update_config.bat" 
+                : "update_config.sh");
+                
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // Windows批处理脚本
+                    string batchContent = $@"@echo off
+timeout /t 1 /nobreak > nul
+echo 正在更新配置文件...
+xcopy ""{configBackupDir}\*.*"" ""{Path.Combine(AppContext.BaseDirectory, "config")}"" /E /Y /I
+echo 配置更新完成!
+rmdir /S /Q ""{configBackupDir}""
+del ""%~f0""
+";
+                    File.WriteAllText(updaterScriptPath, batchContent);
+                }
+                else
+                {
+                    // Unix Shell脚本
+                    string shContent = $@"#!/bin/bash
+sleep 1
+echo ""正在更新配置文件...""
+mkdir -p ""{Path.Combine(AppContext.BaseDirectory, "config")}""
+cp -rf ""{configBackupDir}""/* ""{Path.Combine(AppContext.BaseDirectory, "config")}""/ 
+echo ""配置更新完成!""
+rm -rf ""{configBackupDir}""
+rm $0
+";
+                    File.WriteAllText(updaterScriptPath, shContent);
+                    // 设置执行权限
+                    var chmodProcess = Process.Start("/bin/chmod", $"+x {updaterScriptPath}");
+                    chmodProcess?.WaitForExit();
+                }
+                
+                // 通知用户需要重启应用以完成配置更新
+                SetText(textBlock, "配置文件将在应用重启后更新");
+                LoggerHelper.Info("已安排配置文件在程序重启后更新");
+                
+                // 更新完成后在对话框中显示重启按钮
+                DispatcherHelper.RunOnMainThread(() =>
+                {
+                    if (!noDialog)
+                    {
+                        Instances.DialogManager.CreateDialog().WithContent("GameResourceUpdated".ToLocalization() + 
+                        "\n配置文件将在重启后更新").WithActionButton("Yes".ToLocalization(), _ =>
+                        {
+                            // 在程序退出前启动配置更新脚本
+                            try
+                            {
+                                var psi = new ProcessStartInfo
+                                {
+                                    FileName = updaterScriptPath,
+                                    UseShellExecute = true,
+                                    CreateNoWindow = false,
+                                    WindowStyle = ProcessWindowStyle.Hidden
+                                };
+                                Process.Start(psi);
+                                LoggerHelper.Info("已启动配置文件更新器");
+                            }
+                            catch (Exception ex)
+                            {
+                                LoggerHelper.Error($"启动配置文件更新器失败: {ex.Message}");
+                            }
+                            
+                            Process.Start(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
+                            Instances.ShutdownApplication();
+                            Instances.ApplicationLifetime.Shutdown();
+                        }, dismissOnClick: true, "Flat", "Accent")
+                        .WithActionButton("No".ToLocalization(), _ =>
+                        {
+                        }, dismissOnClick: true).TryShow();
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.Error($"准备配置更新器失败: {ex.Message}");
+            }
+        }
+
         File.Delete(tempZipFilePath);
         Directory.Delete(tempExtractDir, true);
         SetProgress(progress, 80);
