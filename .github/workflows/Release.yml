@@ -132,6 +132,16 @@ jobs:
       - name: Build Solution
         run: dotnet publish -c Release -r ${{ matrix.platform }}-${{ matrix.arch }}
 
+      - name: Rename Executable
+        shell: bash
+        run: |
+          BUILD_DIR="bin/AnyCPU/Release/${{ matrix.platform }}-${{ matrix.arch }}/publish"
+          if [[ "${{ matrix.platform }}" == "win" ]]; then
+            mv "$BUILD_DIR/MFAAvalonia.exe" "$BUILD_DIR/MaaYuan.exe"
+          else
+            mv "$BUILD_DIR/MFAAvalonia" "$BUILD_DIR/MaaYuan"
+          fi
+
       - name: Unified ZIP Packaging
         shell: bash
         run: |

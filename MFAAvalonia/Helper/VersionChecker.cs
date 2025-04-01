@@ -715,8 +715,12 @@ rm $0
             }
 
             SetProgress(progress, 100);
+            
+            string executableName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
+                ? "MaaYuan.exe" 
+                : "MaaYuan";
 
-            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, $"{Assembly.GetEntryAssembly().GetName().Name}.exe", Process.GetCurrentProcess().MainModule.ModuleName);
+            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, executableName, executableName);
 
             Thread.Sleep(500);
         }
