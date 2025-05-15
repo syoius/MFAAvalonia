@@ -60,9 +60,8 @@
                     <NumericUpDown
                         DockPanel.Dock="Right"
                         HorizontalAlignment="Center"
-                        Margin="-10,0,4,0"
                         Value="{Binding WaitSoftwareTime}"
-                        Width="205" />
+                        Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
                             FontSize="16"

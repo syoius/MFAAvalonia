@@ -20,9 +20,7 @@ using System.Collections.Generic;
 
 namespace SukiUI.Controls;
 
-[TemplatePart("PART_VisualLayerManager", typeof(VisualLayerManager))]
 [TemplatePart("PART_Root", typeof(Panel))]
-[TemplatePart("PART_Background", typeof(SukiBackground))]
 [TemplatePart("PART_LayoutTransform", typeof(LayoutTransformControl))]
 [TemplatePart("PART_TitleBarBackground", typeof(GlassCard))]
 [TemplatePart("PART_Logo", typeof(ContentPresenter))]
@@ -37,6 +35,7 @@ namespace SukiUI.Controls;
 public class SukiWindow : Window, IDisposable
 {
     #region Enums
+
     /// <summary>
     /// Specifies the visibility mode of the title bar.
     /// </summary>
@@ -54,15 +53,18 @@ public class SukiWindow : Window, IDisposable
         [Description("Auto Hidden: The title bar is auto hidden when cursor is far from it.")]
         AutoHidden
     }
+
     #endregion
 
     #region Template
 
     /// <inheritdoc />
     protected override Type StyleKeyOverride => typeof(SukiWindow);
+
     #endregion
 
     #region Members
+
     private const int DefaultAutoHideDelay = 1000;
     private const int DefaultAutoShowDelay = 300;
 
@@ -79,11 +81,13 @@ public class SukiWindow : Window, IDisposable
     };
 
     private readonly List<Action> _disposeActions = new List<Action>();
+
     #endregion
 
     #region Properties
+
     public static readonly StyledProperty<double> MaxWidthScreenRatioProperty =
-        AvaloniaProperty.Register<SukiWindow, double>(nameof(MaxWidthScreenRatio));
+        AvaloniaProperty.Register<SukiWindow, double>(nameof(MaxWidthScreenRatio), double.NaN);
 
     /// <summary>
     /// Gets or sets the maximum width of the window as a ratio of the host screen width.
@@ -95,7 +99,7 @@ public class SukiWindow : Window, IDisposable
     }
 
     public static readonly StyledProperty<double> MaxHeightScreenRatioProperty =
-        AvaloniaProperty.Register<SukiWindow, double>(nameof(MaxHeightScreenRatio));
+        AvaloniaProperty.Register<SukiWindow, double>(nameof(MaxHeightScreenRatio), double.NaN);
 
     /// <summary>
     /// Gets or sets the maximum height of the window as a ratio of the host screen height.
@@ -202,10 +206,10 @@ public class SukiWindow : Window, IDisposable
         get => GetValue(TitleBarContextMenuProperty);
         set => SetValue(TitleBarContextMenuProperty, value);
     }
-    
+
 
     public static readonly StyledProperty<bool> ShowTitleProperty = AvaloniaProperty.Register<SukiWindow, bool>(nameof(ShowTitle), defaultValue: true);
- 
+
     /// <summary>
     /// Whether to display the title bar.
     /// </summary>
@@ -214,7 +218,6 @@ public class SukiWindow : Window, IDisposable
         get => (bool)GetValue(ShowTitleProperty);
         set => SetValue(ShowTitleProperty, value);
     }
-    
 
 
     public static readonly StyledProperty<object> NonClientAreaContentProperty = AvaloniaProperty.Register<SukiWindow, object>(nameof(NonClientAreaContent), default);
@@ -227,7 +230,7 @@ public class SukiWindow : Window, IDisposable
         get => GetValue(NonClientAreaContentProperty);
         set => SetValue(NonClientAreaContentProperty, value);
     }
-    
+
     public static readonly StyledProperty<Control?> LogoContentProperty =
         AvaloniaProperty.Register<SukiWindow, Control?>(nameof(LogoContent));
 
@@ -289,7 +292,7 @@ public class SukiWindow : Window, IDisposable
     }
 
     public static readonly StyledProperty<CornerRadius> RootCornerRadiusProperty =
-        AvaloniaProperty.Register<Border, CornerRadius>(nameof(RootCornerRadius), defaultValue: default);
+        AvaloniaProperty.Register<SukiWindow, CornerRadius>(nameof(RootCornerRadius));
 
     /// <summary>
     /// Gets or sets the corner radius of the window.
@@ -374,7 +377,7 @@ public class SukiWindow : Window, IDisposable
 
     // Background properties
     public static readonly StyledProperty<bool> BackgroundAnimationEnabledProperty =
-        AvaloniaProperty.Register<SukiWindow, bool>(nameof(BackgroundAnimationEnabled), defaultValue: false);
+        SukiMainHost.BackgroundAnimationEnabledProperty.AddOwner<SukiWindow>();
 
     /// <inheritdoc cref="SukiBackground.AnimationEnabled"/>
     public bool BackgroundAnimationEnabled
@@ -384,8 +387,7 @@ public class SukiWindow : Window, IDisposable
     }
 
     public static readonly StyledProperty<SukiBackgroundStyle> BackgroundStyleProperty =
-        AvaloniaProperty.Register<SukiWindow, SukiBackgroundStyle>(nameof(BackgroundStyle),
-            defaultValue: SukiBackgroundStyle.GradientSoft);
+        SukiMainHost.BackgroundStyleProperty.AddOwner<SukiWindow>();
 
     /// <inheritdoc cref="SukiBackground.Style"/>
     public SukiBackgroundStyle BackgroundStyle
@@ -395,7 +397,7 @@ public class SukiWindow : Window, IDisposable
     }
 
     public static readonly StyledProperty<string?> BackgroundShaderFileProperty =
-        AvaloniaProperty.Register<SukiWindow, string?>(nameof(BackgroundShaderFile));
+        SukiMainHost.BackgroundShaderFileProperty.AddOwner<SukiWindow>();
 
     /// <inheritdoc cref="SukiBackground.ShaderFile"/>
     public string? BackgroundShaderFile
@@ -405,7 +407,7 @@ public class SukiWindow : Window, IDisposable
     }
 
     public static readonly StyledProperty<string?> BackgroundShaderCodeProperty =
-        AvaloniaProperty.Register<SukiWindow, string?>(nameof(BackgroundShaderCode));
+        SukiMainHost.BackgroundShaderCodeProperty.AddOwner<SukiWindow>();
 
     /// <inheritdoc cref="SukiBackground.ShaderCode"/>
     public string? BackgroundShaderCode
@@ -415,7 +417,7 @@ public class SukiWindow : Window, IDisposable
     }
 
     public static readonly StyledProperty<bool> BackgroundTransitionsEnabledProperty =
-        AvaloniaProperty.Register<SukiBackground, bool>(nameof(BackgroundTransitionsEnabled), defaultValue: false);
+        SukiMainHost.BackgroundTransitionsEnabledProperty.AddOwner<SukiWindow>();
 
     /// <inheritdoc cref="SukiBackground.TransitionsEnabled"/>
     public bool BackgroundTransitionsEnabled
@@ -425,7 +427,7 @@ public class SukiWindow : Window, IDisposable
     }
 
     public static readonly StyledProperty<double> BackgroundTransitionTimeProperty =
-        AvaloniaProperty.Register<SukiBackground, double>(nameof(BackgroundTransitionTime), defaultValue: 1.0);
+        SukiMainHost.BackgroundTransitionTimeProperty.AddOwner<SukiWindow>();
 
     /// <inheritdoc cref="SukiBackground.TransitionTime"/>
     public double BackgroundTransitionTime
@@ -434,12 +436,8 @@ public class SukiWindow : Window, IDisposable
         set => SetValue(BackgroundTransitionTimeProperty, value);
     }
 
-    public static readonly StyledProperty<Avalonia.Controls.Controls> RightWindowTitleBarControlsProperty =
-        AvaloniaProperty.Register<SukiWindow, Avalonia.Controls.Controls>(nameof(RightWindowTitleBarControls),
-            defaultValue: new Avalonia.Controls.Controls());
-
     public static readonly StyledProperty<bool> BackgroundForceSoftwareRenderingProperty =
-        AvaloniaProperty.Register<SukiWindow, bool>(nameof(BackgroundForceSoftwareRendering));
+        SukiMainHost.BackgroundForceSoftwareRenderingProperty.AddOwner<SukiWindow>();
 
     /// <summary>
     /// Forces the background of the window to utilise software rendering.
@@ -450,6 +448,9 @@ public class SukiWindow : Window, IDisposable
         get => GetValue(BackgroundForceSoftwareRenderingProperty);
         set => SetValue(BackgroundForceSoftwareRenderingProperty, value);
     }
+
+    public static readonly StyledProperty<Avalonia.Controls.Controls> RightWindowTitleBarControlsProperty =
+        AvaloniaProperty.Register<SukiWindow, Avalonia.Controls.Controls>(nameof(RightWindowTitleBarControls));
 
     /// <summary>
     /// Controls that are displayed on the right side of the title bar,
@@ -462,8 +463,7 @@ public class SukiWindow : Window, IDisposable
     }
 
     public static readonly StyledProperty<Avalonia.Controls.Controls> HostsProperty =
-        AvaloniaProperty.Register<SukiWindow, Avalonia.Controls.Controls>(nameof(Hosts),
-            defaultValue: new Avalonia.Controls.Controls());
+        SukiMainHost.HostsProperty.AddOwner<SukiWindow>();
 
     /// <summary>
     /// These controls are displayed above all others and fill the entire window.
@@ -481,6 +481,7 @@ public class SukiWindow : Window, IDisposable
             o => o.PreviousVisibleWindowState);
 
     private WindowState _previousVisibleWindowState = WindowState.Normal;
+
     /// <summary>
     /// Gets the previous visible window state.
     /// </summary>
@@ -489,15 +490,16 @@ public class SukiWindow : Window, IDisposable
         get => _previousVisibleWindowState;
         private set => SetAndRaise(PreviousVisibleWindowStateProperty, ref _previousVisibleWindowState, value);
     }
+
     #endregion
 
     #region Constructor
+
     public SukiWindow()
     {
-        MenuItems = new AvaloniaList<MenuItem>();
-        RightWindowTitleBarControls = new Avalonia.Controls.Controls();
-        Hosts = new Avalonia.Controls.Controls();
-
+        Hosts = [];
+        RightWindowTitleBarControls = [];
+        MenuItems = [];
         ScalingChanged += OnScalingChanged;
 
         _hideTitleBarTimer.Tick += HideTitleBarTimerOnTick;
@@ -616,16 +618,16 @@ public class SukiWindow : Window, IDisposable
 
         if (change.Property == MaxWidthScreenRatioProperty)
         {
-            ConstrainToMaxSizeRatio(constrainMaxWidth: true, constrainMaxHeight: false);
+            this.ConstrainMaxSizeToScreenRatio(MaxWidthScreenRatio, double.NaN);
         }
         else if (change.Property == MaxHeightScreenRatioProperty)
         {
-            ConstrainToMaxSizeRatio(constrainMaxWidth: false, constrainMaxHeight: true);
+            this.ConstrainMaxSizeToScreenRatio(double.NaN, MaxHeightScreenRatio);
         }
         else if (change.Property == WindowStateProperty)
         {
             if (change.OldValue is not WindowState oldWindowState
-            || change.NewValue is not WindowState newWindowState) return;
+                || change.NewValue is not WindowState newWindowState) return;
 
             OnWindowStateChanged(oldWindowState, newWindowState);
         }
@@ -659,6 +661,7 @@ public class SukiWindow : Window, IDisposable
             _showTitleBarTimer.Interval = TimeSpan.FromMilliseconds(TitleBarAutoShowDelay);
         }
     }
+
     #endregion
 
     #region Events
@@ -670,7 +673,7 @@ public class SukiWindow : Window, IDisposable
     /// <param name="e"></param>
     private void OnScalingChanged(object sender, EventArgs e)
     {
-        ConstrainToMaxSizeRatio(MaxWidthScreenRatio > 0, MaxHeightScreenRatio > 0);
+        this.ConstrainMaxSizeToScreenRatio(MaxWidthScreenRatio, MaxHeightScreenRatio);
     }
 
     /// <summary>
@@ -723,7 +726,7 @@ public class SukiWindow : Window, IDisposable
                 : 0);
         }
 
-        ConstrainToMaxSizeRatio(MaxWidthScreenRatio > 0, MaxHeightScreenRatio > 0);
+        this.ConstrainMaxSizeToScreenRatio(MaxWidthScreenRatio, MaxHeightScreenRatio);
     }
 
     /// <summary>
@@ -841,7 +844,7 @@ public class SukiWindow : Window, IDisposable
     {
         // Ensure correct window max size if dropped on other screen/resolution while using max size ratio
         if (!CanMove || e.InitialPressMouseButton != MouseButton.Left) return;
-        ConstrainToMaxSizeRatio(MaxWidthScreenRatio > 0, MaxHeightScreenRatio > 0);
+        this.ConstrainMaxSizeToScreenRatio(MaxWidthScreenRatio, MaxHeightScreenRatio);
     }
 
     /// <summary>
@@ -885,9 +888,11 @@ public class SukiWindow : Window, IDisposable
         _showTitleBarTimer.Stop();
         IsTitleBarVisible = true;
     }
+
     #endregion
 
     #region Methods
+
     private void EnableWindowsSnapLayout(Button maximize)
     {
         const int HTMAXBUTTON = 9;
@@ -909,8 +914,8 @@ public class SukiWindow : Window, IDisposable
                 var buttonSize = maximize.DesiredSize;
 
                 var buttonLeftTop = maximize.PointToScreen(FlowDirection == FlowDirection.LeftToRight
-                                                           ? new Point(buttonSize.Width, 0)
-                                                           : new Point(0, 0));
+                    ? new Point(buttonSize.Width, 0)
+                    : new Point(0, 0));
 
                 var x = (buttonLeftTop.X - point.X) / RenderScaling;
                 var y = (point.Y - buttonLeftTop.Y) / RenderScaling;
@@ -941,8 +946,8 @@ public class SukiWindow : Window, IDisposable
                 if (pointerOnButton && CanMaximize)
                 {
                     WindowState = WindowState == WindowState.Maximized
-                                  ? WindowState.Normal
-                                  : WindowState.Maximized;
+                        ? WindowState.Normal
+                        : WindowState.Maximized;
 
                     pointerOverSetter.SetValue(maximize, false);
                 }
@@ -968,28 +973,32 @@ public class SukiWindow : Window, IDisposable
     {
         var resizeBorders = new[]
         {
-            new {
+            new
+            {
                 Tag = "North",
                 VerticalAlignment = VerticalAlignment.Top,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Cursor = StandardCursorType.SizeNorthSouth,
                 IsCorner = false
             },
-            new {
+            new
+            {
                 Tag = "South",
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 Cursor = StandardCursorType.SizeNorthSouth,
                 IsCorner = false
             },
-            new {
+            new
+            {
                 Tag = "West",
                 VerticalAlignment = VerticalAlignment.Stretch,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Cursor = StandardCursorType.SizeWestEast,
                 IsCorner = false
             },
-            new {
+            new
+            {
                 Tag = "East",
                 VerticalAlignment = VerticalAlignment.Stretch,
                 HorizontalAlignment = HorizontalAlignment.Right,
@@ -997,28 +1006,32 @@ public class SukiWindow : Window, IDisposable
                 IsCorner = false
             },
 
-            new {
+            new
+            {
                 Tag = "NW",
                 VerticalAlignment = VerticalAlignment.Top,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Cursor = StandardCursorType.TopLeftCorner,
                 IsCorner = true
             },
-            new {
+            new
+            {
                 Tag = "NE",
                 VerticalAlignment = VerticalAlignment.Top,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 Cursor = StandardCursorType.TopRightCorner,
                 IsCorner = true
             },
-            new {
+            new
+            {
                 Tag = "SW",
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Cursor = StandardCursorType.BottomLeftCorner,
                 IsCorner = true
             },
-            new {
+            new
+            {
                 Tag = "SE",
                 VerticalAlignment = VerticalAlignment.Bottom,
                 HorizontalAlignment = HorizontalAlignment.Right,
@@ -1033,6 +1046,8 @@ public class SukiWindow : Window, IDisposable
             {
                 Tag = config.Tag,
                 Background = Brushes.Transparent,
+                VerticalAlignment = config.VerticalAlignment,
+                HorizontalAlignment = config.HorizontalAlignment,
                 Cursor = new Cursor(config.Cursor)
             };
 
@@ -1040,8 +1055,6 @@ public class SukiWindow : Window, IDisposable
             {
                 border.Width = 8;
                 border.Height = 8;
-                border.VerticalAlignment = config.VerticalAlignment;
-                border.HorizontalAlignment = config.HorizontalAlignment;
             }
             else
             {
@@ -1053,65 +1066,11 @@ public class SukiWindow : Window, IDisposable
                 {
                     border.Height = 6;
                 }
-                border.VerticalAlignment = config.VerticalAlignment;
-                border.HorizontalAlignment = config.HorizontalAlignment;
             }
 
             border.PointerPressed += RaiseResize;
             _disposeActions.Add(() => border.PointerPressed -= RaiseResize);
             rootPanel.Children.Add(border);
-        }
-    }
-
-    /// <summary>
-    /// Constrains the window to a maximum size ratio of the host screen.
-    /// </summary>
-    /// <param name="constrainMaxWidth"></param>
-    /// <param name="constrainMaxHeight"></param>
-    protected virtual void ConstrainToMaxSizeRatio(bool constrainMaxWidth = true, bool constrainMaxHeight = true)
-    {
-        Screen? screen = null;
-        WindowState? windowState = null;
-
-        if (constrainMaxWidth)
-        {
-            var widthRatio = MaxWidthScreenRatio;
-            windowState = WindowState;
-            if (widthRatio <= 0 || windowState is WindowState.FullScreen or WindowState.Maximized)
-            {
-                MaxWidth = double.PositiveInfinity;
-            }
-            else
-            {
-                screen = this.GetHostScreen();
-                if (screen is null) return;
-
-                var desiredMaxWidth = screen.WorkingArea.Width / RenderScaling * widthRatio;
-
-                MaxWidth = MinWidth > 0
-                    ? Math.Max(MinWidth, desiredMaxWidth)
-                    : desiredMaxWidth;
-            }
-        }
-
-        if (constrainMaxHeight)
-        {
-            var heightRatio = MaxHeightScreenRatio;
-            windowState ??= WindowState;
-            if (heightRatio <= 0 || windowState is WindowState.FullScreen or WindowState.Maximized)
-            {
-                MaxHeight = double.PositiveInfinity;
-            }
-            else
-            {
-                screen ??= this.GetHostScreen();
-                if (screen is null) return;
-
-                var desiredMaxHeight = screen.WorkingArea.Height / RenderScaling * heightRatio;
-                MaxHeight = MinHeight > 0
-                    ? Math.Max(MinHeight, desiredMaxHeight)
-                    : desiredMaxHeight;
-            }
         }
     }
 
@@ -1149,5 +1108,6 @@ public class SukiWindow : Window, IDisposable
             disposeAction.Invoke();
         }
     }
+
     #endregion
 }

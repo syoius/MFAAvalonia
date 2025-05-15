@@ -1194,11 +1194,29 @@ namespace MFAAvalonia.Assets.Localization {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to 频道 ID.
+        /// </summary>
+        public static string ExternalNotificationDiscordChannelId {
+            get {
+                return ResourceManager.GetString("ExternalNotificationDiscordChannelId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to 用户 ID.
         /// </summary>
         public static string ExternalNotificationDiscordUserId {
             get {
                 return ResourceManager.GetString("ExternalNotificationDiscordUserId", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to 用户 ID.
+        /// </summary>
+        public static string ExternalNotificationDiscordWebhookName {
+            get {
+                return ResourceManager.GetString("ExternalNotificationDiscordWebhookName", resourceCulture);
             }
         }
         
@@ -1379,6 +1397,15 @@ namespace MFAAvalonia.Assets.Localization {
         public static string ExternalNotificationTips {
             get {
                 return ResourceManager.GetString("ExternalNotificationTips", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Webhook URL.
+        /// </summary>
+        public static string ExternalNotificationWebhookUrl {
+            get {
+                return ResourceManager.GetString("ExternalNotificationWebhookUrl", resourceCulture);
             }
         }
         

@@ -1,5 +1,6 @@
 ﻿using Avalonia.Controls.ApplicationLifetimes;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions;
 using MFAAvalonia.Utilities.Attributes;
 using MFAAvalonia.ViewModels.Pages;
 using MFAAvalonia.ViewModels.UsersControls.Settings;
@@ -167,7 +168,7 @@ public static partial class Instances
         {
             var psi = new ProcessStartInfo
             {
-                FileName = GetFallbackCommand(),
+                FileName = MFAExtensions.GetFallbackCommand(),
                 UseShellExecute = RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
                 CreateNoWindow = true
             };
@@ -189,12 +190,7 @@ public static partial class Instances
         }
     }
 
-    private static string GetFallbackCommand()
-    {
-        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-            ? "cmd.exe"
-            : "/bin/bash";
-    }
+
     private static string GetExecutablePath()
     {
         // 兼容.NET 5+环境

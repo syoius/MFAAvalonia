@@ -24,6 +24,7 @@ public partial class SettingsViewModel : ViewModelBase
         HotKeyShowGui = MFAHotKey.Parse(GlobalConfiguration.GetValue(ConfigurationKeys.ShowGui, ""));
         HotKeyLinkStart = MFAHotKey.Parse(GlobalConfiguration.GetValue(ConfigurationKeys.LinkStart, ""));
     }
+
     #region 配置
 
     public IAvaloniaReadOnlyList<MFAConfiguration> ConfigurationList { get; set; } = ConfigurationManager.Configs;
@@ -102,4 +103,13 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     #endregion HotKey
+
+
+    #region 资源
+
+    [ObservableProperty] private bool _showResourceIssues = false;
+    [ObservableProperty] private string _resourceIssues = string.Empty;
+    [ObservableProperty] private string _resourceGithub = string.Empty;
+
+    #endregion
 }

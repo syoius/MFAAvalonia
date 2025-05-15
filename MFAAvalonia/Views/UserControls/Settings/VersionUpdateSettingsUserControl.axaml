@@ -109,37 +109,45 @@
                             VerticalAlignment="Center" />
                     </StackPanel>
                 </DockPanel>
+                <DockPanel IsVisible="{calcBinding:Binding 'DownloadSourceIndex==0'}">
+                    <suki:PasswordBox
+                        DockPanel.Dock="Right" Watermark="{markup:I18n {x:Static helper:LangKeys.Optional}}"
+                        HorizontalAlignment="Center" MinHeight="40"
+                        Password="{Binding GitHubToken}"
+                        Width="215" />
+                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="Token"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </DockPanel>
                 <DockPanel IsVisible="{calcBinding:Binding 'DownloadSourceIndex==1'}">
                     <suki:PasswordBox
                         DockPanel.Dock="Right"
                         HorizontalAlignment="Center"
                         Password="{Binding CdkPassword}"
                         Width="215" />
+                    <Button DockPanel.Dock="Right"
+                            BorderBrush="Transparent"
+                            BorderThickness="0"
+                            Command="{x:Static utilities:UrlUtilities.OpenLink}"
+                            CommandParameter="{x:Static helper:MFAUrls.PurchaseLink}"
+                            Height="40"
+                            HorizontalAlignment="Center"
+                            Margin="0,0,4,0">
+                        <TextBlock
+                            FontSize="14" Foreground="{DynamicResource SukiPrimaryColor}"
+                            Text="{markup:I18n {x:Static helper:LangKeys.PurchaseLink}}" />
+                    </Button>
+
+
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
                             FontSize="16"
                             FontWeight="SemiBold"
-                            Text="CDKey"
-                            VerticalAlignment="Center" />
-                    </StackPanel>
-                </DockPanel>
-                <DockPanel IsVisible="{calcBinding:Binding 'DownloadSourceIndex==1'}">
-                    <Button
-                        BorderBrush="Transparent"
-                        BorderThickness="0"
-                        Command="{x:Static utilities:UrlUtilities.OpenLink}"
-                        CommandParameter="{x:Static helper:MFAUrls.PurchaseLink}"
-                        Content="{markupExtensions:FluentIcon Icon=Send,
-                                                          IconSize=Size16}"
-                        DockPanel.Dock="Right"
-                        Height="40"
-                        HorizontalAlignment="Center"
-                        Margin="0,0,4,0" />
-                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
-                        <TextBlock
-                            FontSize="16"
-                            FontWeight="SemiBold"
-                            Text="{markup:I18n {x:Static helper:LangKeys.PurchaseLink}}"
+                            Text="CDK"
                             VerticalAlignment="Center" />
                     </StackPanel>
                 </DockPanel>

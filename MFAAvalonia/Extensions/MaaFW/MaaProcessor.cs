@@ -46,6 +46,11 @@ public class MaaProcessor
     public Dictionary<string, MaaNode> NodeDictionary = new();
     public ObservableQueue<MFATask> TaskQueue { get; } = new();
 
+    static MaaProcessor()
+    {
+        Toolkit.Config.InitOption(AppContext.BaseDirectory);
+    }
+
     public MaaProcessor()
     {
         TaskQueue.CountChanged += (_, args) =>
@@ -73,6 +78,14 @@ public class MaaProcessor
                     Path = paths
                 };
             }
+
+            if (value != null)
+            {
+                Instances.SettingsViewModel.ShowResourceIssues = !string.IsNullOrWhiteSpace(value.Url);
+                Instances.SettingsViewModel.ResourceGithub = value.Url;
+                Instances.SettingsViewModel.ResourceIssues = $"{value.Url}/issues";
+            }
+
         }
     }
 
@@ -106,6 +119,7 @@ public class MaaProcessor
         MaaTasker ??= await InitializeMaaTasker(token);
         return MaaTasker;
     }
+
     public ObservableCollection<DragItemViewModel> TasksSource { get; private set; } =
         [];
     public AutoInitDictionary AutoInitDictionary { get; } = new();
@@ -118,6 +132,15 @@ public class MaaProcessor
 
     #region MaaTasker初始化
 
+    private static string ConvertPath(string path)
+    {
+        if (Path.Exists(path) && !path.Contains("\""))
+        {
+            return $"\"{path}\"";
+        }
+        return path;
+    }
+
     async private Task<MaaTasker?> InitializeMaaTasker(CancellationToken token) // 添加 async 和 token
     {
         AutoInitDictionary.Clear();
@@ -129,6 +152,8 @@ public class MaaProcessor
             var resources = Instances.TaskQueueViewModel.CurrentResources
                     .FirstOrDefault(c => c.Name == Instances.TaskQueueViewModel.CurrentResource)?.Path
                 ?? [];
+            resources = resources.Select(Path.GetFullPath).ToList();
+
             LoggerHelper.Info($"Resource: {string.Join(",", resources)}");
 
 
@@ -184,8 +209,8 @@ public class MaaProcessor
             {
                 Controller = controller,
                 Resource = maaResource,
-                Utility = Utility,
-                Toolkit = Toolkit,
+                Utility = MaaProcessor.Utility,
+                Toolkit = MaaProcessor.Toolkit,
                 DisposeOptions = DisposeOptions.All,
             };
 
@@ -221,11 +246,11 @@ public class MaaProcessor
                     if (!Directory.Exists($"{AppContext.BaseDirectory}"))
                         Directory.CreateDirectory($"{AppContext.BaseDirectory}");
                     var program = MaaInterface.ReplacePlaceholder(agentConfig.ChildExec, AppContext.BaseDirectory);
-                    var args = $"{string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory))} {socket}";
+                    var args = $"{string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory).Select(ConvertPath))} {socket}";
                     var startInfo = new ProcessStartInfo
                     {
                         FileName = program,
-                        WorkingDirectory = $"{AppContext.BaseDirectory}",
+                        WorkingDirectory = AppContext.BaseDirectory,
                         Arguments = $"{(program.Contains("python") && args.Contains(".py") && !args.Contains("-u ") ? "-u " : "")}{args}",
                         UseShellExecute = false,
                         RedirectStandardError = true,
@@ -243,9 +268,18 @@ public class MaaProcessor
                     {
                         if (!string.IsNullOrEmpty(args.Data))
                         {
+                            var outData = args.Data;
+                            try
+                            {
+                                outData = Regex.Replace(outData, @"\x1B\[[0-9;]*[a-zA-Z]", "");
+                            }
+                            catch (Exception)
+                            {
+                            }
+
                             DispatcherHelper.PostOnMainThread(() =>
                             {
-                                RootView.AddLog($"{args.Data}");
+                                RootView.AddLog(outData);
                             });
                         }
                     };
@@ -254,9 +288,18 @@ public class MaaProcessor
                     {
                         if (!string.IsNullOrEmpty(args.Data))
                         {
+                            var outData = args.Data;
+                            try
+                            {
+                                outData = Regex.Replace(outData, @"\x1B\[[0-9;]*[a-zA-Z]", "");
+                            }
+                            catch (Exception)
+                            {
+                            }
+
                             DispatcherHelper.PostOnMainThread(() =>
                             {
-                                RootView.AddLog($"{args.Data}");
+                                RootView.AddLog(outData);
                             });
                         }
                     };
@@ -273,7 +316,8 @@ public class MaaProcessor
                 }
                 catch (Exception ex)
                 {
-                    LoggerHelper.Error($"Agent启动失败: {ex.Message}");
+                    LoggerHelper.Error($"{"AgentStartFailed".ToLocalization()}: {ex.Message}");
+                    ToastHelper.Error("AgentStartFailed".ToLocalization(), ex.Message);
                 }
 
                 _agentClient?.LinkStart();
@@ -287,15 +331,16 @@ public class MaaProcessor
             tasker.Callback += (_, args) =>
             {
                 var jObject = JObject.Parse(args.Details);
+
                 var name = jObject["name"]?.ToString() ?? string.Empty;
-                if (args.Message.StartsWith(MaaMsg.Node.Action.Prefix))
+
+                if (args.Message.StartsWith(MaaMsg.Node.Action.Prefix) && jObject.ContainsKey("focus"))
                 {
-                    if (NodeDictionary.TryGetValue(name, out var taskModel))
-                    {
-                        DisplayFocus(taskModel, args.Message);
-                    }
+                    var maaNode = jObject.ToObject<MaaNode>();
+                    DisplayFocus(maaNode, args.Message);
                 }
             };
+
             return tasker;
         }
         catch (OperationCanceledException)
@@ -308,81 +353,158 @@ public class MaaProcessor
             return null;
         }
     }
+
+#pragma warning disable CS0649 // 
+    private class Focus
+    {
+        [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("start")]
+        public List<string>? Start;
+        [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("succeeded")]
+        public List<string>? Succeeded;
+        [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("failed")]
+        public List<string>? Failed;
+        [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("toast")]
+        public List<string>? Toast;
+    }
+
+    public static (string Text, string? Color) ParseColorText(string input)
+    {
+        var match = Regex.Match(input.Trim(), @"\[color:(?<color>.*?)\](?<text>.*?)\[/color\]", RegexOptions.IgnoreCase);
+
+        if (match.Success)
+        {
+            string color = match.Groups["color"].Value.Trim();
+            string text = match.Groups["text"].Value;
+            return (text, color);
+        }
+
+        return (input, null);
+
+    }
+
     private void DisplayFocus(MaaNode taskModel, string message)
     {
+        var jToken = JToken.FromObject(taskModel.Focus);
+        var focus = new Focus();
+        if (jToken.Type == JTokenType.String)
+            focus.Start = [jToken.Value<string>()];
+
+        if (jToken.Type == JTokenType.Object)
+            focus = jToken.ToObject<Focus>();
         switch (message)
         {
             case MaaMsg.Node.Action.Succeeded:
-                if (taskModel.FocusSucceeded != null)
+                if (focus.Succeeded != null)
                 {
-                    for (int i = 0; i < taskModel.FocusSucceeded.Count; i++)
+                    foreach (var line in focus.Succeeded)
                     {
-                        IBrush brush = null;
-                        var tip = taskModel.FocusSucceeded[i];
-                        try
-                        {
-                            if (taskModel.FocusSucceededColor != null && taskModel.FocusSucceededColor.Count > i)
-                                brush = BrushHelper.ConvertToBrush(taskModel.FocusSucceededColor[i]);
-                        }
-                        catch (Exception e)
-                        {
-                            LoggerHelper.Error(e);
-                        }
-
-                        RootView.AddLog(HandleStringsWithVariables(tip), brush);
+                        var (text, color) = ParseColorText(line);
+                        RootView.AddLog(HandleStringsWithVariables(text), color == null ? null : BrushHelper.ConvertToBrush(color));
                     }
                 }
                 break;
             case MaaMsg.Node.Action.Failed:
-                if (taskModel.FocusFailed != null)
+                if (focus.Failed != null)
                 {
-                    for (int i = 0; i < taskModel.FocusFailed.Count; i++)
+                    foreach (var line in focus.Failed)
                     {
-                        IBrush brush = null;
-                        var tip = taskModel.FocusFailed[i];
-                        try
-                        {
-                            if (taskModel.FocusFailedColor != null && taskModel.FocusFailedColor.Count > i)
-                                brush = BrushHelper.ConvertToBrush(taskModel.FocusFailedColor[i]);
-                        }
-                        catch (Exception e)
-                        {
-                            LoggerHelper.Error(e);
-                        }
-
-                        RootView.AddLog(HandleStringsWithVariables(tip), brush);
+                        var (text, color) = ParseColorText(line);
+                        RootView.AddLog(HandleStringsWithVariables(text), color == null ? null : BrushHelper.ConvertToBrush(color));
                     }
                 }
                 break;
             case MaaMsg.Node.Action.Starting:
-                if (!string.IsNullOrWhiteSpace(taskModel.FocusToast))
+                if (focus.Toast is { Count: > 0 })
                 {
-                    ToastNotification.Show(taskModel.FocusToast);
+                    var (text, color) = ParseColorText(focus.Toast[0]);
+                    ToastNotification.Show(HandleStringsWithVariables(text));
                 }
-                if (taskModel.FocusTip != null)
+                if (focus.Start != null)
                 {
-                    for (int i = 0; i < taskModel.FocusTip.Count; i++)
+                    foreach (var line in focus.Start)
                     {
-                        IBrush? brush = null;
-                        var tip = taskModel.FocusTip[i];
-                        try
-                        {
-                            if (taskModel.FocusTipColor != null && taskModel.FocusTipColor.Count > i)
-                            {
-                                brush = BrushHelper.ConvertToBrush(taskModel.FocusTipColor[i]);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            LoggerHelper.Error(e);
-                        }
-
-                        RootView.AddLog(HandleStringsWithVariables(tip), brush);
+                        var (text, color) = ParseColorText(line);
+                        RootView.AddLog(HandleStringsWithVariables(text), color == null ? null : BrushHelper.ConvertToBrush(color));
                     }
                 }
                 break;
         }
     }
+
+// private void DisplayFocus(MaaNode taskModel, string message)
+    // {
+    //     switch (message)
+    //     {
+    //         case MaaMsg.Node.Action.Succeeded:
+    //             if (taskModel.FocusSucceeded != null)
+    //             {
+    //                 for (int i = 0; i < taskModel.FocusSucceeded.Count; i++)
+    //                 {
+    //                     IBrush brush = null;
+    //                     var tip = taskModel.FocusSucceeded[i];
+    //                     try
+    //                     {
+    //                         if (taskModel.FocusSucceededColor != null && taskModel.FocusSucceededColor.Count > i)
+    //                             brush = BrushHelper.ConvertToBrush(taskModel.FocusSucceededColor[i]);
+    //                     }
+    //                     catch (Exception e)
+    //                     {
+    //                         LoggerHelper.Error(e);
+    //                     }
+    //
+    //                     RootView.AddLog(HandleStringsWithVariables(tip), brush);
+    //                 }
+    //             }
+    //             break;
+    //         case MaaMsg.Node.Action.Failed:
+    //             if (taskModel.FocusFailed != null)
+    //             {
+    //                 for (int i = 0; i < taskModel.FocusFailed.Count; i++)
+    //                 {
+    //                     IBrush brush = null;
+    //                     var tip = taskModel.FocusFailed[i];
+    //                     try
+    //                     {
+    //                         if (taskModel.FocusFailedColor != null && taskModel.FocusFailedColor.Count > i)
+    //                             brush = BrushHelper.ConvertToBrush(taskModel.FocusFailedColor[i]);
+    //                     }
+    //                     catch (Exception e)
+    //                     {
+    //                         LoggerHelper.Error(e);
+    //                     }
+    //
+    //                     RootView.AddLog(HandleStringsWithVariables(tip), brush);
+    //                 }
+    //             }
+    //             break;
+    //         case MaaMsg.Node.Action.Starting:
+    //             if (!string.IsNullOrWhiteSpace(taskModel.FocusToast))
+    //             {
+    //                 ToastNotification.Show(taskModel.FocusToast);
+    //             }
+    //             if (taskModel.FocusTip != null)
+    //             {
+    //                 for (int i = 0; i < taskModel.FocusTip.Count; i++)
+    //                 {
+    //                     IBrush? brush = null;
+    //                     var tip = taskModel.FocusTip[i];
+    //                     try
+    //                     {
+    //                         if (taskModel.FocusTipColor != null && taskModel.FocusTipColor.Count > i)
+    //                         {
+    //                             brush = BrushHelper.ConvertToBrush(taskModel.FocusTipColor[i]);
+    //                         }
+    //                     }
+    //                     catch (Exception e)
+    //                     {
+    //                         LoggerHelper.Error(e);
+    //                     }
+    //                     RootView.AddLog(HandleStringsWithVariables(tip), brush);
+    //                 }
+    //             }
+    //             break;
+    //     }
+    // }
     public static string HandleStringsWithVariables(string content)
     {
         try
@@ -480,7 +602,9 @@ public class MaaProcessor
                 Config.AdbDevice.AdbPath,
                 Config.AdbDevice.AdbSerial,
                 Config.AdbDevice.ScreenCap, Config.AdbDevice.Input,
-                !string.IsNullOrWhiteSpace(Config.AdbDevice.Config) ? Config.AdbDevice.Config : "{}")
+                !string.IsNullOrWhiteSpace(Config.AdbDevice.Config) ? Config.AdbDevice.Config : "{}",
+                Path.Combine(AppContext.BaseDirectory, "MaaAgentBinary")
+            )
             : new MaaWin32Controller(
                 Config.DesktopWindow.HWnd,
                 Config.DesktopWindow.ScreenCap, Config.DesktopWindow.Input,
@@ -570,14 +694,14 @@ public class MaaProcessor
                 }
                 ;
             JsonHelper.SaveJson(Path.Combine(AppContext.BaseDirectory, "interface.json"),
-                Interface, new MaaInterfaceSelectOptionConverter(true));
+                Interface, new MaaInterfaceSelectAdvancedConverter(true), new MaaInterfaceSelectOptionConverter(true));
 
         }
         else
         {
             Interface =
                 JsonHelper.LoadJson(Path.Combine(AppContext.BaseDirectory, "interface.json"),
-                    new MaaInterface(),
+                    new MaaInterface(), new MaaInterfaceSelectAdvancedConverter(false),
                     new MaaInterfaceSelectOptionConverter(false));
         }
 
@@ -674,7 +798,7 @@ public class MaaProcessor
                             JsonConvert.SerializeObject(new Dictionary<string, MaaNode>
                             {
                                 {
-                                    "MFAWPF", new MaaNode
+                                    "MFAAvalonia", new MaaNode
                                     {
                                         Action = "DoNothing"
                                     }
@@ -838,6 +962,7 @@ public class MaaProcessor
                         Path = [ResourceBase]
                     }
                 ];
+        Instances.TaskQueueViewModel.CurrentResource = ConfigurationManager.Current.GetValue(ConfigurationKeys.Resource, string.Empty);
         if (Instances.TaskQueueViewModel.CurrentResources.Count > 0 && Instances.TaskQueueViewModel.CurrentResources.All(r => r.Name != Instances.TaskQueueViewModel.CurrentResource))
             Instances.TaskQueueViewModel.CurrentResource = Instances.TaskQueueViewModel.CurrentResources[0].Name ?? "Default";
     }
@@ -851,64 +976,91 @@ public class MaaProcessor
         var updateList = new List<DragItemViewModel>();
 
         if (drags.Count == 0)
+            return (updateList, removeList);
+
+        foreach (var oldItem in drags)
         {
-            updateList.AddRange(tasks.Select(t => new DragItemViewModel(t)).ToList());
-        }
-        else
-        {
-            foreach (var oldItem in drags)
+            if (newDict.TryGetValue((oldItem.Name, oldItem.InterfaceItem?.Entry), out var newItem))
             {
-                if (newDict.TryGetValue((oldItem.Name, oldItem.InterfaceItem?.Entry), out var newItem))
+                UpdateExistingItem(oldItem, newItem);
+                updateList.Add(oldItem);
+            }
+            else
+            {
+                var sameNameTasks = tasks.Where(t => t.Entry == oldItem.InterfaceItem?.Entry).ToList();
+                if (sameNameTasks.Any())
                 {
-                    UpdateExistingItem(oldItem, newItem);
+                    var firstTask = sameNameTasks.First();
+                    UpdateExistingItem(oldItem, firstTask, tasks.Any(t => t.Name == firstTask.Name));
                     updateList.Add(oldItem);
                 }
                 else
                 {
-                    var sameNameTasks = tasks.Where(t => t.Entry == oldItem.InterfaceItem?.Entry).ToList();
-                    if (sameNameTasks.Any())
-                    {
-                        var firstTask = sameNameTasks.First();
-                        UpdateExistingItem(oldItem, firstTask);
-                        updateList.Add(oldItem);
-                    }
-                    else
-                    {
-                        removeList.Add(oldItem);
-                    }
+                    removeList.Add(oldItem);
                 }
             }
         }
+
         return (updateList, removeList);
     }
 
-    private void UpdateExistingItem(DragItemViewModel oldItem, MaaInterface.MaaInterfaceTask newItem)
+    private void UpdateExistingItem(DragItemViewModel oldItem, MaaInterface.MaaInterfaceTask newItem, bool updateName = false)
     {
         if (oldItem.InterfaceItem == null) return;
+        if (updateName)
+            oldItem.InterfaceItem.Name = newItem.Name;
+        else
+        {
+            if (oldItem.InterfaceItem.Name != newItem.Name)
+                return;
+        }
         oldItem.InterfaceItem.Entry = newItem.Entry;
         oldItem.InterfaceItem.PipelineOverride = newItem.PipelineOverride;
         oldItem.InterfaceItem.Document = newItem.Document;
         oldItem.InterfaceItem.Repeatable = newItem.Repeatable;
 
-        if (newItem.Option == null) return;
-
-        var tempDict = oldItem.InterfaceItem.Option?.ToDictionary(t => t.Name) ?? new Dictionary<string, MaaInterface.MaaInterfaceSelectOption>();
-        var maaInterfaceSelectOptions = JsonConvert.DeserializeObject<List<MaaInterface.MaaInterfaceSelectOption>>(JsonConvert.SerializeObject(newItem.Option));
-        oldItem.InterfaceItem.Option = maaInterfaceSelectOptions.Select(opt =>
+        if (newItem.Advanced != null)
         {
-            if (tempDict.TryGetValue(opt.Name ?? string.Empty, out var existing))
+            var tempDict = oldItem.InterfaceItem.Advanced?.ToDictionary(t => t.Name) ?? new Dictionary<string, MaaInterface.MaaInterfaceSelectAdvanced>();
+            var maaInterfaceSelectAdvanceds = JsonConvert.DeserializeObject<List<MaaInterface.MaaInterfaceSelectAdvanced>>(JsonConvert.SerializeObject(newItem.Advanced));
+            oldItem.InterfaceItem.Advanced = maaInterfaceSelectAdvanceds.Select(opt =>
             {
-                opt.Index = existing.Index;
-            }
-            else
+                if (tempDict.TryGetValue(opt.Name ?? string.Empty, out var existing))
+                {
+                    opt.Data = existing.Data;
+                }
+                return opt;
+            }).ToList();
+        }
+        else
+        {
+            oldItem.InterfaceItem.Advanced = null;
+        }
+
+        if (newItem.Option != null)
+        {
+            var tempDict = oldItem.InterfaceItem.Option?.ToDictionary(t => t.Name) ?? new Dictionary<string, MaaInterface.MaaInterfaceSelectOption>();
+            var maaInterfaceSelectOptions = JsonConvert.DeserializeObject<List<MaaInterface.MaaInterfaceSelectOption>>(JsonConvert.SerializeObject(newItem.Option));
+            oldItem.InterfaceItem.Option = maaInterfaceSelectOptions.Select(opt =>
             {
-                SetDefaultOptionValue(opt);
-            }
-            return opt;
-        }).ToList();
+                if (tempDict.TryGetValue(opt.Name ?? string.Empty, out var existing))
+                {
+                    opt.Index = existing.Index;
+                }
+                else
+                {
+                    SetDefaultOptionValue(opt);
+                }
+                return opt;
+            }).ToList();
+        }
+        else
+        {
+            oldItem.InterfaceItem.Option = null;
+        }
     }
 
-    private void SetDefaultOptionValue(MaaInterface.MaaInterfaceSelectOption option)
+    public void SetDefaultOptionValue(MaaInterface.MaaInterfaceSelectOption option)
     {
         if (!(Interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var interfaceOption) ?? false)) return;
 
@@ -921,6 +1073,7 @@ public class MaaProcessor
     private void UpdateViewModels(IList<DragItemViewModel> drags, List<MaaInterface.MaaInterfaceTask> tasks)
     {
         var newItems = tasks.Select(t => new DragItemViewModel(t)).ToList();
+
         foreach (var item in newItems)
         {
             if (item.InterfaceItem?.Option != null && !drags.Any())
@@ -930,10 +1083,10 @@ public class MaaProcessor
         }
 
         TasksSource.AddRange(newItems);
-        
+
         if (!Instances.TaskQueueViewModel.TaskItemViewModels.Any())
         {
-            Instances.TaskQueueViewModel.TaskItemViewModels = new ObservableCollection<DragItemViewModel>(drags);
+            Instances.TaskQueueViewModel.TaskItemViewModels = new ObservableCollection<DragItemViewModel>(drags.Any() ? drags : newItems);
         }
     }
 
@@ -943,28 +1096,28 @@ public class MaaProcessor
         {
             return;
         }
-        string debugFolderPath = Path.Combine(AppContext.BaseDirectory, "debug");
-        if (!Directory.Exists(debugFolderPath))
-        {
-            Directory.CreateDirectory(debugFolderPath);
-        }
-
-        string logFilePath = Path.Combine(debugFolderPath, "maa.log");
-        string timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-        string formattedLogMessage =
-            $"[{timeStamp}][INF][Px14600][Tx16498][Parser.cpp][L56][MaaNS::ProjectInterfaceNS::Parser::parse_interface] ";
-        var logMessage = $"MFAWPF Version: [mfa.version={Instances.VersionUpdateSettingsUserControlModel.MfaVersion}] "
-            + $"Interface Version: [data.version=v{resourceVersion.Replace("v", "")}] ";
-        LoggerHelper.Info(logMessage);
-
-        try
-        {
-            File.AppendAllText(logFilePath, formattedLogMessage + logMessage);
-        }
-        catch (Exception)
-        {
-            Console.WriteLine("尝试写入失败！");
-        }
+        // string debugFolderPath = Path.Combine(AppContext.BaseDirectory, "debug");
+        // if (!Directory.Exists(debugFolderPath))
+        // {
+        //     Directory.CreateDirectory(debugFolderPath);
+        // }
+        //
+        // string logFilePath = Path.Combine(debugFolderPath, "maa.log");
+        // string timeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+        // string formattedLogMessage =
+        //     $"[{timeStamp}][INF][Px14600][Tx16498][MaaProcessor.cs][L56][MFA::AppendVersionLog] ";
+        // var logMessage = $"MFAAvalonia Version: [mfa.version={Instances.VersionUpdateSettingsUserControlModel.MfaVersion}] "
+        //     + $"Interface Version: [data.version=v{resourceVersion.Replace("v", "")}] ";
+        // LoggerHelper.Info(logMessage);
+        //
+        // try
+        // {
+        //     File.AppendAllText(logFilePath, formattedLogMessage + logMessage);
+        // }
+        // catch (Exception)
+        // {
+        //     Console.WriteLine("尝试写入失败！");
+        // }
     }
 
     #endregion
@@ -1048,7 +1201,7 @@ public class MaaProcessor
 
         ProcessStartInfo processStartInfo = new ProcessStartInfo
         {
-            FileName = "cmd.exe",
+            FileName = MFAExtensions.GetFallbackCommand(),
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             CreateNoWindow = true,
@@ -1079,7 +1232,7 @@ public class MaaProcessor
 
         ProcessStartInfo processStartInfo = new ProcessStartInfo
         {
-            FileName = "cmd.exe",
+            FileName = MFAExtensions.GetFallbackCommand(),
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             CreateNoWindow = true,
@@ -1396,7 +1549,7 @@ public class MaaProcessor
     {
         if (InitializeData())
         {
-            var tasks = Instances.TaskQueueViewModel.TaskItemViewModels.ToList().FindAll(task => task.IsChecked);
+            var tasks = Instances.TaskQueueViewModel.TaskItemViewModels.ToList().FindAll(task => task.IsChecked || task.IsCheckedWithNull == null);
             ConnectToMAA();
             StartTask(tasks, onlyStart, checkUpdate);
         }
@@ -1421,7 +1574,7 @@ public class MaaProcessor
             InitializeConnectionTasksAsync(token);
             AddCoreTasksAsync(taskAndParams, token);
         }
-        
+
         AddPostTasksAsync(onlyStart, checkUpdate, token);
         await TaskManager.RunTaskAsync(async () =>
         {
@@ -1463,23 +1616,38 @@ public class MaaProcessor
 
 
     private void UpdateTaskDictionary(ref Dictionary<string, MaaNode> taskModels,
-        List<MaaInterface.MaaInterfaceSelectOption>? options)
+        List<MaaInterface.MaaInterfaceSelectOption>? options,
+        List<MaaInterface.MaaInterfaceSelectAdvanced>? advanceds)
     {
         Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(taskModels);
-        if (options == null) return;
-
-        foreach (var selectOption in options)
+        if (options != null)
         {
-            if (Interface?.Option?.TryGetValue(selectOption.Name ?? string.Empty,
-                    out var interfaceOption)
-                == true
-                && selectOption.Index is int index
-                && interfaceOption.Cases is { } cases
-                && cases[index]?.PipelineOverride != null)
+            foreach (var selectOption in options)
             {
-                var param = interfaceOption.Cases[selectOption.Index.Value].PipelineOverride;
-                Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
-                taskModels = taskModels.MergeMaaNodes(param);
+                if (Interface?.Option?.TryGetValue(selectOption.Name ?? string.Empty,
+                        out var interfaceOption)
+                    == true
+                    && selectOption.Index is int index
+                    && interfaceOption.Cases is { } cases
+                    && cases[index]?.PipelineOverride != null)
+                {
+                    var param = interfaceOption.Cases[selectOption.Index.Value].PipelineOverride;
+                    Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
+                    taskModels = taskModels.MergeMaaNodes(param);
+                }
+            }
+        }
+
+        if (advanceds != null)
+        {
+            foreach (var selectAdvanced in advanceds)
+            {
+                if (!string.IsNullOrWhiteSpace(selectAdvanced.PipelineOverride) && selectAdvanced.PipelineOverride != "{}")
+                {
+                    var param = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(selectAdvanced.PipelineOverride);
+                    Instance.NodeDictionary = Instance.NodeDictionary.MergeMaaNodes(param);
+                    taskModels = taskModels.MergeMaaNodes(param);
+                }
             }
         }
     }
@@ -1505,9 +1673,13 @@ public class MaaProcessor
 
     private NodeAndParam CreateNodeAndParam(DragItemViewModel task)
     {
-        var taskModels = task.InterfaceItem?.PipelineOverride ?? new Dictionary<string, MaaNode>();
-        Console.WriteLine(string.Join(",", taskModels.Keys));
-        UpdateTaskDictionary(ref taskModels, task.InterfaceItem?.Option);
+        var taskModels = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(JsonConvert.SerializeObject(task.InterfaceItem?.PipelineOverride ?? new Dictionary<string, MaaNode>(), new JsonSerializerSettings()
+        {
+            Formatting = Formatting.Indented,
+            NullValueHandling = NullValueHandling.Ignore,
+            DefaultValueHandling = DefaultValueHandling.Ignore
+        }));
+        UpdateTaskDictionary(ref taskModels, task.InterfaceItem?.Option, task.InterfaceItem?.Advanced);
 
         var taskParams = SerializeTaskParams(taskModels);
         var settings = new JsonSerializerSettings
@@ -1780,7 +1952,7 @@ public class MaaProcessor
 
     #region 停止任务
 
-    public void Stop(bool finished = false, bool onlyStart = false)
+    public void Stop(bool finished = false, bool onlyStart = false, Action? action = null)
     {
         try
         {
@@ -1801,7 +1973,7 @@ public class MaaProcessor
             ExecuteStopCore(finished, () =>
             {
                 var stopResult = AbortCurrentTasker();
-                HandleStopResult(finished, stopResult, onlyStart);
+                HandleStopResult(finished, stopResult, onlyStart, action);
             });
 
         }
@@ -1847,11 +2019,11 @@ public class MaaProcessor
         return MaaTasker == null || MaaTasker.Abort().Wait() == MaaJobStatus.Succeeded;
     }
 
-    private void HandleStopResult(bool finished, bool success, bool onlyStart)
+    private void HandleStopResult(bool finished, bool success, bool onlyStart, Action? action = null)
     {
         if (success)
         {
-            DisplayTaskCompletionMessage(finished, onlyStart);
+            DisplayTaskCompletionMessage(finished, onlyStart, action);
         }
         else
         {
@@ -1859,7 +2031,7 @@ public class MaaProcessor
         }
     }
 
-    private void DisplayTaskCompletionMessage(bool finished, bool onlyStart = false)
+    private void DisplayTaskCompletionMessage(bool finished, bool onlyStart = false, Action? action = null)
     {
         if (!finished)
         {
@@ -1869,7 +2041,11 @@ public class MaaProcessor
         else
         {
             if (!onlyStart)
+            {
+                Instances.TaskQueueViewModel.TaskItemViewModels.Where(t => t.IsCheckedWithNull == null).ToList().ForEach(d => d.IsCheckedWithNull = false);
                 ToastNotification.Show("TaskCompleted".ToLocalization());
+            }
+
             if (_startTime != null)
             {
                 var elapsedTime = DateTime.Now - (DateTime)_startTime;
@@ -1882,11 +2058,13 @@ public class MaaProcessor
             }
             if (!onlyStart)
             {
-                ExternalNotificationHelper.ExternalNotificationAsync();
+                ExternalNotificationHelper.ExternalNotificationAsync(Instances.ExternalNotificationSettingsUserControlModel.EnabledCustom
+                    ? Instances.ExternalNotificationSettingsUserControlModel.CustomText
+                    : "TaskAllCompleted".ToLocalization());
                 HandleAfterTaskOperation();
             }
         }
-
+        action?.Invoke();
         _startTime = null;
     }
 
@@ -1926,7 +2104,7 @@ public class MaaProcessor
     {
         if (Instances.TaskQueueViewModel.CurrentController == MaaControllerTypes.Adb)
         {
-            EmulatorHelper.KillEmulatorAsync();
+            EmulatorHelper.KillEmulatorModeSwitcher();
         }
         else
         {

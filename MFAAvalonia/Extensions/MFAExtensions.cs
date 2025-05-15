@@ -15,6 +15,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +24,13 @@ namespace MFAAvalonia.Extensions;
 
 public static class MFAExtensions
 {
+    public static string GetFallbackCommand()
+    {
+        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? "cmd.exe"
+            : "/bin/bash";
+    }
+    
     public static Dictionary<TKey, MaaNode> MergeMaaNodes<TKey>(
         this IEnumerable<KeyValuePair<TKey, MaaNode>>? taskModels,
         IEnumerable<KeyValuePair<TKey, MaaNode>>? additionalModels) where TKey : notnull

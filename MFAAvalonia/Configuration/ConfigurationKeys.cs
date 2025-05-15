@@ -96,7 +96,9 @@ public static class ConfigurationKeys
     public const string ExternalNotificationTelegramBotToken = "ExternalNotificationTelegramBotToken";
     public const string ExternalNotificationTelegramChatId = "ExternalNotificationTelegramChatId";
     public const string ExternalNotificationDiscordBotToken = "ExternalNotificationDiscordBotToken";
-    public const string ExternalNotificationDiscordUserId = "ExternalNotificationDiscordUserId";
+    public const string ExternalNotificationDiscordChannelId = "ExternalNotificationDiscordChannelId";
+    public const string ExternalNotificationDiscordWebhookUrl = "ExternalNotificationDiscordWebhookUrl";
+    public const string ExternalNotificationDiscordWebhookName = "ExternalNotificationDiscordWebhookName";
     public const string ExternalNotificationSmtpServer = "ExternalNotificationSmtpServer";
     public const string ExternalNotificationSmtpPort = "ExternalNotificationSmtpPort";
     public const string ExternalNotificationSmtpUser = "ExternalNotificationSmtpUser";
@@ -122,7 +124,8 @@ public static class ConfigurationKeys
     public const string EnableAutoUpdateMFA = "EnableAutoUpdateMFA";
     public const string EnableCheckVersion = "EnableCheckVersion";
     public const string DownloadCDK = "DownloadCDK";
-
+    public const string GitHubToken = "GitHubToken";
+    
     #endregion
 
     #region UI设置

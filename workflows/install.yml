@@ -54,7 +54,7 @@ jobs:
     runs-on: macos-latest
     strategy:
       matrix:
-        os: [win, macos, linux]
+        os: [win, osx, linux]
         arch: [arm64, x64]
       fail-fast: false
 
@@ -73,7 +73,7 @@ jobs:
         uses: robinraju/release-downloader@v1
         with:
           repository: SweetSmellFox/MFAAvalonia
-          fileName: "MFAAvalonia-${{ matrix.os }}-${{ matrix.arch }}*"
+          fileName: "MFAAvalonia-*-${{ matrix.os }}-${{ matrix.arch }}*"
           latest: true
           out-file-path: "MFAAvalonia"
           extract: true

@@ -30,10 +30,12 @@ public partial class LocalizationViewModel : ViewModelBase
         _formatArgsKeys = keys;
         LanguageHelper.LanguageChanged += OnLanguageChanged;
     }
+    
     private void OnLanguageChanged(object sender, EventArgs e)
     {
         UpdateName();
     }
+    
     [ObservableProperty] private string _name = string.Empty;
     [ObservableProperty] private object? _other;
 

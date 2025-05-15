@@ -17,6 +17,8 @@ on **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** ✨_
   <img alt=".NET" src="https://img.shields.io/badge/.NET-≥%208-512BD4?logo=csharp">
   <img alt="platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blueviolet">
   <img alt="commit" src="https://img.shields.io/github/commit-activity/m/SweetSmellFox/MFAAvalonia">
+  <img alt="stars" src="https://img.shields.io/github/stars/SweetSmellFox/MFAAvalonia?style=social">
+  <a href="https://mirrorchyan.com/zh/projects" target="_blank"><img alt="mirrorc" src="https://img.shields.io/badge/Mirror%20Chyan-%239af3f6?logo=countingworkspro&logoColor=4f46e5"></a>
 </div>
 <div align="center">
 
@@ -27,7 +29,7 @@ on **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** ✨_
 ## Preview
 
 <p align="center">
-  <img alt="preview" src="https://github.com/SweetSmellFox/MFAAvalonia/blob/master/MFAAvalonia/Img/preview.png" width="512" height="256" />
+  <img alt="preview" src="https://github.com/SweetSmellFox/MFAAvalonia/blob/master/MFAAvalonia/Img/preview.png" height="595" width="900" />
 </p>
 
 ## Requirements
@@ -146,25 +148,30 @@ Use controller[0] to control the default controller.
 - Placing `logo.ico` in the same directory as the exe file will replace the window icon.
 - `MFAAvalonia` adds multi-language support for interfaces. After creating `zh-cn.json`,`zh-tw.json` and `en-us.json` in the same directory as `interface.json`, the names of docs and tasks and the names of options can be represented by keys. MFAAvalonia will automatically read the values corresponding to the keys in the files according to the language. If not, it defaults to the key.
 - `MFAAvalonia` reads the `Announcement.md` file in the `Resource` folder as the announcement, and automatically downloads a Changelog to serve as the announcement when updating resources.
+- `MFAAvalonia` can be launched with a specific configuration file by using the startup parameter `-c config-name`, without requiring the `.json` suffix.
 
-**Extended Task Properties in Pipeline**
+**Note: In MFA v1.1.6, the `focus` series fields were removed and replaced with `any focus`. The original fields are no longer available!**
 
-- `focus` : *bool*  
-  [Native field] Whether to enable `focus_tip` `focus_succeeded` `focus_failed` `focus_toast`. Optional, default is false.
-- `focus_toast` : *string*
-  The content that is displayed in the Windows popup window before executing a certain task. Optional, default is empty.
-- `focus_tip`: *string* | *list<string, >*
-  The content output in the MFA right-side log before executing a certain task. Optional, default is empty.
-- `focus_tip_color`: *string* | *list<string, >*
-  The color of the content output in the MFA right-side log before executing a certain task. Optional, default is Gray.
-- `focus_succeeded`: *string* | *list<string, >*
-  The content output in the MFA right-side log after a certain task is successfully executed. Optional, default is empty.
-- `focus_succeeded_color`: *string* | *list<string, >*
-  The color of the content output in the MFA right-side log after a certain task is successfully executed. Optional, default is Gray.
-- `focus_failed`: *string* | *list<string, >*
-  The content output in the MFA right-side log when a certain task fails. Optional, default is empty.
-- `focus_failed_color`: *string* | *list<string, >*
-  The color of the content output in the MFA right-side log when a certain task fails. Optional, default is Gray.
+- `focus` : *string* | *object*  
+  Formats:
+  ```
+  "focus": {
+    "start": "Task started",   // Note: *string* | *string[]*    
+    "succeeded": "Task succeeded",   // Note: *string* | *string[]* 
+    "failed": "Task failed",    // Note: *string* | *string[]* 
+    "toast": "Toast notification"   // Note: *string* 
+  }
+  ```
+  ```
+   "focus": "Test"
+  ```
+  Equivalent to:
+  ```
+  "focus": {
+    "start": "Test"
+  }
+    ```
+Except for `toast`, all others support using tags like `[color:red]`text content`[/color]` to define text colors.
 
 ## License
 

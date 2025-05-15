@@ -158,4 +158,6 @@ public partial class App : Application
 
         e.SetObserved(); //设置该异常已察觉（这样处理后就不会引起程序崩溃）
     }
+    
+    
 }

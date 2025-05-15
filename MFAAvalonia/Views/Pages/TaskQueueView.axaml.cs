@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Input;
@@ -43,7 +44,7 @@ using HorizontalAlignment = Avalonia.Layout.HorizontalAlignment;
 using Point = Avalonia.Point;
 using VerticalAlignment = Avalonia.Layout.VerticalAlignment;
 using Avalonia.Threading;
-using SukiUI.Controls;
+using MFAAvalonia.ViewModels.Other;
 
 namespace MFAAvalonia.Views.Pages;
 
@@ -54,7 +55,7 @@ public partial class TaskQueueView : UserControl
         DataContext = Instances.TaskQueueViewModel;
         InitializeComponent();
         MaaProcessor.Instance.InitializeData();
-        // Introduction.TextArea.TextView.LineTransformers.Add(new RichTextLineTransformer());
+        InitializeControllerUI();
     }
 
     #region UI
@@ -123,6 +124,113 @@ public partial class TaskQueueView : UserControl
     }
 
     #endregion
+
+    private void InitializeControllerUI()
+    {
+        connectionGrid.SizeChanged += (sender, e) =>
+        {
+            var actualWidth = connectionGrid.Bounds.Width;
+            double totalMinWidth = connectionGrid.Children.Sum(c => c.MinWidth);
+            if (actualWidth >= totalMinWidth)
+            {
+                // 左右布局模式
+                connectionGrid.ColumnDefinitions.Clear();
+                connectionGrid.ColumnDefinitions.AddRange([
+                        new ColumnDefinition
+                        {
+                            Width = new GridLength(FirstButton.MinWidth, GridUnitType.Pixel)
+                        },
+                        new ColumnDefinition
+                        {
+                            Width = new GridLength(SecondButton.MinWidth, GridUnitType.Pixel)
+                        },
+                        new ColumnDefinition
+                        {
+                            Width = new GridLength(1, GridUnitType.Star)
+                        }
+                    ]
+                );
+
+                Grid.SetColumn(FirstButton, 0);
+                Grid.SetColumn(SecondButton, 1);
+                Grid.SetColumn(ControllerPanel, 2);
+                Grid.SetRow(FirstButton, 0);
+                Grid.SetRow(SecondButton, 0);
+                Grid.SetRow(ControllerPanel, 0);
+            }
+            else if (actualWidth >= FirstButton.MinWidth + SecondButton.MinWidth)
+            {
+                // 上下布局模式（两行）
+                connectionGrid.ColumnDefinitions.Clear();
+                connectionGrid.RowDefinitions.Clear();
+
+                // 创建两行结构
+                connectionGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+                connectionGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+
+                // 定义两列等宽布局（网页4提到的Star单位）
+                connectionGrid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(1, GridUnitType.Star)
+                });
+                connectionGrid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(1, GridUnitType.Star)
+                });
+
+                // 设置控件位置
+                Grid.SetRow(FirstButton, 0);
+                Grid.SetColumn(FirstButton, 0);
+                Grid.SetRow(SecondButton, 0);
+                Grid.SetColumn(SecondButton, 1);
+
+                // 设置DockPanel跨两列
+                Grid.SetRow(ControllerPanel, 1);
+                Grid.SetColumnSpan(ControllerPanel, 2);
+                Grid.SetColumn(ControllerPanel, 0);
+
+                // 强制刷新布局（网页3提到的布局刷新机制）
+                FirstButton.InvalidateMeasure();
+                SecondButton.InvalidateMeasure();
+            }
+            else
+            {
+                // 三层布局模式
+                connectionGrid.ColumnDefinitions.Clear();
+                connectionGrid.ColumnDefinitions.Add(new ColumnDefinition
+                {
+                    Width = new GridLength(1, GridUnitType.Star)
+                });
+
+                connectionGrid.RowDefinitions.Clear();
+                connectionGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+                connectionGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+                connectionGrid.RowDefinitions.Add(new RowDefinition
+                {
+                    Height = GridLength.Auto
+                });
+
+                Grid.SetRow(FirstButton, 0);
+                Grid.SetColumn(FirstButton, 0);
+                Grid.SetRow(SecondButton, 1);
+                Grid.SetColumn(SecondButton, 0);
+                Grid.SetRow(ControllerPanel, 2);
+                Grid.SetColumn(ControllerPanel, 0);
+            }
+        };
+    }
 
     private void SelectingItemsControl_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
@@ -218,6 +326,7 @@ public partial class TaskQueueView : UserControl
         }
     }
 
+
     private void Delete(object? sender, RoutedEventArgs e)
     {
         var menuItem = sender as MenuItem;
@@ -292,6 +401,13 @@ public partial class TaskQueueView : UserControl
                 AddOption(panel, option, dragItem);
             }
         }
+        if (dragItem.InterfaceItem?.Advanced != null)
+        {
+            foreach (var option in dragItem.InterfaceItem.Advanced)
+            {
+                AddAdvancedOption(panel, option);
+            }
+        }
     }
 
     private void HideCurrentPanel(string key)
@@ -349,9 +465,9 @@ public partial class TaskQueueView : UserControl
         var numericUpDown = new NumericUpDown
         {
             Value = source.InterfaceItem.RepeatCount ?? 1,
-            MinWidth = 146,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(8, 0, 5, 0),
+            MinWidth = 150,
+            Margin = new Thickness(0, 5, 5, 5),
             Increment = 1,
             Minimum = -1,
         };
@@ -417,12 +533,121 @@ public partial class TaskQueueView : UserControl
         panel.Children.Add(grid);
     }
 
+    private void AddAdvancedOption(Panel panel, MaaInterface.MaaInterfaceSelectAdvanced option)
+    {
+        if (MaaProcessor.Interface?.Advanced?.TryGetValue(option.Name, out var interfaceOption) != true) return;
+
+        for (int i = 0; i < (interfaceOption.Field?.Count ?? 0); i++)
+        {
+            var field = interfaceOption.Field[i];
+            var defaultValue = option.Data.TryGetValue(field, out var value) ? value : ((interfaceOption.Default?.Count ?? 0) > i ? interfaceOption.Default[i] : string.Empty);
+            var grid = new Grid
+            {
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition
+                    {
+                        Width = new GridLength(7, GridUnitType.Star)
+                    },
+                    new ColumnDefinition
+                    {
+                        Width = new GridLength(4, GridUnitType.Star)
+                    }
+                },
+                Margin = new Thickness(8, 0, 5, 5)
+            };
+
+            var combo = new TextBox()
+            {
+                MinWidth = 150,
+                Margin = new Thickness(0, 5, 5, 5),
+                Text = defaultValue
+            };
+
+
+            combo.Bind(IsEnabledProperty, new Binding("Idle")
+            {
+                Source = Instances.RootViewModel
+            });
+
+            combo.TextChanged += (_, _) =>
+            {
+                option.Data[field] = combo.Text;
+                option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
+                SaveConfiguration();
+            };
+
+            Grid.SetColumn(combo, 1);
+            var textBlock = new TextBlock
+            {
+                FontSize = 14,
+                MinWidth = 180,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Text = LanguageHelper.GetLocalizedString(field),
+            };
+
+            textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
+            Grid.SetColumn(textBlock, 0);
+            grid.Children.Add(combo);
+            grid.Children.Add(textBlock);
+            grid.SizeChanged += (sender, e) =>
+            {
+                var currentGrid = sender as Grid;
+
+                if (currentGrid == null) return;
+
+                // 计算所有列的 MinWidth 总和
+                var totalMinWidth = currentGrid.Children.Sum(c => c.MinWidth);
+                var availableWidth = currentGrid.Bounds.Width;
+                if (availableWidth < totalMinWidth)
+                {
+                    // 切换为上下结构（两行）
+                    currentGrid.ColumnDefinitions.Clear();
+                    currentGrid.RowDefinitions.Clear();
+                    currentGrid.RowDefinitions.Add(new RowDefinition
+                    {
+                        Height = GridLength.Auto
+                    });
+                    currentGrid.RowDefinitions.Add(new RowDefinition
+                    {
+                        Height = GridLength.Auto
+                    });
+
+                    Grid.SetRow(textBlock, 0);
+                    Grid.SetRow(combo, 1);
+                    Grid.SetColumn(textBlock, 0);
+                    Grid.SetColumn(combo, 0);
+                }
+                else
+                {
+                    // 恢复左右结构（两列）
+                    currentGrid.RowDefinitions.Clear();
+                    currentGrid.ColumnDefinitions.Clear();
+                    currentGrid.ColumnDefinitions.Add(new ColumnDefinition
+                    {
+                        Width = new GridLength(7, GridUnitType.Star)
+                    });
+                    currentGrid.ColumnDefinitions.Add(new ColumnDefinition
+                    {
+                        Width = new GridLength(4, GridUnitType.Star)
+                    });
+
+                    Grid.SetRow(textBlock, 0);
+                    Grid.SetRow(combo, 0);
+                    Grid.SetColumn(textBlock, 0);
+                    Grid.SetColumn(combo, 1);
+                }
+            };
+            panel.Children.Add(grid);
+        }
+    }
     private void AddOption(Panel panel, MaaInterface.MaaInterfaceSelectOption option, DragItemViewModel source)
     {
         if (MaaProcessor.Interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var interfaceOption) != true) return;
         Control control = interfaceOption.Cases.ShouldSwitchButton(out var yes, out var no)
             ? CreateToggleControl(option, yes, no, source)
-            : CreateComboControl(option, interfaceOption, source);
+            : CreateComboBoxControl(option, interfaceOption, source);
 
         panel.Children.Add(control);
     }
@@ -497,7 +722,7 @@ public partial class TaskQueueView : UserControl
         return grid;
     }
 
-    private Grid CreateComboControl(
+    private Grid CreateComboBoxControl(
         MaaInterface.MaaInterfaceSelectOption option,
         MaaInterface.MaaInterfaceOption interfaceOption,
         DragItemViewModel source)
@@ -521,12 +746,43 @@ public partial class TaskQueueView : UserControl
 
         var combo = new ComboBox
         {
-            DisplayMemberBinding = new Binding("Name"),
             MinWidth = 170,
-            Margin = new Thickness(0, 5, 5, 5),
-            ItemsSource = interfaceOption.Cases?.Select(c => new
+            Classes =
             {
-                Name = LanguageHelper.GetLocalizedString(c.Name)
+                "LimitWidth"
+            },
+            Margin = new Thickness(0, 5, 5, 5),
+            ItemsSource = interfaceOption.Cases.Select(caseOption => new LocalizationViewModel
+            {
+                Name = caseOption.Name,
+            }).ToList(),
+            ItemTemplate = new FuncDataTemplate<LocalizationViewModel>((optionCase, b) =>
+            {
+
+                var data =
+                    new TextBlock
+                    {
+                        Text = optionCase?.Name ?? string.Empty,
+                        TextTrimming = TextTrimming.WordEllipsis,
+                        TextWrapping = TextWrapping.NoWrap
+                    };
+                ToolTip.SetTip(data, optionCase?.Name ?? string.Empty);
+                ToolTip.SetShowDelay(data, 100);
+                return data;
+            }),
+            SelectionBoxItemTemplate = new FuncDataTemplate<LocalizationViewModel>((optionCase, b) =>
+            {
+
+                var data =
+                    new TextBlock
+                    {
+                        Text = optionCase?.Name ?? string.Empty,
+                        TextTrimming = TextTrimming.WordEllipsis,
+                        TextWrapping = TextWrapping.NoWrap
+                    };
+                ToolTip.SetTip(data, optionCase?.Name ?? string.Empty);
+                ToolTip.SetShowDelay(data, 100);
+                return data;
             }),
             SelectedIndex = option.Index ?? 0,
         };
@@ -546,6 +802,7 @@ public partial class TaskQueueView : UserControl
             option.Index = combo.SelectedIndex;
             SaveConfiguration();
         };
+
         ComboBoxExtensions.SetDisableNavigationOnLostFocus(combo, true);
         Grid.SetColumn(combo, 1);
         var textBlock = new TextBlock

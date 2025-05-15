@@ -1,5 +1,6 @@
 ﻿using Avalonia.Collections;
 using MFAAvalonia.Helper;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,13 +18,9 @@ public static class ConfigurationManager
     public static readonly MFAConfiguration Maa = new("Maa", "maa_option", new Dictionary<string, object>());
     public static MFAConfiguration Current = new("Default", "config", new Dictionary<string, object>());
 
-
     public static AvaloniaList<MFAConfiguration> Configs { get; } = LoadConfigurations();
 
-    public static int ConfigIndex { get; set; } = 0;
-
-    public static string ConfigName { get; set; } = GetDefaultConfig();
-
+    public static string ConfigName { get; set; }
     public static string GetCurrentConfiguration() => ConfigName;
 
     public static string GetActualConfiguration()
@@ -44,7 +41,7 @@ public static class ConfigurationManager
             return;
         GlobalConfiguration.SetValue(ConfigurationKeys.DefaultConfig, name);
     }
-    
+
     public static string GetDefaultConfig()
     {
         return GlobalConfiguration.GetValue(ConfigurationKeys.DefaultConfig, "Default");
@@ -53,6 +50,8 @@ public static class ConfigurationManager
     private static AvaloniaList<MFAConfiguration> LoadConfigurations()
     {
         LoggerHelper.Info("Loading Configurations...");
+        ConfigName = GetDefaultConfig();
+
         var collection = new AvaloniaList<MFAConfiguration>();
 
         var defaultConfigPath = Path.Combine(_configDir, "config.json");
@@ -61,7 +60,6 @@ public static class ConfigurationManager
         if (!File.Exists(defaultConfigPath))
             File.WriteAllText(defaultConfigPath, "{}");
         collection.Add(Current.SetConfig(JsonHelper.LoadConfig("config", new Dictionary<string, object>())));
-
         foreach (var file in Directory.EnumerateFiles(_configDir, "*.json"))
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
@@ -74,6 +72,12 @@ public static class ConfigurationManager
         }
 
         Maa.SetConfig(JsonHelper.LoadConfig("maa_option", new Dictionary<string, object>()));
+       
+        if (Program.Args.TryGetValue("c", out var param) && !string.IsNullOrEmpty(param))
+        {
+            if (collection.Any(c => c.Name == param))
+                ConfigName = param;
+        }
         Current = collection.FirstOrDefault(c
                 => !string.IsNullOrWhiteSpace(c.Name)
                 && c.Name.Equals(ConfigName, StringComparison.OrdinalIgnoreCase))

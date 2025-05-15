@@ -199,7 +199,7 @@
         <value>确定要退出吗？</value>
     </data>
     <data name="ConfirmExitTitle" xml:space="preserve">
-        <value>MFA 正在运行任务</value>
+        <value>当前正在运行任务</value>
     </data>
     <data name="Connected" xml:space="preserve">
         <value>已连接</value>
@@ -396,8 +396,14 @@
     <data name="ExternalNotificationDingTalkToken" xml:space="preserve">
         <value>钉钉 Token</value>
     </data>
+    <data name="ExternalNotificationDiscordChannelId" xml:space="preserve">
+        <value>频道 ID</value>
+    </data>
     <data name="ExternalNotificationDiscordUserId" xml:space="preserve">
         <value>用户 ID</value>
+    </data>
+    <data name="ExternalNotificationDiscordWebhookName" xml:space="preserve">
+        <value>Webhook 名称</value>
     </data>
     <data name="ExternalNotificationEmailAccount" xml:space="preserve">
         <value>邮箱 账户</value>
@@ -458,6 +464,9 @@
     </data>
     <data name="ExternalNotificationTips" xml:space="preserve">
         <value>请注意：外部通知功能目前仅会发送“所有任务完成”的通知。</value>
+    </data>
+    <data name="ExternalNotificationWebhookUrl" xml:space="preserve">
+        <value>Webhook Url</value>
     </data>
     <data name="ExternalNotificationWxPusherUID" xml:space="preserve">
         <value>用户 UID</value>
@@ -1053,6 +1062,23 @@
     <data name="StartingAgent" xml:space="preserve">
         <value>正在启动 Agent(耗时可能较久)</value>
     </data>
+    <data name="AgentStartFailed" xml:space="preserve">
+        <value>Agent启动失败</value>
+    </data>
+    <data name="Optional" xml:space="preserve">
+        <value>可选</value>
+    </data>
+    <data name="ExternalNotificationEnableCustomNotificationMessage" xml:space="preserve">
+        <value>启用自定义通知消息</value>
+    </data>
+    <data name="ExternalNotificationCustomNotificationContent" xml:space="preserve">
+        <value>自定义通知内容</value>
+    </data>
+    <data name="ExternalNotificationTest" xml:space="preserve">
+        <value>这是一个发送测试</value>
+    </data>
+    <data name="GlobalHotkeyServiceError" xml:space="preserve">
+        <value>全局热键服务加载失败</value>
     <data name="Manual" xml:space="preserve">
         <value>使用指南</value>
     </data>

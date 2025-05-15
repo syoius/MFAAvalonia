@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
 using SukiUI.Dialogs;
@@ -44,11 +45,16 @@ public partial class AddTaskDialogViewModel : ViewModelBase
         _item = new ObservableCollection<DragItemViewModel>(sources);
         SelectedIndex = -1;
     }
+
     [RelayCommand]
     void Add()
     {
         if (Output != null)
         {
+            var output = Output.Clone();
+            if (output.InterfaceItem.Option != null)
+                output.InterfaceItem.Option.ForEach(MaaProcessor.Instance.SetDefaultOptionValue);
+
             Instances.TaskQueueViewModel.TaskItemViewModels.Add(Output.Clone());
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
         }

@@ -1,5 +1,6 @@
 ﻿using Avalonia.Input;
 using Avalonia.Threading;
+using MFAAvalonia.Extensions;
 using SharpHook;
 using SharpHook.Native;
 using System;
@@ -21,9 +22,17 @@ public static class GlobalHotkeyService
     {
         if (_hook != null) return;
 
-        _hook = new TaskPoolGlobalHook();
-        _hook.KeyPressed += HandleKeyEvent;
-        _hook.RunAsync(); // 启动后台监听线程
+        try
+        {
+            _hook = new TaskPoolGlobalHook();
+            _hook.KeyPressed += HandleKeyEvent;
+            _hook.RunAsync(); // 启动后台监听线程
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Error(e);
+            ToastHelper.Error("GlobalHotkeyServiceError".ToLocalization());
+        }
     }
 
     /// <summary>

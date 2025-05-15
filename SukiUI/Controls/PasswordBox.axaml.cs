@@ -36,6 +36,14 @@ public class PasswordBox : TemplatedControl
         RoutedEvent.Register<PasswordBox, PasswordChangedEventArgs>(
             nameof(PasswordChanged), RoutingStrategies.Bubble);
 
+    public static readonly StyledProperty<string?> WatermarkProperty = AvaloniaProperty.Register<TextBox, string>(nameof(Watermark));
+
+    public string? Watermark
+    {
+        get => this.GetValue<string>(TextBox.WatermarkProperty);
+        set => this.SetValue<string>(TextBox.WatermarkProperty, value);
+    }
+
     public event EventHandler<PasswordChangedEventArgs>? PasswordChanged
     {
         add => AddHandler(PasswordChangedEvent, value);

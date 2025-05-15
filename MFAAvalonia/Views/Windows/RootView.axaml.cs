@@ -15,6 +15,7 @@ using MFAAvalonia.Views.UserControls;
 using Newtonsoft.Json;
 using SukiUI.Controls;
 using SukiUI.Dialogs;
+using SukiUI.MessageBox;
 using SukiUI.Toasts;
 using System;
 using System.Collections.Generic;
@@ -36,17 +37,16 @@ public partial class RootView : SukiWindow
     {
         // 添加初始化标志
         _isInitializing = true;
-        
+
         // 先从配置中加载窗口大小，在窗口显示前设置
         try
         {
             var widthStr = ConfigurationManager.Current.GetValue(ConfigurationKeys.MainWindowWidth, "");
             var heightStr = ConfigurationManager.Current.GetValue(ConfigurationKeys.MainWindowHeight, "");
-            
+
             if (!string.IsNullOrEmpty(widthStr) && !string.IsNullOrEmpty(heightStr))
             {
-                if (double.TryParse(widthStr, out double width) && 
-                    double.TryParse(heightStr, out double height))
+                if (double.TryParse(widthStr, out double width) && double.TryParse(heightStr, out double height))
                 {
                     if (width > 100 && height > 100) // 确保有效的窗口大小
                     {
@@ -62,10 +62,10 @@ public partial class RootView : SukiWindow
         {
             LoggerHelper.Error($"加载初始窗口大小失败: {ex.Message}");
         }
-        
+
         // 初始化组件
         InitializeComponent();
-        
+
         // 设置事件处理
         PropertyChanged += (_, e) =>
         {
@@ -74,26 +74,26 @@ public partial class RootView : SukiWindow
                 HandleWindowStateChange();
             }
         };
-        
+
         // 为窗口大小变化添加监听，保存窗口大小
         SizeChanged += SaveWindowSizeOnChange;
-        
+
         // 修改Loaded事件处理
-        Loaded += (_, _) => 
+        Loaded += (_, _) =>
         {
             LoggerHelper.Info("窗口Loaded事件触发");
-            
+
             // 确保在UI线程上执行
             Dispatcher.UIThread.Post(() =>
             {
                 // 初始化完成
                 _isInitializing = false;
-                
+
                 // 加载UI
                 LoadUI();
             });
         };
-        
+
         MaaProcessor.Instance.InitializeData();
     }
 
@@ -113,10 +113,14 @@ public partial class RootView : SukiWindow
         WindowState = WindowState.Normal;
         Activate();
     }
-
+#pragma warning disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法。请考虑将 "await" 运算符应用于调用结果。
     protected override void OnClosing(WindowClosingEventArgs e)
     {
-        e.Cancel = !ConfirmExit();
+        if (Instances.RootViewModel.IsRunning)
+        {
+            e.Cancel = true;
+            ConfirmExit(() => OnClosed(e));
+        }
         base.OnClosing(e);
     }
 
@@ -132,35 +136,36 @@ public partial class RootView : SukiWindow
         base.OnClosed(e);
     }
 
-    public bool ConfirmExit()
+    public async Task<bool> ConfirmExit(Action? action = null)
     {
         if (!Instances.RootViewModel.IsRunning)
             return true;
 
-        bool result = false;
-        // var frame = new DispatcherFrame();
-        var textBlock = new TextBlock
+        var result = await SukiMessageBox.ShowDialog(new SukiMessageBoxHost
         {
-            Text = "ConfirmExitText".ToLocalization()
-        };
-        Instances.DialogManager.CreateDialog()
-            .WithTitle("ConfirmExitTitle".ToLocalization())
-            .WithContent(textBlock).OfType(NotificationType.Warning)
-            .WithActionButton("Yes".ToLocalization(), _ =>
-            {
-                result = true;
-                Instances.ApplicationLifetime.Shutdown();
-            }, dismissOnClick: true, "Flat", "Accent")
-            .WithActionButton("No".ToLocalization(), _ =>
-            {
-                result = false;
-            }, dismissOnClick: true).TryShow();
-        return result;
-    }
+            Content = "ConfirmExitText".ToLocalization(),
+            ActionButtonsPreset = SukiMessageBoxButtons.YesNo,
+            IconPreset = SukiMessageBoxIcons.Warning,
+        }, new SukiMessageBoxOptions()
+        {
+            Title = "ConfirmExitTitle".ToLocalization(),
+        });
 
-    private void ToggleWindowTopMost(object sender, RoutedEventArgs e)
-    {
-        Topmost = btnPin.IsChecked == true;
+        if (result is SukiMessageBoxResult.Yes)
+        {
+            try
+            {
+                action?.Invoke();
+            }
+            catch (Exception e)
+            {
+                LoggerHelper.Error(e);
+            }
+            finally { Environment.Exit(0); }
+
+            return true;
+        }
+        return false;
     }
 
     public static void AddLogByColor(string content,
@@ -184,7 +189,7 @@ public partial class RootView : SukiWindow
 #pragma warning  disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法。请考虑将 "await" 运算符应用于调用结果。
     public void LoadUI()
     {
-        
+
         DispatcherHelper.RunOnMainThread(async () =>
         {
             await Task.Delay(300);
@@ -218,15 +223,15 @@ public partial class RootView : SukiWindow
             try
             {
                 var tempMFADir = Path.Combine(AppContext.BaseDirectory, "temp_mfa");
-                if (Directory.Exists(tempMFADir)) 
+                if (Directory.Exists(tempMFADir))
                     Directory.Delete(tempMFADir, true);
-                
+
                 var tempMaaDir = Path.Combine(AppContext.BaseDirectory, "temp_maafw");
-                if (Directory.Exists(tempMaaDir)) 
+                if (Directory.Exists(tempMaaDir))
                     Directory.Delete(tempMaaDir, true);
-                
+
                 var tempResDir = Path.Combine(AppContext.BaseDirectory, "temp_res");
-                if (Directory.Exists(tempResDir)) 
+                if (Directory.Exists(tempResDir))
                     Directory.Delete(tempResDir, true);
             }
             catch (Exception e)
@@ -237,16 +242,16 @@ public partial class RootView : SukiWindow
 
             Instances.RootViewModel.LockController = (MaaProcessor.Interface?.Controller?.Count ?? 0) < 2;
             ConfigurationManager.Current.SetValue(ConfigurationKeys.EnableEdit, ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableEdit, false));
-           
+
             foreach (var task in Instances.TaskQueueViewModel.TaskItemViewModels)
             {
-                if (task.InterfaceItem?.Option is { Count: > 0 } || task.InterfaceItem?.Document != null || task.InterfaceItem?.Repeatable == true)
+                if (task.InterfaceItem?.Advanced is { Count: > 0 } || task.InterfaceItem?.Option is { Count: > 0 } || task.InterfaceItem?.Document != null || task.InterfaceItem?.Repeatable == true)
                 {
                     task.EnableSetting = true;
                     break;
                 }
             }
-            
+
             if (!string.IsNullOrWhiteSpace(MaaProcessor.Interface?.Message))
             {
                 ToastHelper.Info(MaaProcessor.Interface.Message);
@@ -289,24 +294,23 @@ public partial class RootView : SukiWindow
             var configName = ConfigurationManager.Current.FileName;
             var widthStr = ConfigurationManager.Current.GetValue(ConfigurationKeys.MainWindowWidth, "");
             var heightStr = ConfigurationManager.Current.GetValue(ConfigurationKeys.MainWindowHeight, "");
-            
+
             LoggerHelper.Info($"尝试恢复窗口大小: 宽度={widthStr}, 高度={heightStr}, 配置={configName}");
-            
+
             if (!string.IsNullOrEmpty(widthStr) && !string.IsNullOrEmpty(heightStr))
             {
-                if (double.TryParse(widthStr, out double width) && 
-                    double.TryParse(heightStr, out double height))
+                if (double.TryParse(widthStr, out double width) && double.TryParse(heightStr, out double height))
                 {
                     if (width > 100 && height > 100) // 确保有效的窗口大小
                     {
                         // 临时解除事件绑定，避免触发保存
                         SizeChanged -= SaveWindowSizeOnChange;
-                        
+
                         // 直接设置窗口大小，确保在UI线程上执行
                         Width = width;
                         Height = height;
                         LoggerHelper.Info($"窗口大小恢复成功: 宽度={width}, 高度={height}");
-                        
+
                         // 重新绑定事件
                         SizeChanged += SaveWindowSizeOnChange;
                     }
@@ -335,7 +339,7 @@ public partial class RootView : SukiWindow
         {
             return;
         }
-        
+
         try
         {
             // 获取当前窗口大小
@@ -346,10 +350,10 @@ public partial class RootView : SukiWindow
                 // 检查是否与当前配置值不同，避免不必要的保存
                 string currentWidthValue = ConfigurationManager.Current.GetValue(ConfigurationKeys.MainWindowWidth, "0");
                 string currentHeightValue = ConfigurationManager.Current.GetValue(ConfigurationKeys.MainWindowHeight, "0");
-                
+
                 bool widthChanged = !string.Equals(width.ToString(), currentWidthValue);
                 bool heightChanged = !string.Equals(height.ToString(), currentHeightValue);
-                
+
                 if (widthChanged || heightChanged)
                 {
                     // 保存窗口大小到配置并立即写入文件

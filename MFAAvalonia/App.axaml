@@ -2,11 +2,6 @@
     RequestedThemeVariant="Light"
     x:Class="MFAAvalonia.App"
     xmlns="https://github.com/avaloniaui"
-    xmlns:calcBinding="clr-namespace:CalcBinding;assembly=CalcBindingAva"
-    xmlns:helper="clr-namespace:MFAAvalonia.Helper"
-    xmlns:local="using:MFAAvalonia"
-    xmlns:markup="https://codewf.com"
-    xmlns:nlnet="https://www.nlnet.com/avalonia"
     xmlns:sukiUi="clr-namespace:SukiUI;assembly=SukiUI"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 

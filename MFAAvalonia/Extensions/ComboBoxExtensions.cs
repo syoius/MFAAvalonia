@@ -7,7 +7,7 @@ using System;
 
 namespace MFAAvalonia.Extensions;
 
-public class ComboBoxExtensions
+public static class ComboBoxExtensions
 {
     public static readonly AttachedProperty<bool> DisableNavigationOnLostFocusProperty =
         AvaloniaProperty.RegisterAttached<ComboBox, bool>(
@@ -47,7 +47,7 @@ public class ComboBoxExtensions
 
 
     private static bool IsInputAllowed(ComboBox comboBox) =>
-        comboBox.IsDropDownOpen && comboBox.IsFocused;
+        comboBox.IsDropDownOpen;
 
     private static void HandleKeyDown(object sender, KeyEventArgs e)
     {

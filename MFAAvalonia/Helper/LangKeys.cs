@@ -136,7 +136,9 @@ public static class LangKeys
 	public static readonly string ExternalNotificationBotToken = "ExternalNotificationBotToken";
 	public static readonly string ExternalNotificationDingTalkSecret = "ExternalNotificationDingTalkSecret";
 	public static readonly string ExternalNotificationDingTalkToken = "ExternalNotificationDingTalkToken";
+	public static readonly string ExternalNotificationDiscordChannelId = "ExternalNotificationDiscordChannelId";
 	public static readonly string ExternalNotificationDiscordUserId = "ExternalNotificationDiscordUserId";
+	public static readonly string ExternalNotificationDiscordWebhookName = "ExternalNotificationDiscordWebhookName";
 	public static readonly string ExternalNotificationEmailAccount = "ExternalNotificationEmailAccount";
 	public static readonly string ExternalNotificationEmailSecret = "ExternalNotificationEmailSecret";
 	public static readonly string ExternalNotificationEnabled = "ExternalNotificationEnabled";
@@ -157,6 +159,7 @@ public static class LangKeys
 	public static readonly string ExternalNotificationSmtpUser = "ExternalNotificationSmtpUser";
 	public static readonly string ExternalNotificationTelegramChatId = "ExternalNotificationTelegramChatId";
 	public static readonly string ExternalNotificationTips = "ExternalNotificationTips";
+	public static readonly string ExternalNotificationWebhookUrl = "ExternalNotificationWebhookUrl";
 	public static readonly string ExternalNotificationWxPusherUID = "ExternalNotificationWxPusherUID";
 	public static readonly string FailToGetCurrentVersionInfo = "FailToGetCurrentVersionInfo";
 	public static readonly string FailToGetDownloadUrl = "FailToGetDownloadUrl";
@@ -349,4 +352,16 @@ public static class LangKeys
 	public static readonly string ExternalNotificationOneBotUser = "ExternalNotificationOneBotUser";
 	public static readonly string CreateCustomTheme = "CreateCustomTheme";
 	public static readonly string ConfigurePrimaryAccent = "ConfigurePrimaryAccent";
+	public static readonly string ColorThemeAlreadyExists = "ColorThemeAlreadyExists";
+	public static readonly string Later = "Later";
+	public static readonly string ErrorWhenCheck = "ErrorWhenCheck";
+	public static readonly string Resource = "Resource";
+	public static readonly string MirrorCdkExpired = "MirrorCdkExpired";
+	public static readonly string MirrorCdkInvalid = "MirrorCdkInvalid";
+	public static readonly string MirrorCdkMismatch = "MirrorCdkMismatch";
+	public static readonly string StartingAgent = "StartingAgent";
+	public static readonly string AgentStartFailed = "AgentStartFailed";
+	public static readonly string Optional = "Optional";
+	public static readonly string ExternalNotificationEnableCustomNotificationMessage = "ExternalNotificationEnableCustomNotificationMessage";
+	public static readonly string ExternalNotificationCustomNotificationContent = "ExternalNotificationCustomNotificationContent";
 }

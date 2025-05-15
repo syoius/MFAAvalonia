@@ -5,10 +5,10 @@
     <Design.PreviewWith>
         <Border Padding="20" Background="White">
             <StackPanel Orientation="Horizontal">
-                <RadioButton Margin="5"  Classes="Chips">
+                <RadioButton Margin="5" Classes="Chips">
                     <TextBlock>test 2</TextBlock>
                 </RadioButton>
-                <RadioButton Margin="5"  Classes="GigaChips">
+                <RadioButton Margin="5" Classes="GigaChips">
                     <TextBlock>test 2</TextBlock>
                 </RadioButton>
                 <RadioButton Margin="5" Classes="GigaChips">
@@ -22,71 +22,102 @@
     <Style Selector="RadioButton AccessText">
         <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
     </Style>
+    <Style Selector="RadioButton.Icon">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
 
-  <Style Selector="RadioButton.Chips">
-            <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor0}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SukiBorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="50" />
-            <Setter Property="Template">
-                <ControlTemplate>
-                    <Grid>
-                        <Border
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{TemplateBinding CornerRadius}"
-                            Margin="0,0,0,0"
-                            Padding="10">
-                            <Border.Transitions>
-                                <Transitions>
-                                    <BrushTransition Property="Background" Duration="0:0:0.15"></BrushTransition>
-                                    <ThicknessTransition Duration="0:0:0.2" Property="Margin" />
-                                </Transitions>
-                            </Border.Transitions>
-                            <StackPanel
-                                HorizontalAlignment="Center"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center">
+                    <ContentPresenter
+                        Content="{TemplateBinding Content}"
+                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                        HorizontalAlignment="Center"
+                        HorizontalContentAlignment="Center"
+                        Margin="15,0,15,0"
+                        Name="PART_ContentPresenter"
+                        RecognizesAccessKey="True"
+                        VerticalAlignment="Center" />
+                </Grid>
 
-                                <ContentPresenter
-                                    Content="{TemplateBinding Content}"
-                                    ContentTemplate="{TemplateBinding ContentTemplate}"
-                                    HorizontalAlignment="Center"
-                                    HorizontalContentAlignment="Center"
-                                    Margin="15,0,15,0"
-                                    Name="PART_ContentPresenter"
-                                    RecognizesAccessKey="True"
-                                    VerticalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-                    </Grid>
-                </ControlTemplate>
-            </Setter>
-        </Style>
-
-        <Style Selector="RadioButton.Chips TextBlock">
-            <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
-            
-        </Style>
-
-
-        <Style Selector="RadioButton.Chips:checked  TextBlock">
-            <Setter Property="Foreground" Value="White" />
-            <Setter Property="FontWeight" Value="Bold"></Setter>
-        </Style>
+            </ControlTemplate>
+        </Setter>
         
+
+        
+    </Style>
+    <Style Selector="RadioButton.Icon:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor75}" />
+    </Style>
+    
+    <Style Selector="RadioButton.Icon:checked">
+        <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+    </Style>
+    
+    <Style Selector="RadioButton.Chips">
+        <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor0}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SukiBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="50" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <Border
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Margin="0,0,0,0"
+                        Padding="10">
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="Background" Duration="0:0:0.15"></BrushTransition>
+                                <ThicknessTransition Duration="0:0:0.2" Property="Margin" />
+                            </Transitions>
+                        </Border.Transitions>
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+
+                            <ContentPresenter
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                HorizontalAlignment="Center"
+                                HorizontalContentAlignment="Center"
+                                Margin="15,0,15,0"
+                                Name="PART_ContentPresenter"
+                                RecognizesAccessKey="True"
+                                VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <Style Selector="RadioButton.Chips TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+
+    </Style>
+
+
+    <Style Selector="RadioButton.Chips:checked  TextBlock">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="Bold"></Setter>
+    </Style>
+
     <Style Selector="RadioButton.Chips:checked  AccessText">
         <Setter Property="Foreground" Value="White" />
         <Setter Property="FontWeight" Value="DemiBold"></Setter>
     </Style>
 
-        <Style Selector="RadioButton.Chips:checked  Border">
-            <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}" />
+    <Style Selector="RadioButton.Chips:checked  Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor}" />
 
-        </Style>
+    </Style>
 
     <Style Selector="RadioButton.GigaChips">
         <Setter Property="Background" Value="Transparent" />
@@ -98,14 +129,13 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel>
-                    <suki:GlassCard  Name="BigBorder" IsInteractive="True"
-                                   
-                            Margin="4"
-                            Padding="15,15,30,15"
-                            
-                            ClipToBounds="True"
-                            CornerRadius="{TemplateBinding CornerRadius}">
-                      
+                    <suki:GlassCard Name="BigBorder" IsInteractive="True"
+
+                                    Margin="4"
+                                    Padding="15,15,30,15"
+
+                                    ClipToBounds="True"
+                                    CornerRadius="{TemplateBinding CornerRadius}">
 
 
                         <ContentPresenter Name="PART_ContentPresenter"
@@ -148,7 +178,7 @@
         </Setter>
     </Style>
 
-    
+
     <Style Selector="RadioButton.GigaChips:checked  Border#SelectedBorder">
         <Setter Property="Opacity" Value="1" />
     </Style>
@@ -214,10 +244,10 @@
             <ControlTemplate>
                 <Grid Background="{TemplateBinding Background}" ColumnDefinitions="Auto,*">
                     <suki:GlassCard Width="20" Height="20" CornerRadius="50" Classes="Control"
-                                    Classes.PrimaryOpaque="{TemplateBinding IsChecked}"
-                                    />
-                    
-                    <Ellipse Height="8" Width="8" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{TemplateBinding IsChecked}"  Fill="White"/>
+                                    Classes.PrimaryOpaque="{TemplateBinding IsChecked}" />
+
+                    <Ellipse Height="8" Width="8" HorizontalAlignment="Center" VerticalAlignment="Center"
+                             IsVisible="{TemplateBinding IsChecked}" Fill="White" />
                     <ContentPresenter Name="PART_ContentPresenter"
                                       Grid.Column="1"
                                       Margin="10,0,0,0"

@@ -28,6 +28,7 @@ using System.Threading.Tasks;
 
 namespace MFAAvalonia.Extensions;
 
+#pragma warning disable CS4014 // 异步方法没有等待 
 public class DragDropExtensions
 {
     // 定义附加属性：是否启用拖放功能
@@ -110,6 +111,17 @@ public class DragDropExtensions
             typeof(DragDropExtensions),
             defaultValue: 400.0);
 
+    public static readonly AttachedProperty<int> HoldDurationMillisecondsProperty =
+        AvaloniaProperty.RegisterAttached<ListBox, int>(
+            "HoldDurationMilliseconds",
+            typeof(DragDropExtensions),
+            defaultValue: 200);
+
+    private static readonly AttachedProperty<DateTime?> PressedTimeProperty =
+        AvaloniaProperty.RegisterAttached<ListBox, DateTime?>(
+            "PressedTime",
+            typeof(DragDropExtensions));
+
     static DragDropExtensions()
     {
         EnableFileDragDropProperty.Changed.Subscribe(OnEnableDragDropChanged);
@@ -127,6 +139,7 @@ public class DragDropExtensions
                 }
             }
         });
+        LimitDragDropProperty.Changed.Subscribe(OnLimitDragDropChanged);
     }
     public static bool GetEnableAnimation(ListBox element) =>
         element.GetValue(EnableAnimationProperty);
@@ -149,6 +162,43 @@ public class DragDropExtensions
         {
             >= 150 => value,
             _ => throw new ArgumentOutOfRangeException($"AnimationDuration must be greater than or equal to 150, but was {value}")
+        });
+
+    public static int GetHoldDurationMilliseconds(ListBox element) =>
+        element.GetValue(HoldDurationMillisecondsProperty);
+    
+    public static void SetHoldDurationMilliseconds(ListBox element, int value) =>
+        element.SetValue(HoldDurationMillisecondsProperty, value switch
+        {
+            >= 0 => value,
+            _ => throw new ArgumentOutOfRangeException($"HoldDurationMilliseconds must be greater than or equal to 0, but was {value}")
+        });
+    private static DateTime? GetPressedTime(ListBox element) =>
+        element.GetValue(PressedTimeProperty);
+    
+    private static void SetPressedTime(ListBox element, DateTime? value) =>
+        element.SetValue(PressedTimeProperty, value);
+    
+    public static readonly AttachedProperty<Point?> PressedPositionProperty =
+        AvaloniaProperty.RegisterAttached<ListBox, Point?>("PressedPosition", typeof(DragDropExtensions), null);
+
+    public static readonly AttachedProperty<int> DragStartThresholdProperty =
+        AvaloniaProperty.RegisterAttached<ListBox, int>("DragStartThreshold", typeof(DragDropExtensions), 10); // 默认10像素阈值
+
+    private static Point? GetPressedPosition(ListBox element) =>
+        element.GetValue(PressedPositionProperty);
+
+    private static void SetPressedPosition(ListBox element, Point? value) =>
+        element.SetValue(PressedPositionProperty, value);
+
+    public static int GetDragStartThreshold(ListBox element) =>
+        element.GetValue(DragStartThresholdProperty);
+
+    public static void SetDragStartThreshold(ListBox element, int value) =>
+        element.SetValue(DragStartThresholdProperty, value switch
+        {
+            >= 0 => value,
+            _ => throw new ArgumentOutOfRangeException($"DragStartThreshold must be non-negative, but was {value}")
         });
 
     private static void EnableDragDrop(ListBox listBox)
@@ -177,6 +227,8 @@ public class DragDropExtensions
 
         }
         adornerLayer.Children.Add(listBox);
+        listBox.AddHandler(ListBox.PointerExitedEvent, OnPointerExited);
+        listBox.AddHandler(ListBox.PointerReleasedEvent, OnPointerReleased);
         listBox.AddHandler(ListBox.PointerMovedEvent, OnPointerMoved);
         listBox.AddHandler(DragDrop.DragOverEvent, OnDragOver);
         listBox.AddHandler(DragDrop.DropEvent, OnDrop);
@@ -185,17 +237,90 @@ public class DragDropExtensions
 
     private static void DisableDragDrop(ListBox listBox)
     {
+        listBox.RemoveHandler(ListBox.PointerExitedEvent, OnPointerExited);
+        listBox.RemoveHandler(ListBox.PointerReleasedEvent, OnPointerReleased);
         listBox.RemoveHandler(ListBox.PointerMovedEvent, OnPointerMoved);
         listBox.RemoveHandler(DragDrop.DragOverEvent, OnDragOver);
         listBox.RemoveHandler(DragDrop.DropEvent, OnDrop);
         listBox.RemoveHandler(DragDrop.DragLeaveEvent, OnDragLeave);
+    }
+    public static readonly AttachedProperty<bool> LimitDragDropProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>(
+            "LimitDragDrop",
+            typeof(DragDropExtensions),
+            defaultValue: false);
+    public static void SetLimitDragDrop(Control element, bool value) =>
+        element.SetValue(LimitDragDropProperty, value);
+    public static bool GetLimitDragDrop(Control element) => element.GetValue(LimitDragDropProperty);
+    private static void OnLimitDragDropChanged(AvaloniaPropertyChangedEventArgs<bool> args)
+    {
+        if (args.Sender is Control textBox)
+        {
+            if (args.NewValue.Value)
+            {
+                textBox.AddHandler(InputElement.PointerExitedEvent, OnPointerExited);
+                textBox.AddHandler(InputElement.PointerReleasedEvent, OnPointerReleased);
+            }
+            else
+            {
+                textBox.RemoveHandler(InputElement.PointerExitedEvent, OnPointerExited);
+                textBox.RemoveHandler(InputElement.PointerReleasedEvent, OnPointerReleased);
+            }
+        }
+    }
+
+    private static void OnPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is ListBox listBox)
+        {
+            ClearDragState(listBox);
+        }
+        else if (sender is Control { Parent: ListBox lb })
+        {
+            ClearDragState(lb);
+        }
+    }
+
+    private static void OnPointerReleased(object? sender, PointerEventArgs e)
+    {
+        if (sender is ListBox listBox)
+        {
+            ClearDragState(listBox);
+        }
+        else if (sender is Control { Parent: ListBox lb })
+        {
+            ClearDragState(lb);
+        }
+    }
+
+    private static void ClearDragState(ListBox listBox)
+    {
+        SetPressedPosition(listBox, null);
     }
 
     private static void OnPointerMoved(object? sender, PointerEventArgs e)
     {
         if (sender is not ListBox listBox || !e.GetCurrentPoint(listBox).Properties.IsLeftButtonPressed)
             return;
-            
+
+        var pressedPosition = GetPressedPosition(listBox);
+        var currentPosition = e.GetPosition(listBox);
+        if (pressedPosition == null)
+        {
+            SetPressedPosition(listBox, currentPosition);
+            pressedPosition = GetPressedPosition(listBox);
+        }
+
+        var deltaX = currentPosition.X - pressedPosition.Value.X;
+        var deltaY = currentPosition.Y - pressedPosition.Value.Y;
+        var distanceSquared = deltaX * deltaX + deltaY * deltaY;
+        var threshold = GetDragStartThreshold(listBox);
+        if (distanceSquared < threshold * threshold)
+        {
+            return;
+        }
+        // 清除按下位置
+        SetPressedPosition(listBox, currentPosition);
         // 获取鼠标点击位置的项目索引
         var position = e.GetPosition(listBox);
         var sourceItem = GetSourceIndex(listBox, position, -1);
@@ -357,13 +482,10 @@ public class DragDropExtensions
     private static int GetSourceIndex(ListBox listBox, Point position, int defaultValue)
     {
         // 获取滚动视图和相关项
-        var scrollViewer = listBox.GetVisualDescendants()
-            .OfType<ScrollViewer>()
-            .FirstOrDefault();
         var items = listBox.GetVisualDescendants()
             .OfType<ListBoxItem>()
             .ToList();
-            
+
         if (items.Count == 0) return defaultValue;
 
         // 执行命中测试，使用原始位置
@@ -394,18 +516,18 @@ public class DragDropExtensions
         var items = listBox.GetVisualDescendants()
             .OfType<ListBoxItem>()
             .ToList();
-            
+
         if (items.Count == 0) return -1;
-        
+
         // 获取滚动偏移
         var scrollOffset = scrollViewer?.Offset ?? new Vector(0, 0);
-        
+
         // 执行命中测试 - 使用原始位置
         var hitControl = listBox.InputHitTest(position) as Visual;
-        
+
         // 如果命中测试没有结果，检查是否拖到了列表底部
         var lastItem = items.LastOrDefault();
-        if (hitControl == null && lastItem != null) 
+        if (hitControl == null && lastItem != null)
         {
             var lastItemBottom = lastItem.Bounds.Y + lastItem.Bounds.Height;
             if (position.Y > lastItemBottom - scrollOffset.Y)
@@ -414,7 +536,7 @@ public class DragDropExtensions
             }
             return -1;
         }
-        
+
         // 查找命中的ListBoxItem
         var hitItem = hitControl?
             .GetVisualAncestors()
@@ -426,11 +548,11 @@ public class DragDropExtensions
             // 获取目标索引
             var targetIndex = listBox.IndexFromContainer(hitItem);
             var itemBounds = hitItem.Bounds;
-            
+
             // 计算项目中心点，考虑滚动偏移
             double itemY = itemBounds.Y - scrollOffset.Y;
             double itemCenter = itemY + itemBounds.Height / 2;
-            
+
             // 根据位置是在项目上半部分还是下半部分确定目标索引
             var result = (position.Y > itemCenter) ? targetIndex + 1 : targetIndex;
             return result;
@@ -445,31 +567,31 @@ public class DragDropExtensions
     {
         var adornerLayer = AdornerLayer.GetAdornerLayer(listBox);
         if (adornerLayer == null) return;
-        
+
         // 处理特殊情况：拖到列表末尾
         var end = index == count;
         var displayIndex = end ? index - 1 : index;
-        
+
         // 确保索引有效
         if (displayIndex < 0 || displayIndex >= listBox.ItemCount) return;
-        
+
         // 获取容器和位置
         var container = listBox.ContainerFromIndex(displayIndex);
         if (container == null) return;
-        
+
         // 获取容器相对于adornerLayer的实际位置
         var absolutePos = GetAbsolutePosition(container, adornerLayer);
-        
+
         // 如果是拖到末尾，调整位置到容器底部
         if (end && container != null)
             absolutePos += new Point(0, container.Bounds.Height);
 
         // 计算ListBox相对于adornerLayer的左侧位置，考虑可能的菜单展开
         var listBoxLeftPos = GetAbsolutePosition(listBox, adornerLayer);
-        
+
         // 获取ListBox的实际可见宽度
         double effectiveWidth = GetListBoxEffectiveWidth(listBox);
-        
+
         // 创建或更新adorner
         if (listBox.GetValue(DragAdornerProperty) is not DragAdorner adorner)
         {
@@ -486,11 +608,11 @@ public class DragDropExtensions
             adorner.UpdateXPosition(listBoxLeftPos.X);
             adorner.UpdateWidth(effectiveWidth);
         }
-        
+
         // 确保adorner已添加到层
         if (!adornerLayer.Children.Contains(adorner))
             adornerLayer.Children.Add(adorner);
-            
+
         // 更新Y位置
         adorner.UpdatePosition(absolutePos.Y, index == 0, end);
     }
@@ -520,7 +642,7 @@ public class DragDropExtensions
     private static Point GetAbsolutePosition(Control item, Visual relativeTo)
     {
         if (item == null) return new Point(0, 0);
-        
+
         try
         {
             // 获取item相对于relativeTo(adornerLayer)的绝对位置
@@ -544,4 +666,3 @@ public class DragDropExtensions
         }
     }
 }
-

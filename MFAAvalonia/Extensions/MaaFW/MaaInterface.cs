@@ -1,5 +1,4 @@
-﻿
-using MFAAvalonia.Helper.Converters;
+﻿using MFAAvalonia.Helper.Converters;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -9,7 +8,7 @@ using System.Linq;
 
 namespace MFAAvalonia.Extensions.MaaFW;
 
-public class MaaInterface
+public partial class MaaInterface
 {
     public class MaaInterfaceOptionCase
     {
@@ -40,14 +39,31 @@ public class MaaInterface
         [JsonProperty("default_case")]
         public string? DefaultCase { get; set; }
     }
-
+    
+    public class MaaInterfaceSelectAdvanced
+    {
+        [JsonProperty("name")]
+        public string? Name { get; set; }
+        
+        [JsonProperty("data")]
+        public Dictionary<string, string?> Data = new();
+    
+        [JsonIgnore]
+        public string PipelineOverride = "{}";
+        
+        public override string? ToString()
+        {
+            return Name ?? string.Empty;
+        }
+    }
+ 
     public class MaaInterfaceSelectOption
     {
         [JsonProperty("name")]
         public string? Name { get; set; }
 
         [JsonProperty("index")]
-        public int? Index  { get; set; }
+        public int? Index { get; set; }
 
         public override string? ToString()
         {
@@ -61,12 +77,14 @@ public class MaaInterface
         [JsonProperty("entry")] public string? Entry;
         [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("doc")]
         public List<string>? Document;
-        [JsonProperty("check")] public bool? Check;
+        [JsonProperty("check", 
+            NullValueHandling = NullValueHandling.Include,
+            DefaultValueHandling = DefaultValueHandling.Include)] public bool? Check = false;
         [JsonProperty("repeatable")] public bool? Repeatable;
         [JsonProperty("repeat_count")] public int? RepeatCount;
-
+        [JsonProperty("advanced")] public List<MaaInterfaceSelectAdvanced>? Advanced;
         [JsonProperty("option")] public List<MaaInterfaceSelectOption>? Option;
-
+        
         [JsonProperty("pipeline_override")] public Dictionary<string, MaaNode>? PipelineOverride;
 
         public override string ToString()
@@ -199,6 +217,9 @@ public class MaaInterface
     [JsonProperty("agent")]
     public MaaInterfaceAgent? Agent { get; set; }
 
+    [JsonProperty("advanced")]
+    public Dictionary<string, MaaInterfaceAdvancedOption>? Advanced { get; set; }
+    
     [JsonProperty("option")]
     public Dictionary<string, MaaInterfaceOption>? Option { get; set; }
 

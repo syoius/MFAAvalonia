@@ -1,29 +1,50 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 public class Program
 {
     private const int InitDelay = 2500;
+    static StringBuilder LogBuilder = new();
     static void Main(string[] args)
     {
+        Log("MFAUpdater Version:v" + Assembly.GetExecutingAssembly().GetName().Version);
+        Log("Command Line Arguments: " + string.Join(",", args));
         Thread.Sleep(InitDelay); // 网页[6]启动延迟优化
+       
+        try
+        {
+            ValidateArguments(args); // 参数验证模块化
+            HandleFileOperations(args); // 主操作封装
+        }
+        finally
+        {
+            File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "logs", "updater_log.txt"), LogBuilder.ToString()); // 日志输出
+        }
+    }
 
-        ValidateArguments(args); // 参数验证模块化
-        HandleFileOperations(args); // 主操作封装
+    private static void Log(object message)
+    {
+        Console.WriteLine(message);
+        LogBuilder.Append(message);
+        LogBuilder.AppendLine();
     }
 
     private static void ValidateArguments(string[] args)
     {
-        if (args.Length is not (2 or 4)) // C# 9模式匹配
+        if (args.Length is not (2 or 3 or 4)) // C# 9模式匹配
         {
-            Console.WriteLine("""
-                              用法: 
-                              MFAUpdater [源路径] [目标路径] [原程序] [新程序名称] 
-                              或 
-                              MFAUpdater [源路径] [目标路径]
-                              """);
+            Log("""
+                用法: 
+                MFAUpdater [源路径] [目标路径] [原程序] [新程序名称] 
+                或 
+                MFAUpdater [源路径] [目标路径]
+                """);
+
             Environment.Exit(1); // 标准化退出码
         }
     }
@@ -32,7 +53,9 @@ public class Program
     {
         try
         {
-            var (source, dest) = (args[0], args[1]);
+
+            var source = Path.GetFullPath(args[0].Replace("\\\"", "\"").Replace("\"", "")).Replace('\\', Path.DirectorySeparatorChar);
+            var dest = Path.GetFullPath(args[1].Replace("\\\"", "\"").Replace("\"", "")).Replace('\\', Path.DirectorySeparatorChar);
 
             if (File.Exists(source))
                 HandleFileTransfer(source, dest);
@@ -40,10 +63,11 @@ public class Program
                 HandleDirectoryTransfer(source, dest);
             else
                 throw new FileNotFoundException($"路径不存在: {source}");
-            
+
             if (args.Length == 4)
-                HandleAppRename(source, dest, args[2], args[3]); // 重命名与启动分离
-            
+                HandleAppRename(source, dest, args[2].Replace("\\\"", "\"").Replace("\"", ""), args[3].Replace("\\\"", "\"").Replace("\"", "")); // 重命名与启动分离
+            if (args.Length == 3)
+                StartCrossPlatformProcess(args[2].Replace("\\\"", "\"").Replace("\"", ""));
             HandleDeleteDirectoryTransfer(source);
         }
         catch (Exception ex)
@@ -57,10 +81,11 @@ public class Program
     {
         try
         {
-            if (dest.Contains("MFAAvalonia.dll", StringComparison.OrdinalIgnoreCase) || !dest.Contains("MFAUpdater", StringComparison.OrdinalIgnoreCase) && !dest.Contains("MFAAvalonia", StringComparison.OrdinalIgnoreCase))
+            var destFile = Path.GetFileName(dest);
+            if (destFile.Contains("MFAAvalonia.dll", StringComparison.OrdinalIgnoreCase) || !destFile.Contains("MFAUpdater", StringComparison.OrdinalIgnoreCase) && !destFile.Contains("MFAAvalonia", StringComparison.OrdinalIgnoreCase))
             {
+                Log($"From {source} to {dest}");
                 File.Copy(source, dest, true);
-                Console.WriteLine($"From {source} to {dest}");
             }
         }
         catch (Exception e)
@@ -85,7 +110,7 @@ public class Program
             HandleFileTransfer(file, destFile);
         }
 
-        Console.WriteLine($"目录迁移完成: {dest}");
+        Log($"目录迁移完成: {dest}");
     }
 
     private static void HandleDeleteDirectoryTransfer(string source)
@@ -93,11 +118,11 @@ public class Program
         try
         {
             Directory.Delete(source, true);
-            Console.WriteLine($"源目录{source}删除完成");
+            Log($"源目录{source}删除完成");
         }
         catch (Exception e)
         {
-            Console.WriteLine($"源目录{source}删除失败: {e}");
+            Log($"源目录{source}删除失败: {e}");
         }
 
     }
@@ -130,7 +155,7 @@ public class Program
             }
             catch
             {
-                Console.WriteLine($"权限设置失败，请手动执行: sudo chmod 755 \"{path}\"");
+                Log($"权限设置失败，请手动执行: sudo chmod 755 \"{path}\"");
             }
         }
     }
@@ -147,29 +172,28 @@ public class Program
             };
 
             using var process = Process.Start(startInfo);
-            Console.WriteLine($"进程已启动 [PID:{process?.Id}]");
+            Log($"进程已启动 [PID:{process?.Id}]");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"启动失败: {ex.Message}");
+            Log($"启动失败: {ex.Message}");
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                Console.WriteLine($"尝试: chmod +x {appName} && ./{appName}");
+                Log($"尝试: chmod +x {appName} && ./{appName}");
         }
     }
 
 
     private static void HandlePlatformSpecificErrors(Exception ex)
     {
-        Console.WriteLine($"错误: {ex.Message}");
-
+        Log($"错误: {ex}");
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && ex is UnauthorizedAccessException)
         {
-            Console.WriteLine("""
-                              Linux/macOS 权限问题解决方案:
-                              1. 使用 sudo 重新运行
-                              2. 检查文件所有权: ls -l
-                              3. 手动设置权限: chmod -R 755 [目标目录]
-                              """);
+            Log("""
+                Linux/macOS 权限问题解决方案:
+                1. 使用 sudo 重新运行
+                2. 检查文件所有权: ls -l
+                3. 手动设置权限: chmod -R 755 [目标目录]
+                """);
         }
     }
 }

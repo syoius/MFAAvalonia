@@ -1,5 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using System;
 using System.Drawing;
 using System.Linq;
@@ -9,11 +10,11 @@ using Color = Avalonia.Media.Color;
 
 namespace MFAAvalonia.Helper;
 
-public class BrushHelper
+public static class BrushHelper
 {
     // 缓存转换器提升性能
-    private static readonly BrushConverter _brushConverter = new BrushConverter();
-    private static readonly ColorConverter _colorConverter = new ColorConverter();
+    private static readonly BrushConverter _brushConverter = new();
+    private static readonly ColorConverter _colorConverter = new();
 
     /// <summary>
     /// 将字符串转换为Brush，支持以下格式：
@@ -34,10 +35,11 @@ public class BrushHelper
 
         try
         {
-            return DispatcherHelper.RunOnMainThread(() => ConvertToBrushInternal(normalizedString, defaultBrush));
+            return ConvertToBrushInternal(normalizedString, defaultBrush);
         }
-        catch (FormatException)
+        catch (FormatException e)
         {
+            LoggerHelper.Error(e);
             return defaultBrush;
         }
     }
@@ -46,11 +48,11 @@ public class BrushHelper
     {
         // 尝试直接转换颜色名称
         if (TryConvertNamedColor(normalizedString, out var color) && color != Colors.Transparent)
-            return new SolidColorBrush(color);
+            return new ImmutableSolidColorBrush(color);
 
         // 尝试转换十六进制格式
         if (TryConvertHexColor(normalizedString, out color) && color != Colors.Transparent)
-            return new SolidColorBrush(color);
+            return new ImmutableSolidColorBrush(color);
 
         // 尝试系统画刷转换器
         try
@@ -87,15 +89,13 @@ public class BrushHelper
     {
         try
         {
-            var colorObj = _colorConverter.ConvertFromString(colorName);
-            if (colorObj is Color c)
-            {
-                color = c;
-                return true;
-            }
+            color = Color.Parse(colorName);
+            return true;
+
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e);
             // 忽略转换错误
         }
 

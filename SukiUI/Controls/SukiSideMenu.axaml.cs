@@ -25,7 +25,7 @@ public class SukiSideMenu : TreeView
         AvaloniaProperty.Register<SukiSideMenu, bool>(nameof(IsSearchEnabled), defaultValue: false);
 
     public static readonly StyledProperty<bool> SidebarToggleEnabledProperty =
-        AvaloniaProperty.Register<SukiWindow, bool>(nameof(SidebarToggleEnabled), defaultValue: true);
+        AvaloniaProperty.Register<SukiSideMenu, bool>(nameof(SidebarToggleEnabled), defaultValue: true);
 
     public bool SidebarToggleEnabled
     {

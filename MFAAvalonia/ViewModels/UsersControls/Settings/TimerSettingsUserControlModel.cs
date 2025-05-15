@@ -156,9 +156,10 @@ public partial class TimerSettingsUserControlModel : ViewModelBase
             var timer = Timers.FirstOrDefault(t => t.TimerId == timerId, null);
             if (timer != null)
             {
-                if (Convert.ToBoolean(GlobalConfiguration.GetValue(ConfigurationKeys.ForceScheduledStart, bool.FalseString)) && Instances.RootViewModel.IsRunning)
-                    Instances.TaskQueueViewModel.StopTask();
-                Instances.TaskQueueViewModel.StartTask();
+                if (Instances.TimerSettingsUserControlModel.ForceScheduledStart && Instances.RootViewModel.IsRunning)
+                    Instances.TaskQueueViewModel.StopTask(Instances.TaskQueueViewModel.StartTask);
+                else
+                    Instances.TaskQueueViewModel.StartTask();
             }
         }
     }

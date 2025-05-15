@@ -2,9 +2,9 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using MaaFramework.Binding;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper.Converters;
 using MFAAvalonia.ViewModels.Other;
-using System.Collections.ObjectModel;
 
 namespace MFAAvalonia.ViewModels.UsersControls.Settings;
 
@@ -24,5 +24,8 @@ public partial class PerformanceUserControlModel : ViewModelBase
 
     [ObservableProperty] private InferenceDevice _gpuOption = ConfigurationManager.Current.GetValue(ConfigurationKeys.GPUOption, InferenceDevice.Auto, InferenceDevice.GPU0, new UniversalEnumConverter<InferenceDevice>());
 
-    partial void OnGpuOptionChanged(InferenceDevice value) => HandlePropertyChanged(ConfigurationKeys.GPUOption, value.ToString());
+    partial void OnGpuOptionChanged(InferenceDevice value) => HandleStringPropertyChanged(ConfigurationKeys.GPUOption, value, v =>
+    {
+        MaaProcessor.Instance.MaaTasker?.Resource?.SetOptionInferenceDevice(v);
+    });
 }

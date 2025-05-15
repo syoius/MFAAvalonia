@@ -27,26 +27,26 @@ public partial class MaaNode : ViewModelBase
     [MaaJsonProperty("timeout")] private uint _timeout;
     [MaaJsonProperty("pre_delay")] private uint _preDelay;
     [MaaJsonProperty("post_delay")] private uint _postDelay;
-    [MaaJsonProperty("rate_limit")]   private uint _rateLimit;
+    [MaaJsonProperty("rate_limit")] private uint _rateLimit;
     [MaaJsonProperty("pre_wait_freezes")] [JsonConverter(typeof(UIntOrObjectConverter))]
     private object? _preWaitFreezes;
     [MaaJsonProperty("post_wait_freezes")] [JsonConverter(typeof(UIntOrObjectConverter))]
     private object? _postWaitFreezes;
-    [MaaJsonProperty("focus")] private bool? _focus;
-    [MaaJsonProperty("focus_tip")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
-    private List<string>? _focusTip;
-    [MaaJsonProperty("focus_toast")] 
-    private string? _focusToast;
-    [MaaJsonProperty("focus_tip_color")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
-    private List<string>? _focusTipColor;
-    [MaaJsonProperty("focus_succeeded")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
-    private List<string>? _focusSucceeded;
-    [MaaJsonProperty("focus_succeeded_color")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
-    private List<string>? _focusSucceededColor;
-    [MaaJsonProperty("focus_failed")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
-    private List<string>? _focusFailed;
-    [MaaJsonProperty("focus_failed_color")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
-    private List<string>? _focusFailedColor;
+    [MaaJsonProperty("focus")] [JsonConverter(typeof(StringOrBoolOrObjectConverter))]
+    private object? _focus;
+    // [MaaJsonProperty("focus_tip")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+    // private List<string>? _focusTip;
+    // [MaaJsonProperty("focus_toast")] private string? _focusToast;
+    // [MaaJsonProperty("focus_tip_color")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+    // private List<string>? _focusTipColor;
+    // [MaaJsonProperty("focus_succeeded")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+    // private List<string>? _focusSucceeded;
+    // [MaaJsonProperty("focus_succeeded_color")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+    // private List<string>? _focusSucceededColor;
+    // [MaaJsonProperty("focus_failed")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+    // private List<string>? _focusFailed;
+    // [MaaJsonProperty("focus_failed_color")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+    // private List<string>? _focusFailedColor;
     [MaaJsonProperty("expected")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
     private List<string>? _expected;
     [MaaJsonProperty("replace")] [JsonConverter(typeof(ReplaceConverter))]
@@ -72,7 +72,8 @@ public partial class MaaNode : ViewModelBase
     private List<int>? _key;
     [MaaJsonProperty("input_text")] private string? _inputText;
     [MaaJsonProperty("package")] private string? _package;
-    [MaaJsonProperty("custom_recognition")] private string? _customRecognition;
+    [MaaJsonProperty("custom_recognition")]
+    private string? _customRecognition;
     [MaaJsonProperty("custom_recognition_param")] [JsonConverter(typeof(StringOrObjectConverter))]
     private object? _customRecognitionParam;
     [MaaJsonProperty("custom_action")] private string? _customAction;
@@ -85,7 +86,8 @@ public partial class MaaNode : ViewModelBase
     [MaaJsonProperty("green_mask")] private bool? _greenMask;
     [MaaJsonProperty("detector")] private string? _detector;
     [MaaJsonProperty("ratio")] private double _ratio;
-    [MaaJsonProperty("template")]  [JsonConverter(typeof(GenericSingleOrListConverter<string>))] private List<string>? _template;
+    [MaaJsonProperty("template")] [JsonConverter(typeof(GenericSingleOrListConverter<string>))]
+    private List<string>? _template;
     [MaaJsonProperty("roi")] [JsonConverter(typeof(SingleOrNestedListConverter))]
     private object? _roi;
     [MaaJsonProperty("roi_offset")] [JsonConverter(typeof(SingleOrNestedListConverter))]

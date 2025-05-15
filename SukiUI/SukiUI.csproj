@@ -11,6 +11,7 @@
         <UserSecretsId>712f85e4-12d3-41b0-a417-5714a113666f</UserSecretsId>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Nullable>enable</Nullable>
+        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -24,19 +25,23 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.2.6" />
-        <PackageReference Include="Avalonia.Skia" Version="11.2.6" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.6" />
-        <PackageReference Include="SkiaSharp" Version="3.118.0-preview.2.3">
+        <PackageReference Include="Avalonia" Version="11.3.0" />
+        <PackageReference Include="Avalonia.Skia" Version="11.3.0" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.0" />
+        <PackageReference Include="CalcBindingAva" Version="2.5.3" />
+        <PackageReference Include="SkiaSharp" Version="3.119.0">
         </PackageReference>
-        <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.118.0-preview.2.3">
+        <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.0">
             <ExcludeAssets>all</ExcludeAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.118.0-preview.2.3"/>
-        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.2.6" />
-        <PackageReference Include="Avalonia.Themes.Simple" Version="11.2.6" />
-        <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.0.2"/>
+        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.0" />
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.0" />
+        <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.0" />
+        <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.3" />
+        <PackageReference Update="Packaging.Targets">
+          <Version>0.1.232</Version>
+        </PackageReference>
     </ItemGroup>
 
     <ItemGroup>
@@ -133,6 +138,12 @@
         <EmbeddedResource Include="Content\Shaders\Background\gradientdarker.sksl"/>
         <None Remove="Content\Shaders\Background\backgroundshadcn.sksl"/>
         <EmbeddedResource Include="Content\Shaders\Background\backgroundshadcn.sksl"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="CalcBindingAva">
+        <HintPath>..\..\..\nuget\packages\calcbindingava\2.5.3\lib\net6.0\CalcBindingAva.dll</HintPath>
+      </Reference>
     </ItemGroup>
     <PropertyGroup>
         <!-- 禁用所有编译器警告 -->

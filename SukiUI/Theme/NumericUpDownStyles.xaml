@@ -4,9 +4,10 @@
         xmlns:theme="clr-namespace:SukiUI.Theme">
     <Design.PreviewWith>
         <Border Padding="20">
-            <StackPanel Orientation="Horizontal" Spacing="5">
-                <NumericUpDown Value="4" />
-                <TextBox Classes="NoShadow" Text="test" />
+            <StackPanel Orientation="Vertical" Spacing="5">
+                <NumericUpDown  Value="4" Width="150" />
+                <ComboBox></ComboBox>
+                <TextBox Text="test" />
             </StackPanel>
         </Border>
     </Design.PreviewWith>
@@ -16,10 +17,9 @@
         <Setter Property="CornerRadius" Value="{DynamicResource SmallCornerRadius}" />
         <Setter Property="Background" Value="{DynamicResource SukiBackground}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Padding" Value="4" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Border   Background="{TemplateBinding Background}"
+                <Border   Background="{TemplateBinding Background}" Padding="5"
                           BorderBrush="{TemplateBinding BorderBrush}"
                           BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}">
                 <suki:GlassCard Padding="0"
@@ -28,9 +28,9 @@
                                 CornerRadius="{TemplateBinding CornerRadius}">
                     <ButtonSpinner Name="PART_Spinner"
                                    Height="26"
-                                   Margin="5,4"
+                                   Margin="5,4,5,2"
                                    HorizontalContentAlignment="Stretch"
-                                   VerticalContentAlignment="Stretch"
+                                   VerticalContentAlignment="Center"
                                    AllowSpin="{TemplateBinding AllowSpin}"
                                    BorderThickness="0"
                                    ButtonSpinnerLocation="{TemplateBinding ButtonSpinnerLocation}"
@@ -39,7 +39,7 @@
                         <Grid ColumnDefinitions="*,Auto">
                             <TextBox Name="PART_TextBox"
                                      MinWidth="20"
-                                     Margin="-5,-5,-5,-6"
+                                     Margin="-10,-4,-5,0"
                                      Padding="{TemplateBinding Padding}"
                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"

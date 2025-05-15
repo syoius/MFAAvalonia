@@ -6,11 +6,8 @@
     x:DataType="pages:TaskQueueViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:System="clr-namespace:System;assembly=System.Runtime"
-    xmlns:avaloniaEdit="https://github.com/avaloniaui/avaloniaedit"
     xmlns:binding="clr-namespace:MaaFramework.Binding;assembly=MaaFramework.Binding"
-    xmlns:avalonia="https://github.com/projektanker/icons.avalonia"
     xmlns:calcBinding="clr-namespace:CalcBinding;assembly=CalcBindingAva"
-    xmlns:controls="clr-namespace:SukiUI.Controls;assembly=SukiUI"
     xmlns:converters="clr-namespace:MFAAvalonia.Helper.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ex="clr-namespace:MFAAvalonia.Extensions"
@@ -22,18 +19,9 @@
     xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
     xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
     xmlns:suki="https://github.com/kikipoulet/SukiUI"
-    xmlns:type="clr-namespace:MFAAvalonia.Helper.ValueType"
-    xmlns:usersControls="clr-namespace:MFAAvalonia.ViewModels.UsersControls"
-    xmlns:settingsControls="clr-namespace:MFAAvalonia.ViewModels.UsersControls.Settings"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:MFAAvalonia.ViewModels"
-    xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
-    xmlns:markupExtensions="clr-namespace:FluentIcons.Avalonia.Fluent.MarkupExtensions;assembly=FluentIcons.Avalonia.Fluent"
-    xmlns:extensions="clr-namespace:SukiUI.Extensions;assembly=SukiUI"
     xmlns:behaviors="using:Avalonia.Xaml.Interactions.Core"
-    xmlns:interaction="using:Avalonia.Xaml.Interactivity"
-    xmlns:i="using:Avalonia.Xaml.Interactivity"
-    xmlns:ia="using:Avalonia.Xaml.Interactions.Core">
+    xmlns:interaction="using:Avalonia.Xaml.Interactivity">
     <Design.DataContext>
         <pages:TaskQueueViewModel />
     </Design.DataContext>
@@ -190,31 +178,48 @@
                             </Grid>
                         </suki:GroupBox.Header>
                         <Grid>
-                            <ListBox
-                                DragDrop.AllowDrop="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                ex:DragDropExtensions.EnableDragDrop="True"
-                                ex:DragDropExtensions.EnableAnimation="True"
-                                ItemsSource="{Binding Path=TaskItemViewModels}"
-                                Margin="0,3,0,0"
-                                MinHeight="220"
-                                ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                SelectionChanged="SelectingItemsControl_OnSelectionChanged"
-                                x:Name="TaskListBox">
+                            <ListBox Classes="Fluent" 
+                                     DragDrop.AllowDrop="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
+                                     ex:DragDropExtensions.EnableDragDrop="True"
+                                     ex:DragDropExtensions.DragStartThreshold="2"
+                                     ex:DragDropExtensions.EnableAnimation="True"
+                                     ItemsSource="{Binding Path=TaskItemViewModels}"
+                                     Margin="0,3,0,0"
+                                     MinHeight="220"
+                                     Width="{Binding Bounds.Width,RelativeSource={RelativeSource FindAncestor,AncestorType=Grid}}"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                     SelectionChanged="SelectingItemsControl_OnSelectionChanged"
+                                     x:Name="TaskListBox">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
+
                                         <Grid
                                             ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
-                                            Background="Transparent"
-                                            ColumnDefinitions="30,1*,Auto"
-                                            ContextMenu="{StaticResource TaskMenu}"
+                                            Background="Transparent" ex:DragDropExtensions.LimitDragDrop="True"
+                                            ColumnDefinitions="*,Auto" ContextMenu="{StaticResource TaskMenu}"
                                             x:Name="ListGrid">
-                                            <CheckBox
-                                                Grid.Column="0"
-                                                HorizontalAlignment="Left"
-                                                IsEnabled="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                                IsChecked="{Binding IsCheckedWithNull}"
-                                                Margin="0,0,0,0"
-                                                Tapped="CheckBox_Tapped">
+                                            <CheckBox IsThreeState="True"
+                                                      Content="{Binding Name}"
+                                                      Grid.Column="0" MinWidth="150"
+                                                      ex:CheckBoxExtensions.EnableRightClickNull="True"
+                                                      HorizontalAlignment="Left"
+                                                      ex:CheckBoxExtensions.LimitDragDrop="True"
+                                                      IsEnabled="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
+                                                      IsChecked="{Binding IsCheckedWithNull}">
+                                                <CheckBox.ContentTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock
+                                                            Text="{Binding}"
+                                                            TextTrimming="CharacterEllipsis"
+                                                            TextWrapping="NoWrap"
+                                                            x:DataType="System:String" />
+                                                    </DataTemplate>
+                                                </CheckBox.ContentTemplate>
                                             </CheckBox>
                                             
                                             <TextBlock
@@ -229,17 +234,16 @@
                                                 Tapped="TextBlock_Tapped" />
 
                                             <!--  ReSharper disable once Xaml.StaticResourceNotResolved  -->
-                                            <RadioButton
-                                                Background="Transparent"
-                                                BorderThickness="0"
-                                                Grid.Column="2"
-                                                GroupName="TaskSettings"
-                                                Width="25"
-                                                HorizontalAlignment="Right"
-                                                HorizontalContentAlignment="Left"
-                                                IsChecked="{Binding EnableSetting}"
-                                                IsVisible="False" />
+                                            <RadioButton Classes="Icon"
+                                                         Background="Transparent" IsHitTestVisible="False"
+                                                         BorderThickness="0" IsChecked="{Binding EnableSetting}"
+                                                         Grid.Column="1"
+                                                         ex:IconElement.Width="16" ex:IconElement.Height="16"
+                                                         ex:IconElement.Geometry="{x:Static suki:Icons.Setting}"
+                                                         GroupName="TaskSettings" IsVisible="{Binding IsVisible}"
+                                                         HorizontalContentAlignment="Right" />
                                         </Grid>
+
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
@@ -297,20 +301,20 @@
                     </Border>
                 </ControlTemplate>
             </GridSplitter.Template>
-            <i:Interaction.Behaviors>
-                <ia:EventTriggerBehavior EventName="DragStarted">
-                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}"
-                                            CommandParameter="Splitter1" />
-                </ia:EventTriggerBehavior>
-                <ia:EventTriggerBehavior EventName="DragCompleted">
-                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}"
-                                            CommandParameter="Splitter1" />
-                </ia:EventTriggerBehavior>
-            </i:Interaction.Behaviors>
+            <interaction:Interaction.Behaviors>
+                <behaviors:EventTriggerBehavior EventName="DragStarted">
+                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}"
+                                                   CommandParameter="Splitter1" />
+                </behaviors:EventTriggerBehavior>
+                <behaviors:EventTriggerBehavior EventName="DragCompleted">
+                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}"
+                                                   CommandParameter="Splitter1" />
+                </behaviors:EventTriggerBehavior>
+            </interaction:Interaction.Behaviors>
         </GridSplitter>
 
         <!-- 中间列 -->
-        <Grid Grid.Column="2">
+        <Grid Grid.Column="2" x:Name="Grid1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="3*" MinHeight="100" />
                 <RowDefinition Height="2*" MinHeight="100" />
@@ -335,7 +339,8 @@
                     </ScrollViewer>
                 </suki:GroupBox>
             </suki:GlassCard>
-            <suki:GlassCard Grid.Row="1" Margin="0,8,0,25">
+            <suki:GlassCard Grid.Row="1" Margin="0,8,0,25"
+                            MaxHeight="{calcBinding:Binding 'Bounds.Height / 2',RelativeSource={RelativeSource FindAncestor,AncestorType=Grid}}">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -398,22 +403,22 @@
                     </Border>
                 </ControlTemplate>
             </GridSplitter.Template>
-            <i:Interaction.Behaviors>
-                <ia:EventTriggerBehavior EventName="DragStarted">
-                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}"
-                                            CommandParameter="Splitter2" />
-                </ia:EventTriggerBehavior>
-                <ia:EventTriggerBehavior EventName="DragCompleted">
-                    <ia:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}"
-                                            CommandParameter="Splitter2" />
-                </ia:EventTriggerBehavior>
-            </i:Interaction.Behaviors>
+            <interaction:Interaction.Behaviors>
+                <behaviors:EventTriggerBehavior EventName="DragStarted">
+                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}"
+                                                   CommandParameter="Splitter2" />
+                </behaviors:EventTriggerBehavior>
+                <behaviors:EventTriggerBehavior EventName="DragCompleted">
+                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}"
+                                                   CommandParameter="Splitter2" />
+                </behaviors:EventTriggerBehavior>
+            </interaction:Interaction.Behaviors>
         </GridSplitter>
 
         <!-- 右侧列 -->
         <Grid Grid.Column="4">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" MaxHeight="250" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,15,8">
@@ -497,16 +502,14 @@
                             </StackPanel>
                         </Grid>
                     </suki:GroupBox.Header>
-                    <WrapPanel HorizontalAlignment="Stretch" x:Name="connectionPanel">
-                        <!--  左侧按钮组  -->
-                        <WrapPanel HorizontalAlignment="Left" x:Name="Tab">
-                            <RadioButton
-                                Classes="GigaChips"
-                                Content="{markup:I18n {x:Static helper:LangKeys.TabADB}}"
-                                FontSize="12"
-                                GroupName="Controller"
-                                IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
-                                IsEnabled="{calcBinding:Binding '!LockController and Idle',
+                    <Grid x:Name="connectionGrid" HorizontalAlignment="Stretch">
+                        <RadioButton
+                            Classes="GigaChips"
+                            Content="{markup:I18n {x:Static helper:LangKeys.TabADB}}"
+                            FontSize="12"
+                            GroupName="Controller"
+                            IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
+                            IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
                                 MinWidth="{Binding Bounds.Width, ElementName=SecondButton}"
                                 Height="55"
@@ -543,13 +546,12 @@
                             <TextBlock
                                 FontSize="12"
                                 Foreground="{DynamicResource SukiLowText}"
-                                Grid.Column="0"
                                 Text="{markup:I18n {x:Static helper:LangKeys.CurrentController}}"
                                 VerticalAlignment="Center" />
-                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True" Classes="LimitWidth"
                                       IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
                                       ItemsSource="{Binding Devices}"
-                                      Margin="5,0,0,0"
+                                      Margin="5,0,0,5"
                                       SelectedValue="{Binding CurrentDevice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 <ComboBox.DataTemplates>
                                     <DataTemplate DataType="binding:AdbDeviceInfo">
@@ -563,8 +565,8 @@
                                 </ComboBox.DataTemplates>
                             </ComboBox>
                         </DockPanel>
+                    </Grid>
 
-                    </WrapPanel>
                 </suki:GroupBox>
             </suki:GlassCard>
             <suki:GlassCard Grid.Row="1" Margin="0,8,15,25">
@@ -627,14 +629,13 @@
                                             TextWrapping="Wrap"
                                             VerticalAlignment="Stretch" />
                                         <TextBlock
-                                            FontSize="12"
+                                            FontSize="12" 
                                             FontWeight="{Binding Weight}"
-                                            Foreground="{Binding Color, Mode=TwoWay}"
+                                            Foreground="{Binding Color}"
                                             Grid.Column="1"
-                                            HorizontalAlignment="Left"
-                                            Margin="0,5"
+                                            HorizontalAlignment="Stretch" 
+                                            Margin="0,5" TextWrapping="WrapWithOverflow"
                                             Text="{Binding Content}"
-                                            TextWrapping="Wrap"
                                             VerticalAlignment="Stretch" />
                                     </Grid>
                                 </DataTemplate>

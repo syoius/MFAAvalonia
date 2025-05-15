@@ -27,7 +27,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Layout;
 
 namespace MFAAvalonia.ViewModels.Pages;
 
@@ -40,15 +39,15 @@ public partial class TaskQueueViewModel : ViewModelBase
             var col1Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
             var col2Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
             var col3Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
-            
+
             SuppressPropertyChangedCallbacks = true;
-            
+
             Column1Width = GridLength.Parse(col1Str);
             Column2Width = GridLength.Parse(col2Str);
             Column3Width = GridLength.Parse(col3Str);
-            
+
             SuppressPropertyChangedCallbacks = false;
-            
+
             LoggerHelper.Info("构造函数中列宽设置成功");
         }
         catch (Exception ex)
@@ -57,7 +56,7 @@ public partial class TaskQueueViewModel : ViewModelBase
             SetDefaultColumnWidths();
         }
     }
-    
+
     #region 介绍
 
     [ObservableProperty] private string _introduction = string.Empty;
@@ -103,12 +102,18 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     public void StartTask()
     {
+        if (Instances.RootViewModel.IsRunning)
+        {
+            ToastHelper.Warn("ConfirmExitTitle".ToLocalization());
+            LoggerHelper.Warning("ConfirmExitTitle".ToLocalization());
+            return;
+        }
         MaaProcessor.Instance.Start();
     }
 
-    public void StopTask()
+    public void StopTask(Action? action = null)
     {
-        MaaProcessor.Instance.Stop();
+        MaaProcessor.Instance.Stop(action: action);
     }
 
     [RelayCommand]
@@ -128,7 +133,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     [RelayCommand]
     private void AddTask()
     {
-        Instances.DialogManager.CreateDialog().WithTitle("AdbEditor").WithViewModel(dialog => new AddTaskDialogViewModel(dialog, MaaProcessor.Instance.TasksSource)).TryShow();
+        Instances.DialogManager.CreateDialog().WithTitle("AdbEditor".ToLocalization()).WithViewModel(dialog => new AddTaskDialogViewModel(dialog, MaaProcessor.Instance.TasksSource)).TryShow();
     }
 
     #endregion
@@ -424,13 +429,13 @@ public partial class TaskQueueViewModel : ViewModelBase
         TaskManager.RunTask(() => AutoDetectDevice(_refreshCancellationTokenSource.Token), _refreshCancellationTokenSource.Token, handleError: (e) => HandleDetectionError(e, CurrentController == MaaControllerTypes.Adb),
             catchException: true, shouldLog: true);
     }
-    
+
     [RelayCommand]
     private void Clear()
     {
         LogItemViewModels.Clear();
     }
-    
+
     public void AutoDetectDevice(CancellationToken token = default)
     {
         var isAdb = CurrentController == MaaControllerTypes.Adb;
@@ -638,9 +643,21 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     [ObservableProperty] private ObservableCollection<MaaInterface.MaaInterfaceResource> _currentResources = [];
 
-    [ObservableProperty] private string _currentResource = ConfigurationManager.Current.GetValue(ConfigurationKeys.Resource, string.Empty);
+    private string _currentResource;
 
-    partial void OnCurrentResourceChanged(string value) => HandlePropertyChanged(ConfigurationKeys.Resource, value);
+    public string CurrentResource
+    {
+        get => _currentResource;
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                MaaProcessor.Instance.SetTasker();
+                SetNewProperty(ref _currentResource, value);
+                HandlePropertyChanged(ConfigurationKeys.Resource, value);
+            }
+        }
+    }
 
     #endregion
 
@@ -658,7 +675,7 @@ public partial class TaskQueueViewModel : ViewModelBase
     private GridLength _dragStartCol1Width;
     private GridLength _dragStartCol2Width;
     private GridLength _dragStartCol3Width;
-    
+
     [RelayCommand]
     public void GridSplitterDragStarted(string splitterName)
     {
@@ -685,66 +702,66 @@ public partial class TaskQueueViewModel : ViewModelBase
             var col1 = Column1Width;
             var col2 = Column2Width;
             var col3 = Column3Width;
-            
+
             // 检查是否有变化
             bool col1Changed = !AreGridLengthsEqual(_dragStartCol1Width, col1);
             bool col2Changed = !AreGridLengthsEqual(_dragStartCol2Width, col2);
             bool col3Changed = !AreGridLengthsEqual(_dragStartCol3Width, col3);
             bool changed = col1Changed || col2Changed || col3Changed;
-            
+
             var oldCol1Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
             var oldCol2Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
             var oldCol3Str = ConfigurationManager.Current.GetValue(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
-            
+
             var newCol1Str = col1.ToString();
             var newCol2Str = col2.ToString();
             var newCol3Str = col3.ToString();
-            
+
             // 始终设置新值
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn1Width, newCol1Str);
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn2Width, newCol2Str);
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn3Width, newCol3Str);
-            
+
             // 始终保存配置
             ConfigurationManager.SaveConfiguration(ConfigurationManager.Current.FileName);
-            
+
         }
         catch (Exception ex)
         {
             LoggerHelper.Error($"保存列宽配置失败: {ex.Message}");
         }
     }
-    
+
     // 添加辅助方法用于精确比较两个GridLength
     private bool AreGridLengthsEqual(GridLength a, GridLength b)
     {
         if (a.GridUnitType != b.GridUnitType)
             return false;
-            
+
         if (a.GridUnitType == GridUnitType.Auto || b.GridUnitType == GridUnitType.Auto)
             return a.GridUnitType == b.GridUnitType;
-            
+
         // 对于像素值，允许0.5像素的误差
         if (a.GridUnitType == GridUnitType.Pixel)
             return Math.Abs(a.Value - b.Value) < 0.5;
-            
+
         // 对于Star值，允许0.01的误差
         if (a.GridUnitType == GridUnitType.Star)
             return Math.Abs(a.Value - b.Value) < 0.01;
-            
+
         return a.Value == b.Value;
     }
 
     partial void OnColumn1WidthChanged(GridLength value)
     {
         if (SuppressPropertyChangedCallbacks) return;
-        
+
         try
         {
             // 获取旧值
             var oldValue = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn1Width, DefaultColumn1Width);
             var newValue = value.ToString();
-            
+
             // 使用改进的比较方法
             if (CompareGridLength(oldValue, value))
             {
@@ -756,17 +773,17 @@ public partial class TaskQueueViewModel : ViewModelBase
             LoggerHelper.Error($"保存列宽1失败: {ex.Message}");
         }
     }
-    
+
     partial void OnColumn2WidthChanged(GridLength value)
     {
         if (SuppressPropertyChangedCallbacks) return;
-        
+
         try
         {
             // 获取旧值
             var oldValue = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn2Width, DefaultColumn2Width);
             var newValue = value.ToString();
-            
+
             // 使用改进的比较方法
             if (CompareGridLength(oldValue, value))
             {
@@ -778,17 +795,17 @@ public partial class TaskQueueViewModel : ViewModelBase
             LoggerHelper.Error($"保存列宽2失败: {ex.Message}");
         }
     }
-    
+
     partial void OnColumn3WidthChanged(GridLength value)
     {
         if (SuppressPropertyChangedCallbacks) return;
-        
+
         try
         {
             // 获取旧值
             var oldValue = ConfigurationManager.Current.GetValue<string>(ConfigurationKeys.TaskQueueColumn3Width, DefaultColumn3Width);
             var newValue = value.ToString();
-            
+
             // 使用改进的比较方法
             if (CompareGridLength(oldValue, value))
             {
@@ -800,14 +817,14 @@ public partial class TaskQueueViewModel : ViewModelBase
             LoggerHelper.Error($"保存列宽3失败: {ex.Message}");
         }
     }
-    
+
     public bool SuppressPropertyChangedCallbacks { get; set; }
 
     // 保存列宽配置到磁盘
     public void SaveColumnWidths()
     {
         if (SuppressPropertyChangedCallbacks) return;
-        
+
         try
         {
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskQueueColumn1Width, Column1Width.ToString());
@@ -826,20 +843,20 @@ public partial class TaskQueueViewModel : ViewModelBase
         try
         {
             SuppressPropertyChangedCallbacks = true;
-            
+
             Column1Width = GridLength.Parse(DefaultColumn1Width);
             Column2Width = GridLength.Parse(DefaultColumn2Width);
             Column3Width = GridLength.Parse(DefaultColumn3Width);
-            
+
             // 恢复属性更改通知
             SuppressPropertyChangedCallbacks = false;
-            
+
             // 默认值需要保存，但只有在第一次启动时(无配置文件)
             if (!ConfigurationManager.Current.Config.ContainsKey(ConfigurationKeys.TaskQueueColumn1Width))
             {
                 SaveColumnWidths();
             }
-            
+
             LoggerHelper.Info("默认列宽设置成功");
         }
         catch (Exception ex)
@@ -857,26 +874,26 @@ public partial class TaskQueueViewModel : ViewModelBase
         {
             return false; // 字符串相同，没有变化
         }
-        
+
         try
         {
             // 尝试解析存储的值
             var storedGridLength = GridLength.Parse(storedValue);
-            
+
             // 对于像素值，比较数值是否有足够的差异
             if (storedGridLength.GridUnitType == GridUnitType.Pixel && newValue.GridUnitType == GridUnitType.Pixel)
             {
                 // 如果差异小于0.5像素，认为没有变化
                 return Math.Abs(storedGridLength.Value - newValue.Value) >= 0.5;
             }
-            
+
             // 对于Star类型，比较是否有足够的差异
             if (storedGridLength.GridUnitType == GridUnitType.Star && newValue.GridUnitType == GridUnitType.Star)
             {
                 // 对于比例值，如果差异小于0.01，认为没有变化
                 return Math.Abs(storedGridLength.Value - newValue.Value) >= 0.01;
             }
-            
+
             // 单位类型不同或其他情况，认为有变化
             return true;
         }

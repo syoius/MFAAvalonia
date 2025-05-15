@@ -12,324 +12,550 @@ namespace MFAAvalonia.Helper;
 
 public static class EmulatorHelper
 {
-    private static readonly IReadOnlyDictionary<string, EmulatorProfile> EmulatorProfiles = new Dictionary<string, EmulatorProfile>
-    {
-        ["MuMuPlayer12"] = new EmulatorProfile(
-            Processes: new[]
-            {
-                "MuMuPlayer"
-            },
-            ConsoleCli: "MuMuManager",
-            ArgsPattern: "api -v {0} shutdown_player",
-            PortRule: address => address == "127.0.0.1:16384" ? 0 : (int.Parse(address.Split(':')[1]) - 16384) / 32
-        ),
-        ["LDPlayer"] = new EmulatorProfile(
-            Processes: new[]
-            {
-                "dnplayer",
-                "ldplayer"
-            },
-            ConsoleCli: "ldconsole",
-            ArgsPattern: "quit --index {0}",
-            PortRule: address => address.Contains(':')
-                ? (int.Parse(address.Split(':')[1]) - 5555) / 2
-                : (int.Parse(address.Split('-')[1]) - 5554) / 2
-        ),
-        ["Nox"] = new EmulatorProfile(
-            Processes: new[]
-            {
-                "Nox",
-                "NoxVM"
-            },
-            ConsoleCli: "NoxConsole",
-            ArgsPattern: "quit -index:{0}",
-            PortRule: address => address == "127.0.0.1:62001" ? 0 : int.Parse(address.Split(':')[1]) - 62024
-        ),
-        ["XYAZ"] = new EmulatorProfile(
-            Processes: new[]
-            {
-                "MEmu"
-            },
-            ConsoleCli: "memuc",
-            ArgsPattern: "stop -i {0}",
-            PortRule: address => (int.Parse(address.Split(':')[1]) - 21503) / 10
-        ),
-        ["BlueStacks"] = new EmulatorProfile(
-            Processes: new[]
-            {
-                "HD-Player",
-                "BlueStacks"
-            },
-            ConsoleCli: "bsconsole",
-            ArgsPattern: "shutdown",
-            PortRule: _ => 0
-        )
-    };
+#if WINDOWS
+    [DllImport("User32.dll", EntryPoint = "FindWindow")]
+    private extern static IntPtr FindWindow(string lpClassName, string lpWindowName);
 
-    public static async Task<bool> KillEmulatorAsync()
+    [DllImport("User32.dll", CharSet = CharSet.Auto)]
+    private extern static int GetWindowThreadProcessId(IntPtr hwnd, out int id);
+#endif
+    public static bool KillEmulatorModeSwitcher()
     {
         try
         {
-            var address = MaaProcessor.Config.AdbDevice.AdbSerial;
-            var emulatorType = DetectEmulatorType(address);
+            string emulatorMode = "None";
+            var windowName = MaaProcessor.Config.AdbDevice.Name;
+            if (windowName.Contains("MuMuPlayer12"))
+                emulatorMode = "MuMuEmulator12";
+            else if (windowName.Contains("Nox"))
+                emulatorMode = "Nox";
+            else if (windowName.Contains("LDPlayer"))
+                emulatorMode = "LDPlayer";
+            else if (windowName.Contains("XYAZ"))
+                emulatorMode = "XYAZ";
+            else if (windowName.Contains("BlueStacks"))
+                emulatorMode = "BlueStacks";
 
-            // 优先尝试ADB命令关闭
-            if (await ExecuteAdbCommandAsync($"-s {address} emu kill"))
-                return true;
-
-            // 根据模拟器类型使用专用方法
-            if (EmulatorProfiles.TryGetValue(emulatorType, out var profile))
+            return emulatorMode switch
             {
-                return await KillByProfileAsync(address, profile);
-            }
-
-            // 通用关闭流程
-            return await KillGenericEmulatorAsync(address);
+                "Nox" => KillEmulatorNox(),
+                "LDPlayer" => KillEmulatorLdPlayer(),
+                "XYAZ" => KillEmulatorXyaz(),
+                "BlueStacks" => KillEmulatorBlueStacks(),
+                "MuMuEmulator12" => KillEmulatorMuMuEmulator12(),
+                _ => KillEmulatorByWindow(),
+            };
         }
         catch (Exception e)
         {
-            LoggerHelper.Error($"Emulator kill failed: {e.Message}");
+            LoggerHelper.Error("Failed to close emulator: " + e.Message);
             return false;
         }
     }
-    private static async Task<bool> KillGenericEmulatorAsync(string address)
+    /// <summary>
+    /// 一个用于调用 MuMu12 模拟器控制台关闭 MuMu12 的方法
+    /// </summary>
+    /// <returns>是否关闭成功</returns>
+    private static bool KillEmulatorMuMuEmulator12()
     {
-        // 尝试终止所有已知模拟器进程
-        foreach (var profile in EmulatorProfiles.Values)
+        string address = MaaProcessor.Config.AdbDevice.AdbSerial;
+        int emuIndex;
+        if (address == "127.0.0.1:16384")
         {
-            if (KillProcesses(profile.Processes))
-                return true;
+            emuIndex = 0;
         }
-
-        // 尝试通过端口终止
-        var port = ParsePortFromAddress(address);
-        if (port > 0 && await KillByPortAsync(port))
-            return true;
-
-        // 最后尝试强制ADB终止
-        return await ExecuteAdbCommandAsync($"-s {address} kill-server");
-    }
-
-    private static string DetectEmulatorType(string address)
-    {
-        foreach (var kv in EmulatorProfiles)
-        {
-            if (address.Contains(kv.Key, StringComparison.OrdinalIgnoreCase))
-                return kv.Key;
-        }
-        return "Unknown";
-    }
-
-    private static async Task<bool> KillByProfileAsync(string address, EmulatorProfile profile)
-    {
-        // 尝试通过控制台关闭
-        if (await TryKillViaConsoleCliAsync(address, profile))
-            return true;
-
-        // 终止相关进程
-        if (KillProcesses(profile.Processes))
-            return true;
-
-        // 端口检测终止
-        return await KillByPortAsync(ParsePortFromAddress(address));
-    }
-
-    private static async Task<bool> TryKillViaConsoleCliAsync(string address, EmulatorProfile profile)
-    {
-        try
-        {
-            var index = profile.PortRule(address);
-            var cliPath = FindEmulatorConsole(profile.ConsoleCli);
-
-            if (string.IsNullOrEmpty(cliPath))
-                return false;
-
-            var arguments = string.Format(profile.ArgsPattern, index);
-            var (exitCode, _) = await ExecuteShellCommandAsync(cliPath, arguments);
-            return exitCode == 0;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-
-    private static string FindEmulatorConsole(string cliName)
-    {
-        var searchPaths = new List<string>();
-
-        // Windows路径
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            searchPaths.AddRange(new[]
-            {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), cliName),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), cliName)
-            });
-        }
-        // Linux/macOS路径
         else
         {
-            searchPaths.AddRange(new[]
-            {
-                $"/usr/local/bin/{cliName}",
-                $"/opt/{cliName}/bin/{cliName}",
-                $"/Applications/{cliName}.app/Contents/MacOS/{cliName}"
-            });
+            string portStr = address.Split(':')[1];
+            int port = int.Parse(portStr);
+            emuIndex = (port - 16384) / 32;
         }
 
-        foreach (var path in searchPaths)
+        var processes = Process.GetProcessesByName("MuMuPlayer");
+        if (processes.Length <= 0)
         {
-            if (File.Exists(path))
-                return path;
-
-            var withExt = Path.ChangeExtension(path, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "exe" : null);
-            if (File.Exists(withExt))
-                return withExt;
+            return false;
         }
 
-        return null;
+        ProcessModule processModule;
+        try
+        {
+            processModule = processes[0].MainModule;
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Error("Error: Failed to get the main module of the emulator process.");
+            LoggerHelper.Error(e.Message);
+            return false;
+        }
+
+        if (processModule == null)
+        {
+            return false;
+        }
+
+        var emuLocation = Path.GetDirectoryName(processModule.FileName);
+        if (emuLocation == null)
+        {
+            return false;
+        }
+
+        string consolePath = Path.Combine(emuLocation, "MuMuManager.exe");
+
+        if (File.Exists(consolePath))
+        {
+            var startInfo = new ProcessStartInfo(consolePath)
+            {
+                Arguments = $"api -v {emuIndex} shutdown_player",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            };
+            var process = Process.Start(startInfo);
+            if (process != null && process.WaitForExit(5000))
+            {
+                LoggerHelper.Info($"Emulator at index {emuIndex} closed through console. Console path: {consolePath}");
+                return true;
+            }
+
+            LoggerHelper.Warning($"Console process at index {emuIndex} did not exit within the specified timeout. Killing emulator by window. Console path: {consolePath}");
+            return KillEmulatorByWindow();
+        }
+
+        LoggerHelper.Error($"Error: `{consolePath}` not found, try to kill emulator by window.");
+        return KillEmulatorByWindow();
     }
 
-    private static bool KillProcesses(IEnumerable<string> processNames)
+    /// <summary>
+    /// 一个用于调用雷电模拟器控制台关闭雷电模拟器的方法
+    /// </summary>
+    /// <returns>是否关闭成功</returns>
+    private static bool KillEmulatorLdPlayer()
     {
-        foreach (var name in processNames)
+        var address = MaaProcessor.Config.AdbDevice.AdbSerial;
+        int emuIndex;
+        if (address.Contains(':'))
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                if (ExecuteShellCommand("taskkill", $"/F /IM {name}.exe"))
-                    return true;
-            }
-            else
-            {
-                if (ExecuteShellCommand("pkill", $"-9 {name}") || ExecuteShellCommand("killall", $"-9 {name}"))
-                    return true;
-            }
+            var portStr = address.Split(':')[1];
+            var port = int.Parse(portStr);
+            emuIndex = (port - 5555) / 2;
         }
+        else
+        {
+            var portStr = address.Split('-')[1];
+            var port = int.Parse(portStr);
+            emuIndex = (port - 5554) / 2;
+        }
+
+        var processes = Process.GetProcessesByName("dnplayer");
+        if (processes.Length <= 0)
+        {
+            return false;
+        }
+
+        ProcessModule processModule;
+        try
+        {
+            processModule = processes[0].MainModule;
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Error("Error: Failed to get the main module of the emulator process.");
+            LoggerHelper.Error(e.Message);
+            return false;
+        }
+
+        if (processModule == null)
+        {
+            return false;
+        }
+
+
+        var emuLocation = Path.GetDirectoryName(processModule.FileName);
+        if (emuLocation == null)
+        {
+            return false;
+        }
+
+        var consolePath = Path.Combine(emuLocation, "ldconsole.exe");
+
+        if (File.Exists(consolePath))
+        {
+            var startInfo = new ProcessStartInfo(consolePath)
+            {
+                Arguments = $"quit --index {emuIndex}",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            };
+            var process = Process.Start(startInfo);
+            if (process != null && process.WaitForExit(5000))
+            {
+                LoggerHelper.Info($"Emulator at index {emuIndex} closed through console. Console path: {consolePath}");
+                return true;
+            }
+
+            LoggerHelper.Warning($"Console process at index {emuIndex} did not exit within the specified timeout. Killing emulator by window. Console path: {consolePath}");
+            return KillEmulatorByWindow();
+        }
+
+        LoggerHelper.Info($"Error: `{consolePath}` not found, try to kill emulator by window.");
+        return KillEmulatorByWindow();
+    }
+
+    /// <summary>
+    /// 一个用于调用夜神模拟器控制台关闭夜神模拟器的方法
+    /// </summary>
+    /// <returns>是否关闭成功</returns>
+    private static bool KillEmulatorNox()
+    {
+        string address = MaaProcessor.Config.AdbDevice.AdbSerial;
+        int emuIndex;
+        if (address == "127.0.0.1:62001")
+        {
+            emuIndex = 0;
+        }
+        else
+        {
+            string portStr = address.Split(':')[1];
+            int port = int.Parse(portStr);
+            emuIndex = port - 62024;
+        }
+
+        var processes = Process.GetProcessesByName("Nox");
+        if (processes.Length <= 0)
+        {
+            return false;
+        }
+
+        ProcessModule processModule;
+        try
+        {
+            processModule = processes[0].MainModule;
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Error("Error: Failed to get the main module of the emulator process.");
+            LoggerHelper.Error(e.Message);
+            return false;
+        }
+
+        if (processModule == null)
+        {
+            return false;
+        }
+
+        var emuLocation = Path.GetDirectoryName(processModule.FileName);
+        if (emuLocation == null)
+        {
+            return false;
+        }
+
+        var consolePath = Path.Combine(emuLocation, "NoxConsole.exe");
+
+        if (File.Exists(consolePath))
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo(consolePath)
+            {
+                Arguments = $"quit -index:{emuIndex}",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            };
+            var process = Process.Start(startInfo);
+            if (process != null && process.WaitForExit(5000))
+            {
+                LoggerHelper.Info($"Emulator at index {emuIndex} closed through console. Console path: {consolePath}");
+                return true;
+            }
+
+            LoggerHelper.Warning($"Console process at index {emuIndex} did not exit within the specified timeout. Killing emulator by window. Console path: {consolePath}");
+            return KillEmulatorByWindow();
+        }
+
+        LoggerHelper.Info($"Error: `{consolePath}` not found, try to kill emulator by window.");
+        return KillEmulatorByWindow();
+    }
+
+    /// <summary>
+    /// 一个用于调用逍遥模拟器控制台关闭逍遥模拟器的方法
+    /// </summary>
+    /// <returns>是否关闭成功</returns>
+    private static bool KillEmulatorXyaz()
+    {
+        string address = MaaProcessor.Config.AdbDevice.AdbSerial;
+        string portStr = address.Split(':')[1];
+        int port = int.Parse(portStr);
+        var emuIndex = (port - 21503) / 10;
+
+        Process[] processes = Process.GetProcessesByName("MEmu");
+        if (processes.Length <= 0)
+        {
+            return false;
+        }
+
+        ProcessModule processModule;
+        try
+        {
+            processModule = processes[0].MainModule;
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Error("Error: Failed to get the main module of the emulator process.");
+            LoggerHelper.Error(e.Message);
+            return false;
+        }
+
+        if (processModule == null)
+        {
+            return false;
+        }
+
+        var emuLocation = Path.GetDirectoryName(processModule.FileName);
+        if (emuLocation == null)
+        {
+            return false;
+        }
+
+        string consolePath = Path.Combine(emuLocation, "memuc.exe");
+
+        if (File.Exists(consolePath))
+        {
+            var startInfo = new ProcessStartInfo(consolePath)
+            {
+                Arguments = $"stop -i {emuIndex}",
+                CreateNoWindow = true,
+                UseShellExecute = false,
+            };
+            var process = Process.Start(startInfo);
+            if (process != null && process.WaitForExit(5000))
+            {
+                LoggerHelper.Info($"Emulator at index {emuIndex} closed through console. Console path: {consolePath}");
+                return true;
+            }
+
+            LoggerHelper.Warning($"Console process at index {emuIndex} did not exit within the specified timeout. Killing emulator by window. Console path: {consolePath}");
+            return KillEmulatorByWindow();
+        }
+
+        LoggerHelper.Info($"Error: `{consolePath}` not found, try to kill emulator by window.");
+        return KillEmulatorByWindow();
+    }
+
+    /// <summary>
+    /// 一个用于关闭蓝叠模拟器的方法
+    /// </summary>
+    /// <returns>是否关闭成功</returns>
+    private static bool KillEmulatorBlueStacks()
+    {
+        Process[] processes = Process.GetProcessesByName("HD-Player");
+        if (processes.Length <= 0)
+        {
+            return false;
+        }
+
+        ProcessModule processModule;
+        try
+        {
+            processModule = processes[0].MainModule;
+        }
+        catch (Exception e)
+        {
+            LoggerHelper.Error("Error: Failed to get the main module of the emulator process.");
+            LoggerHelper.Error(e.Message);
+            return false;
+        }
+
+        if (processModule == null)
+        {
+            return false;
+        }
+
+
+        var emuLocation = Path.GetDirectoryName(processModule.FileName);
+        if (emuLocation == null)
+        {
+            return false;
+        }
+
+        string consolePath = Path.Combine(emuLocation, "bsconsole.exe");
+
+        if (File.Exists(consolePath))
+        {
+            LoggerHelper.Info($"Info: `{consolePath}` has been found. This may be the BlueStacks China emulator, try to kill the emulator by window.");
+            return KillEmulatorByWindow();
+        }
+
+        LoggerHelper.Info($"Info: `{consolePath}` not found. This may be the BlueStacks International emulator, try to kill the emulator by the port.");
+        if (KillEmulator())
+        {
+            return true;
+        }
+
+        LoggerHelper.Info("Info: Failed to kill emulator by the port, try to kill emulator process with PID.");
+
+        if (processes.Length > 1)
+        {
+            LoggerHelper.Warning("Warning: The number of elements in processes exceeds one, abort closing the emulator");
+            return false;
+        }
+
+        try
+        {
+            processes[0].Kill();
+            return processes[0].WaitForExit(20000);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"Error: Failed to kill emulator process with PID {processes[0].Id}. Exception: {ex.Message}");
+        }
+
         return false;
     }
 
-    private static async Task<bool> KillByPortAsync(int port)
+    /// <summary>
+    /// Kills emulator by Window hwnd.
+    /// </summary>
+    /// <returns>Whether the operation is successful.</returns>
+    public static bool KillEmulatorByWindow()
     {
-        var (pid, _) = await GetProcessIdByPortAsync(port);
-        if (pid <= 0) return false;
+        var pid = 0;
+        var windowName = new[]
+        {
+            "明日方舟",
+            "明日方舟 - MuMu模拟器",
+            "BlueStacks App Player",
+            "BlueStacks",
+        };
+        foreach (string processName in windowName)
+        {
+#if WINDOWS
+            var hwnd = FindWindow(null, processName);
+            if (hwnd == IntPtr.Zero)
+            {
+                continue;
+            }
+
+            GetWindowThreadProcessId(hwnd, out pid);
+#else
+                    Process[] processes = Process.GetProcessesByName(processName);
+                    if (processes.Length == 0)
+                    {
+                        continue;
+                    }
+            
+                    pid = processes[0].Id;
+#endif
+            break;
+        }
+
+        if (pid == 0)
+        {
+            return KillEmulator();
+        }
 
         try
         {
-            var process = Process.GetProcessById(pid);
-            process.Kill();
-            return process.WaitForExit(5000);
+            var emulator = Process.GetProcessById(pid);
+            emulator.CloseMainWindow();
+            if (!emulator.WaitForExit(5000))
+            {
+                emulator.Kill();
+                if (emulator.WaitForExit(5000))
+                {
+                    LoggerHelper.Info($"Emulator with process ID {pid} killed successfully.");
+                    KillEmulator();
+                    return true;
+                }
+
+                LoggerHelper.Error($"Failed to kill emulator with process ID {pid}.");
+                return false;
+            }
+
+            // 尽管已经成功 CloseMainWindow()，再次尝试 killEmulator()
+            // Refer to https://github.com/MaaAssistantArknights/MaaAssistantArknights/pull/1878
+            KillEmulator();
+
+            // 已经成功 CloseMainWindow()，所以不管 killEmulator() 的结果如何，都返回 true
+            return true;
         }
         catch
         {
-            return false;
+            LoggerHelper.Error("Kill emulator by window error");
         }
+
+        return KillEmulator();
     }
 
-    private static async Task<(int Pid, string Output)> GetProcessIdByPortAsync(int port)
+    /// <summary>
+    /// Kills emulator.
+    /// </summary>
+    /// <returns>Whether the operation is successful.</returns>
+    public static bool KillEmulator()
     {
-        try
-        {
-            string command;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                command = $"netstat -ano | findstr :{port}";
-            }
-            else
-            {
-                command = $"lsof -i :{port} | awk '{{print $2}}' | tail -n 1";
-            }
+        int pid = 0;
+        var address = MaaProcessor.Config.AdbDevice.AdbSerial;
+        var port = address.StartsWith("127") ? address.Substring(10) : "5555";
+        LoggerHelper.Info($"address: {address}, port: {port}");
+        string portCmd = string.Empty;
+#if WINDOWS
+        // Windows平台实现（保留原逻辑）
+        portCmd = "netstat -ano | findstr \"" + port + "\"";
+#else
+    // Linux/macOS平台实现
+     portCmd = $"lsof -i :{port} | grep LISTEN | awk '{{print $2}}' | head -n 1";
+#endif
 
-            var result = await ExecuteShellCommandAsync("sh", $"-c \"{command}\"");
-            return (int.Parse(result.Output), result.Output);
-        }
-        catch
+        var checkCmd = new Process
         {
-            return (-1, string.Empty);
-        }
-    }
-
-    private static async Task<bool> ExecuteAdbCommandAsync(string arguments)
-    {
-        var adbPath = FindAdbPath() ?? "adb";
-        var result = await ExecuteShellCommandAsync(adbPath, arguments);
-        return result.ExitCode == 0;
-    }
-
-    private static string FindAdbPath()
-    {
-        var paths = new List<string>();
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            paths.AddRange(new[]
+            StartInfo =
             {
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Android\\android-sdk\\platform-tools\\adb.exe"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe")
-            });
-        }
-        else
-        {
-            paths.AddRange(new[]
-            {
-                "/usr/bin/adb",
-                "/usr/local/bin/adb",
-                "/opt/android-sdk/platform-tools/adb"
-            });
-        }
-
-        foreach (var path in paths)
-        {
-            if (File.Exists(path))
-                return path;
-        }
-        return null;
-    }
-
-    async private static Task<(int ExitCode, string Output)> ExecuteShellCommandAsync(string fileName, string arguments)
-    {
-        try
-        {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
+                FileName = GetPlatformShell(),
+                Arguments = GetPlatformArguments(),
+                UseShellExecute = false,
+                RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                UseShellExecute = false,
                 CreateNoWindow = true
-            };
+            }
+        };
 
-            using var process = new Process
-            {
-                StartInfo = startInfo
-            };
-            process.Start();
-            var output = await process.StandardOutput.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            return (process.ExitCode, output);
-        }
-        catch (Exception e)
-        {
-            LoggerHelper.Error($"Command execution failed: {e.Message}");
-            return (-1, string.Empty);
-        }
-    }
-
-    private static bool ExecuteShellCommand(string fileName, string arguments)
-    {
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = fileName,
-                Arguments = arguments,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+            checkCmd.Start();
 
-            using var process = Process.Start(startInfo);
-            return process != null && process.WaitForExit(5000) && process.ExitCode == 0;
+#if !WINDOWS
+        // 非Windows平台需要写入命令
+        checkCmd.StandardInput.WriteLine(portCmd);
+#endif
+            checkCmd.StandardInput.WriteLine("exit");
+
+            var output = checkCmd.StandardOutput.ReadToEnd();
+            pid = ParsePidFromOutput(output, port);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"Process error: {ex.Message}");
+            return false;
+        }
+        finally
+        {
+            checkCmd.Close();
+        }
+
+        if (pid == 0)
+        {
+            LoggerHelper.Error("Failed to get emulator PID");
+            return false;
+        }
+
+        try
+        {
+#if WINDOWS
+            // Windows进程终止
+            Process.GetProcessById(pid).Kill();
+#else
+        // Unix系统信号终止
+        Process.Start("kill", $"-9 {pid}").WaitForExit();
+#endif
+            return true;
         }
         catch
         {
@@ -337,16 +563,44 @@ public static class EmulatorHelper
         }
     }
 
-    private static int ParsePortFromAddress(string address)
+// 跨平台辅助方法
+    private static string GetPlatformShell()
     {
-        var match = Regex.Match(address, @":(\d+)");
-        return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+#if WINDOWS
+        return "cmd.exe";
+#else
+    return "/bin/bash";
+#endif
     }
 
-    private record EmulatorProfile(
-        string[] Processes,
-        string ConsoleCli,
-        string ArgsPattern,
-        Func<string, int> PortRule
-    );
+    private static string GetPlatformArguments()
+    {
+#if WINDOWS
+        return "/c";
+#else
+    return "-c";
+#endif
+    }
+
+    private static int ParsePidFromOutput(string output, string port)
+    {
+#if WINDOWS
+        // Windows输出解析逻辑
+        var reg = new Regex("\\s+", RegexOptions.Compiled);
+        foreach (var line in output.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (!trimmed.StartsWith("TCP")) continue;
+
+            var arr = reg.Replace(trimmed, ",").Split(',');
+            if (arr.Length > 4 && arr[1].Contains($":{port}"))
+                return int.Parse(arr[4]);
+        }
+#else
+    // Linux/macOS输出解析
+    if(int.TryParse(output.Trim(), out var result))
+        return result;
+#endif
+        return 0;
+    }
 }

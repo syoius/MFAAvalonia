@@ -21,7 +21,7 @@ public static class ExternalNotificationHelper
 {
     #region 总调用入口
 
-    public async static Task ExternalNotificationAsync(CancellationToken cancellationToken = default)
+    public async static Task ExternalNotificationAsync(string message, CancellationToken cancellationToken = default)
     {
         var enabledProviders = ExternalNotificationSettingsUserControlModel.EnabledExternalNotificationProviderList;
 
@@ -32,55 +32,62 @@ public static class ExternalNotificationHelper
                 case Key.DingTalkKey:
                     await DingTalk.SendAsync(
                         Instances.ExternalNotificationSettingsUserControlModel.DingTalkToken,
-                        Instances.ExternalNotificationSettingsUserControlModel.DingTalkSecret,
+                        Instances.ExternalNotificationSettingsUserControlModel.DingTalkSecret, message,
                         cancellationToken
                     );
                     break;
                 case Key.EmailKey:
                     await Email.SendAsync(
                         Instances.ExternalNotificationSettingsUserControlModel.EmailAccount,
-                        Instances.ExternalNotificationSettingsUserControlModel.EmailSecret,
+                        Instances.ExternalNotificationSettingsUserControlModel.EmailSecret, message,
                         cancellationToken
                     );
                     break;
                 case Key.LarkKey:
                     await Lark.SendAsync(
                         Instances.ExternalNotificationSettingsUserControlModel.LarkId,
-                        Instances.ExternalNotificationSettingsUserControlModel.LarkToken,
+                        Instances.ExternalNotificationSettingsUserControlModel.LarkToken, message,
                         cancellationToken
                     );
                     break;
                 case Key.WxPusherKey:
                     await WxPusher.SendAsync(
                         Instances.ExternalNotificationSettingsUserControlModel.WxPusherToken,
-                        Instances.ExternalNotificationSettingsUserControlModel.WxPusherUid,
+                        Instances.ExternalNotificationSettingsUserControlModel.WxPusherUid, message,
                         cancellationToken
                     );
                     break;
                 case Key.TelegramKey:
                     await Telegram.SendAsync(
                         Instances.ExternalNotificationSettingsUserControlModel.TelegramBotToken,
-                        Instances.ExternalNotificationSettingsUserControlModel.TelegramChatId,
+                        Instances.ExternalNotificationSettingsUserControlModel.TelegramChatId, message,
                         cancellationToken
                     );
                     break;
                 case Key.DiscordKey:
                     await Discord.SendAsync(
-                        Instances.ExternalNotificationSettingsUserControlModel.DiscordUserId,
-                        Instances.ExternalNotificationSettingsUserControlModel.DiscordBotToken,
+                        Instances.ExternalNotificationSettingsUserControlModel.DiscordChannelId,
+                        Instances.ExternalNotificationSettingsUserControlModel.DiscordBotToken, message,
+                        cancellationToken
+                    );
+                    break;
+                case Key.DiscordWebhookKey:
+                    await DiscordWebhook.SendAsync(
+                        Instances.ExternalNotificationSettingsUserControlModel.DiscordWebhookName,
+                        Instances.ExternalNotificationSettingsUserControlModel.DiscordWebhookUrl, message,
                         cancellationToken
                     );
                     break;
                 case Key.SmtpKey:
                     await Smtp.SendAsync(Instances.ExternalNotificationSettingsUserControlModel.SmtpServer, Instances.ExternalNotificationSettingsUserControlModel.SmtpPort, Instances.ExternalNotificationSettingsUserControlModel.SmtpUseSsl,
                         Instances.ExternalNotificationSettingsUserControlModel.SmtpRequireAuthentication, Instances.ExternalNotificationSettingsUserControlModel.SmtpFrom, Instances.ExternalNotificationSettingsUserControlModel.SmtpTo,
-                        Instances.ExternalNotificationSettingsUserControlModel.SmtpUser, Instances.ExternalNotificationSettingsUserControlModel.SmtpPassword, cancellationToken);
+                        Instances.ExternalNotificationSettingsUserControlModel.SmtpUser, Instances.ExternalNotificationSettingsUserControlModel.SmtpPassword, message, cancellationToken);
                     break;
                 case Key.QmsgKey:
                     await QMsg.SendAsync(Instances.ExternalNotificationSettingsUserControlModel.QmsgServer,
                         Instances.ExternalNotificationSettingsUserControlModel.QmsgKey,
                         Instances.ExternalNotificationSettingsUserControlModel.QmsgUser,
-                        Instances.ExternalNotificationSettingsUserControlModel.QmsgBot, cancellationToken);
+                        Instances.ExternalNotificationSettingsUserControlModel.QmsgBot, message, cancellationToken);
                     break;
             }
         }
@@ -98,6 +105,7 @@ public static class ExternalNotificationHelper
         public const string WxPusherKey = "WxPusher"; // 微信公众号
         public const string TelegramKey = "Telegram"; // 电报
         public const string DiscordKey = "Discord"; // Discord
+        public const string DiscordWebhookKey = "DiscordWebhook"; // Discord Webhook
         public const string OneBotKey = "OneBot"; // OneBot
         public const string QmsgKey = "Qmsg"; // QMsg酱
         public const string SmtpKey = "SMTP"; // SMTP协议
@@ -110,6 +118,7 @@ public static class ExternalNotificationHelper
             WxPusherKey,
             TelegramKey,
             DiscordKey,
+            DiscordWebhookKey,
             SmtpKey,
             QmsgKey,
         ];
@@ -121,7 +130,7 @@ public static class ExternalNotificationHelper
 
     public static class DingTalk
     {
-        public async static Task<bool> SendAsync(string accessToken, string secret, CancellationToken cancellationToken = default)
+        public async static Task<bool> SendAsync(string accessToken, string secret, string info, CancellationToken cancellationToken = default)
         {
             var timestamp = GetTimestamp();
             var sign = CalculateSignature(timestamp, secret);
@@ -130,7 +139,7 @@ public static class ExternalNotificationHelper
                 msgtype = "text",
                 text = new
                 {
-                    content = "TaskAllCompleted".ToLocalization()
+                    content = info
                 }
             };
 
@@ -184,13 +193,13 @@ public static class ExternalNotificationHelper
 
     public static class Email
     {
-        public async static Task SendAsync(string email, string password, CancellationToken cancellationToken = default)
+        public async static Task SendAsync(string email, string password, string info, CancellationToken cancellationToken = default)
         {
             try
             {
                 var smtpConfig = GetSmtpConfigByEmail(email);
                 using var client = new SmtpClient();
-                var mail = CreateEmailMessage(email);
+                var mail = CreateEmailMessage(email, info);
 
                 await client.ConnectAsync(
                     smtpConfig.Host,
@@ -219,15 +228,15 @@ public static class ExternalNotificationHelper
             }
         }
 
-        private static MimeMessage CreateEmailMessage(string email)
+        private static MimeMessage CreateEmailMessage(string email, string info)
         {
             var mail = new MimeMessage();
             mail.From.Add(new MailboxAddress("", email));
             mail.To.Add(new MailboxAddress("", email));
-            mail.Subject = "TaskAllCompleted".ToLocalization();
+            mail.Subject = info;
             mail.Body = new TextPart(MimeKit.Text.TextFormat.Plain)
             {
-                Text = "TaskAllCompleted".ToLocalization()
+                Text = info
             };
             return mail;
         }
@@ -267,7 +276,7 @@ public static class ExternalNotificationHelper
 
     public static class Lark
     {
-        public async static Task<bool> SendAsync(string appId, string appSecret, CancellationToken cancellationToken = default)
+        public async static Task<bool> SendAsync(string appId, string appSecret, string info, CancellationToken cancellationToken = default)
         {
             var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
             var sign = GenerateSignature(timestamp, appSecret);
@@ -277,7 +286,7 @@ public static class ExternalNotificationHelper
                 msg_type = "text",
                 content = new
                 {
-                    text = "TaskAllCompleted".ToLocalization()
+                    text = info
                 }
             };
 
@@ -312,13 +321,13 @@ public static class ExternalNotificationHelper
 
     public static class WxPusher
     {
-        public async static Task<bool> SendAsync(string appToken, string uid, CancellationToken cancellationToken = default)
+        public async static Task<bool> SendAsync(string appToken, string uid, string info, CancellationToken cancellationToken = default)
         {
             const string apiUrl = "https://wxpusher.zjiecode.com/api/send/message";
             var payload = new
             {
                 appToken,
-                content = "TaskAllCompleted".ToLocalization(),
+                content = info,
                 contentType = 1,
                 uids = new[]
                 {
@@ -350,9 +359,9 @@ public static class ExternalNotificationHelper
 
     public static class Telegram
     {
-        public async static Task<bool> SendAsync(string botToken, string chatId, CancellationToken cancellationToken = default)
+        public async static Task<bool> SendAsync(string botToken, string chatId, string info, CancellationToken cancellationToken = default)
         {
-            var message = WebUtility.UrlEncode("TaskAllCompleted".ToLocalization());
+            var message = WebUtility.UrlEncode(info);
             var apiUrl = $"https://api.telegram.org/bot{botToken}/sendMessage?chat_id={chatId}&text={message}";
 
             try
@@ -384,6 +393,7 @@ public static class ExternalNotificationHelper
             string toAddress,
             string username = "",
             string password = "",
+            string info = "",
             CancellationToken cancellationToken = default)
         {
             try
@@ -408,10 +418,10 @@ public static class ExternalNotificationHelper
                 var message = new MimeMessage();
                 message.From.Add(new MailboxAddress("", fromAddress));
                 message.To.Add(new MailboxAddress("", toAddress));
-                message.Subject = "TaskAllCompleted".ToLocalization();
+                message.Subject = info;
                 message.Body = new TextPart("plain")
                 {
-                    Text = "TaskAllCompleted".ToLocalization()
+                    Text = info
                 };
 
                 // 发送操作（支持发送过程取消）
@@ -461,6 +471,7 @@ public static class ExternalNotificationHelper
         public async static Task<bool> SendAsync(
             string channelId,
             string botToken,
+            string info,
             CancellationToken cancellationToken = default)
         {
             const string apiUrl = "https://discord.com/api/v10/channels/{0}/messages";
@@ -472,7 +483,7 @@ public static class ExternalNotificationHelper
 
                 var payload = new
                 {
-                    content = "TaskAllCompleted".ToLocalization(),
+                    content = info,
                     allowed_mentions = new
                     {
                         parse = new[]
@@ -513,6 +524,64 @@ public static class ExternalNotificationHelper
 
     #endregion
 
+    #region DiscordWebhook通知
+
+    public static class DiscordWebhook
+    {
+        public async static Task<bool> SendAsync(
+            string webhookName,
+            string webhookUrl,
+            string info,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                using var client = new HttpClient();
+
+                var payload = new
+                {
+                    username = string.IsNullOrWhiteSpace(webhookName) ? "Notifier" : webhookName,
+                    content = info,
+                    allowed_mentions = new
+                    {
+                        parse = new[]
+                        {
+                            "users"
+                        }
+                    }
+                };
+
+                var response = await client.PostAsync(
+                    webhookUrl,
+                    new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json"),
+                    cancellationToken
+                );
+
+                if (response.IsSuccessStatusCode)
+                {
+                    LoggerHelper.Info("Discord Webhook 訊息發送成功");
+                    return true;
+                }
+
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                LoggerHelper.Error($"Discord Webhook 發送失敗: {errorContent}");
+                return false;
+            }
+            catch (OperationCanceledException)
+            {
+                LoggerHelper.Warning("Discord Webhook 訊息發送已取消");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.Error($"Discord Webhook 發送異常: {ex.Message}");
+                return false;
+            }
+        }
+    }
+
+    #endregion
+
     #region OneBot通知
 
     public static class OneBot
@@ -521,6 +590,7 @@ public static class ExternalNotificationHelper
             string serverUrl,
             string apiKey,
             string userQq,
+            string info,
             CancellationToken cancellationToken = default)
         {
             var apiEndpoint = $"{serverUrl}/send_msg";
@@ -530,7 +600,7 @@ public static class ExternalNotificationHelper
 
                 var content = new Dictionary<string, string>
                 {
-                    ["message"] = "TaskAllCompleted".ToLocalization(),
+                    ["message"] = info,
                     ["user_id"] = userQq
                 };
 
@@ -578,6 +648,7 @@ public static class ExternalNotificationHelper
             string apiKey,
             string userQq,
             string botQq = "",
+            string info = "",
             CancellationToken cancellationToken = default)
         {
             var apiEndpoint = $"{serverUrl}/send/{apiKey}";
@@ -587,7 +658,7 @@ public static class ExternalNotificationHelper
                 using var client = new HttpClient();
                 var parameters = new Dictionary<string, string>
                 {
-                    ["msg"] = "TaskAllCompleted".ToLocalization(),
+                    ["msg"] = info,
                     ["qq"] = userQq
                 };
 

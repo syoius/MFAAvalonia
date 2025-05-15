@@ -1,5 +1,6 @@
 ﻿<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:suki="https://github.com/kikipoulet/SukiUI">
+        xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:calcBinding="clr-namespace:CalcBinding;assembly=CalcBindingAva">
     <Design.PreviewWith>
         <Border Padding="20" Background="White">
             <StackPanel Spacing="20">
@@ -27,13 +28,13 @@
             <ControlTemplate>
                 <Grid ColumnDefinitions="Auto,*">
                     <suki:GlassCard IsInteractive="True" Classes="Control" Name="border"
-                            Width="20"
-                            Height="20"
-                            VerticalAlignment="Center"  
-                        Classes.PrimaryOpaque="{TemplateBinding IsChecked}"
-                       
-                            CornerRadius="6">
-                        
+                                    Width="20"
+                                    Height="20"
+                                    VerticalAlignment="Center"
+                                    Classes.PrimaryOpaque="{Binding IsChecked, 
+                            RelativeSource={RelativeSource TemplatedParent},
+                            Converter={ suki:IsCheckedToClassConverter}}" CornerRadius="6">
+
                         <Panel>
                             <Path Name="checkMark"
                                   Width="9"
@@ -41,27 +42,29 @@
                                   Margin="1,1,0,0"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
-								  FlowDirection="LeftToRight"
+                                  FlowDirection="LeftToRight"
                                   Data="M 1145.607177734375,430 C1145.607177734375,430 1141.449951171875,435.0772705078125 1141.449951171875,435.0772705078125 1141.449951171875,435.0772705078125 1139.232177734375,433.0999755859375 1139.232177734375,433.0999755859375 1139.232177734375,433.0999755859375 1138,434.5538330078125 1138,434.5538330078125 1138,434.5538330078125 1141.482177734375,438 1141.482177734375,438 1141.482177734375,438 1141.96875,437.9375 1141.96875,437.9375 1141.96875,437.9375 1147,431.34619140625 1147,431.34619140625 1147,431.34619140625 1145.607177734375,430 1145.607177734375,430 z"
                                   Fill="White"
-                                  Stretch="Uniform" >
+                                  Stretch="Uniform">
                                 <Path.Transitions>
                                     <Transitions>
-                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2"></DoubleTransition>
-                                        </Transitions>
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.2"></DoubleTransition>
+                                    </Transitions>
                                 </Path.Transitions>
                             </Path>
-                            <Border Name="IndetBorder" Opacity="0" VerticalAlignment="Center" HorizontalAlignment="Center" Background="White" Height="3" Width="8" CornerRadius="2">
+                            <Border Name="IndetBorder" Opacity="0" VerticalAlignment="Center"
+                                    HorizontalAlignment="Center" Background="White" Height="3" Width="8"
+                                    CornerRadius="2">
                                 <Border.Transitions>
                                     <Transitions>
-                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2"></DoubleTransition>
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.2"></DoubleTransition>
                                     </Transitions>
                                 </Border.Transitions>
                             </Border>
                         </Panel>
                     </suki:GlassCard>
                     <ContentPresenter Name="PART_ContentPresenter"
-                                      Grid.Column="1"
+                                      Grid.Column="1" ContextMenu="{TemplateBinding ContextMenu}"
                                       Margin="{TemplateBinding Padding}"
                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                       VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
@@ -89,13 +92,13 @@
         <Setter Property="Opacity" Value="1"></Setter>
     </Style>
     <Style Selector="CheckBox:indeterminate /template/ Rectangle#indeterminateMark">
-        <Setter Property="Opacity" Value="0"></Setter>
+        <Setter Property="Opacity" Value="1"></Setter>
     </Style>
-    
+
     <Style Selector="CheckBox:indeterminate /template/ Border#IndetBorder">
         <Setter Property="Opacity" Value="1"></Setter>
     </Style>
- 
+
     <Style Selector="CheckBox:disabled /template/ suki|GlassCard#border">
         <Setter Property="Opacity" Value="0.7"></Setter>
     </Style>

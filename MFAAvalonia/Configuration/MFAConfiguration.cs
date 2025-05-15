@@ -49,8 +49,9 @@ public partial class MFAConfiguration(string name, string fileName, Dictionary<s
     {
         if (Config == null || value == null) return;
         Config[key] = value;
-        JsonHelper.SaveConfig(FileName, Config, new MaaInterfaceSelectOptionConverter(false));
+        JsonHelper.SaveConfig(FileName, Config,new MaaInterfaceSelectAdvancedConverter(false), new MaaInterfaceSelectOptionConverter(false));
     }
+    
     public T GetValue<T>(string key, T defaultValue, List<T> whitelist)
     {
         var value = GetValue(key, defaultValue);

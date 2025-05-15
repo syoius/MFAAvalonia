@@ -16,6 +16,8 @@ _✨ 基于 **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** 的 **[MAAFra
   <img alt=".NET" src="https://img.shields.io/badge/.NET-≥%208-512BD4?logo=csharp">
   <img alt="platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blueviolet">
   <img alt="commit" src="https://img.shields.io/github/commit-activity/m/SweetSmellFox/MFAAvalonia">
+  <img alt="stars" src="https://img.shields.io/github/stars/SweetSmellFox/MFAAvalonia?style=social">
+  <a href="https://mirrorchyan.com/zh/projects" target="_blank"><img alt="mirrorc" src="https://img.shields.io/badge/Mirror%E9%85%B1-%239af3f6?logo=countingworkspro&logoColor=4f46e5"></a>
 </div>
 <div align="center">
 
@@ -26,7 +28,7 @@ _✨ 基于 **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** 的 **[MAAFra
 ## 预览图
 
 <p align="center">
-  <img alt="preview" src="https://github.com/SweetSmellFox/MFAAvalonia/blob/master/MFAAvalonia/Img/preview.png" height="450" width="900" />
+  <img alt="preview" src="https://github.com/SweetSmellFox/MFAAvalonia/blob/master/MFAAvalonia/Img/preview.png" height="595" width="900" />
 </p>
 
 ## 使用需求
@@ -134,34 +136,80 @@ _✨ 基于 **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** 的 **[MAAFra
 
 - `[align:left/center/right]`：居左，居中或者居右，只能在一整行中使用。
 
-**注：上面注释内容为文档介绍用，实际运行时不建议写入。**
+### 实验性功能
+
+- `MFAAvalonia` 为interface和interface的task新增了`advanced`字段。
+- `advanced`字段的用法类似于option，其功能类似于支持通过UI输入框让用户自行编辑功能的`pipeline_override`。
+- 下面是使用`advanced`的例子
+
+``` json
+{
+  "task": [
+        {    
+            "name": "测试A",
+            "entry": "任务A",
+            "advanced": ["高级设置A","高级设置B"]
+        }
+  ],
+  "advanced": {
+    "高级设置A": {
+      "field": "ce",
+      "type": "string",
+      "default": "cs.png",
+      "pipeline_override": {
+          "任务A": {
+            "template": "{ce}"
+          }
+      }
+    },
+    "高级设置B": {
+      "field": ["x","y"],
+      "type": ["int", "int"],
+      "default": ["1", "1"],
+      "pipeline_override": {
+          "任务A": {
+            "roi": ["{x}","{y}",3,4]
+          }
+      }
+    }
+  }
+}
+```
+**注：field和type和default支持string | list<string>类型，default默认为空。**
+
+**注：上面json中注释内容为文档介绍用，实际运行时不能写入。**
 
 - 运行
 
 ## 开发相关
 
 - 欢迎各位大佬贡献代码
-- `MFA` 有interface多语言支持,在`interface.json`同目录下新建`lang`文件夹,里面内含`zh-cn.json`,`zh-tw.json`和`en-us.json`后，doc和任务的name和选项的name可以使用key来指代。MFAAvalonia会自动根据语言来读取文件的key对应的value。如果没有则默认为key
-- `MFA` 会读取`Resource`文件夹的`Announcement.md`作为公告，更新资源时会自动下载一份Changelog作为公告
+- `MFAAvalonia` 有interface多语言支持,在`interface.json`同目录下新建`lang`文件夹,里面内含`zh-cn.json`,`zh-tw.json`和`en-us.json`后，doc和任务的name和选项的name可以使用key来指代。MFAAvalonia会自动根据语言来读取文件的key对应的value。如果没有则默认为key
+- `MFAAvalonia` 会读取`Resource`文件夹的`Announcement.md`作为公告，更新资源时会自动下载一份Changelog作为公告
+- `MFAAvalonia` 可以通过启动参数`-c 配置名称`来指定以特定配置文件启动，无须后缀名`.json`
 
-**注：在MFA中，于Pipeline中任务新增了多个个属性字段。**
+**注：在MFA的v1.1.6版本中，移除了focus系列字段，改为any focus，原先的不再可用！**
 
-- `focus` : *bool*  
-  [原生字段] 是否启用`focus_tip` 、`focus_succeeded`、 `focus_failed`、 `focus_toast`。可选，默认false。
-- `focus_toast` : *string*  
-  当执行某任务前，Windows弹窗输出的内容。可选，默认空。
-- `focus_tip` : *string* | *list<string, >*  
-  当执行某任务前，在MFA右侧日志输出的内容。可选，默认空。
-- `focus_tip_color` : *string* | *list<string, >*  
-  当执行某任务前，在MFA右侧日志输出的内容的颜色。可选，默认为Gray。
-- `focus_succeeded` : *string* | *list<string, >*  
-  当执行某任务成功后，在MFA右侧日志输出的内容。可选，默认空。
-- `focus_succeeded_color` : *string* | *list<string, >*  
-  当执行某任务成功后，在MFA右侧日志输出的内容的颜色。可选，默认为Gray。
-- `focus_failed` : *string* | *list<string, >*  
-  当执行某任务失败时，在MFA右侧日志输出的内容。可选，默认空。
-- `focus_failed_color` : *string* | *list<string, >*  
-  当执行某任务失败时，在MFA右侧日志输出的内容的颜色。可选，默认为Gray。
+- `focus` : *string* | *object*  
+格式为
+  ```
+  "focus": {
+    "start": "任务开始",  注：*string* | *string[]*    
+    "succeeded": "任务成功",  注：*string* | *string[]* 
+    "failed": "任务失败", 注：*string* | *string[]* 
+    "toast": "弹窗提醒" 注：*string* 
+  }
+  ```
+  ```
+   "focus": "测试"
+  ```
+  等同于
+  ```
+  "focus": {
+    "start": "测试"
+  }
+    ```
+除了`toast`，其他的均支持使用类似`[color:red]`文本内容`[/color]`的标记来定义文本颜色。
 
 ## 许可证
 

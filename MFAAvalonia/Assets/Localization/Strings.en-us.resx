@@ -192,7 +192,7 @@
         <value>Are you sure want to exit?</value>
     </data>
     <data name="ConfirmExitTitle" xml:space="preserve">
-        <value>MFA is running tasks</value>
+        <value>The current program is performing tasks</value>
     </data>
     <data name="Connected" xml:space="preserve">
         <value>Connected</value>
@@ -389,8 +389,14 @@
     <data name="ExternalNotificationDingTalkToken" xml:space="preserve">
         <value>DingTalk Token</value>
     </data>
+    <data name="ExternalNotificationDiscordChannelId" xml:space="preserve">
+        <value>Channel ID</value>
+    </data>
     <data name="ExternalNotificationDiscordUserId" xml:space="preserve">
         <value>User ID</value>
+    </data>
+    <data name="ExternalNotificationDiscordWebhookName" xml:space="preserve">
+        <value>Webhook Name</value>
     </data>
     <data name="ExternalNotificationEmailAccount" xml:space="preserve">
         <value>Email Account</value>
@@ -451,6 +457,9 @@
     </data>
     <data name="ExternalNotificationTips" xml:space="preserve">
         <value>Please note: The external notification feature currently only sends 「All tasks completed」 notifications.</value>
+    </data>
+    <data name="ExternalNotificationWebhookUrl" xml:space="preserve">
+        <value>Webhook Url</value>
     </data>
     <data name="ExternalNotificationWxPusherUID" xml:space="preserve">
         <value>User UID</value>
@@ -1045,6 +1054,24 @@
     </data>
     <data name="StartingAgent" xml:space="preserve">
         <value>Starting Agent (may take a while)</value>
+    </data>
+    <data name="AgentStartFailed" xml:space="preserve">
+        <value>Agent startup failure</value>
+    </data>
+    <data name="Optional" xml:space="preserve">
+        <value>Optional</value>
+    </data>
+    <data name="ExternalNotificationEnableCustomNotificationMessage" xml:space="preserve">
+        <value>Enable Custom Notification Message</value>
+    </data>
+    <data name="ExternalNotificationCustomNotificationContent" xml:space="preserve">
+        <value>Custom Notification Content</value>
+    </data>
+    <data name="ExternalNotificationTest" xml:space="preserve">
+        <value>This is a send test</value>
+    </data>
+    <data name="GlobalHotkeyServiceError" xml:space="preserve">
+        <value>Global Hotkey Service Failed to Load</value>
     </data>
     <data name="Manual" xml:space="preserve">
         <value>Manual</value>

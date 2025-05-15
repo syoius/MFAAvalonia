@@ -1,5 +1,7 @@
 ﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:animations="clr-namespace:SukiUI.Animations"
+                    xmlns:suki="https://github.com/kikipoulet/SukiUI"
                     xmlns:sys="using:System">
     <Design.PreviewWith>
         <Border Width="400" Height="400">
@@ -19,8 +21,8 @@
     <SolidColorBrush x:Key="SplitViewLightDismissOverlayBackground"
                      Opacity="0.6"
                      Color="{DynamicResource ThemeControlLowColor}" />
-    <sys:TimeSpan x:Key="SplitViewPaneAnimationOpenDuration">00:00:0.4</sys:TimeSpan>
-    <sys:TimeSpan x:Key="SplitViewPaneAnimationCloseDuration">00:00:0.4</sys:TimeSpan>
+    <sys:TimeSpan x:Key="SplitViewPaneAnimationOpenDuration">00:00:0.7</sys:TimeSpan>
+    <sys:TimeSpan x:Key="SplitViewPaneAnimationCloseDuration">00:00:0.6</sys:TimeSpan>
 
     <!-- Not used here (directly), but preserving for reference
         <x:String x:Key="SplitViewPaneAnimationOpenPreDuration">00:00:00.19999</x:String>-->
@@ -196,9 +198,11 @@
         <Style Selector="^:open /template/ Panel#PART_PaneRoot">
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Easing="SineEaseOut"
-                                      Property="Width"
-                                      Duration="{StaticResource SplitViewPaneAnimationOpenDuration}" />
+                    <DoubleTransition Property="Width" Duration="{StaticResource SplitViewPaneAnimationOpenDuration}">
+                        <DoubleTransition.Easing>
+                            <animations:SukiEaseInOutBack BounceIntensity="Strong" />
+                        </DoubleTransition.Easing>
+                    </DoubleTransition>
                 </Transitions>
             </Setter>
             <Setter Property="Width" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=OpenPaneLength}" />
@@ -217,9 +221,11 @@
         <Style Selector="^:closed /template/ Panel#PART_PaneRoot">
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Easing="SineEaseOut"
-                                      Property="Width"
-                                      Duration="{StaticResource SplitViewPaneAnimationCloseDuration}" />
+                    <DoubleTransition Property="Width" Duration="{StaticResource SplitViewPaneAnimationCloseDuration}">
+                        <DoubleTransition.Easing>
+                            <animations:SukiEaseInOut />
+                        </DoubleTransition.Easing>
+                    </DoubleTransition>
                 </Transitions>
             </Setter>
             <Setter Property="Width" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplateSettings.ClosedPaneWidth}" />

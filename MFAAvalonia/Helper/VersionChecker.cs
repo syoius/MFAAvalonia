@@ -2,13 +2,13 @@
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
-using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.Converters;
 using MFAAvalonia.ViewModels.Windows;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Semver;
 using SukiUI.Dialogs;
+using SukiUI.Enums;
 using SukiUI.Toasts;
 using System;
 using System.Collections.Concurrent;
@@ -20,6 +20,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -43,11 +44,11 @@ public static class VersionChecker
             CheckVersion = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableCheckVersion, true),
         };
 
-        if (config.AutoUpdateResource)
+        if (config.AutoUpdateResource && !GetResourceVersion().Contains("debug", StringComparison.OrdinalIgnoreCase))
         {
             AddResourceUpdateTask(config.AutoUpdateMFA);
         }
-        else if (config.CheckVersion)
+        else if (config.CheckVersion && !GetResourceVersion().Contains("debug", StringComparison.OrdinalIgnoreCase))
         {
             AddResourceCheckTask();
         }
@@ -152,7 +153,7 @@ public static class VersionChecker
                 {
                     Instances.ToastManager.CreateToast().WithTitle("UpdateResource".ToLocalization())
                         .WithContent("ResourceOption".ToLocalization() + "NewVersionAvailableLatestVersion".ToLocalization() + latestVersion).Dismiss().After(TimeSpan.FromSeconds(6))
-                        .WithActionButtonNormal("Later".ToLocalization(), _ => { }, true)
+                        .WithActionButton("Later".ToLocalization(), _ => { }, true, SukiButtonStyles.Basic)
                         .WithActionButton("Update".ToLocalization(), _ => UpdateResourceAsync(), true).Queue();
                 });
             }
@@ -191,7 +192,7 @@ public static class VersionChecker
                 {
                     Instances.ToastManager.CreateToast().WithTitle("SoftwareUpdate".ToLocalization())
                         .WithContent("MFA" + "NewVersionAvailableLatestVersion".ToLocalization() + latestVersion).Dismiss().After(TimeSpan.FromSeconds(6))
-                        .WithActionButtonNormal("Later".ToLocalization(), _ => { }, true)
+                        .WithActionButton("Later".ToLocalization(), _ => { }, true, SukiButtonStyles.Basic)
                         .WithActionButton("Update".ToLocalization(), _ => UpdateMFAAsync(), true).Queue();
                 });
             }
@@ -536,6 +537,7 @@ rm $0
             };
 
             settings.Converters.Add(new MaaInterfaceSelectOptionConverter(true));
+            settings.Converters.Add(new MaaInterfaceSelectAdvancedConverter(true));
 
             var @interface = JsonConvert.DeserializeObject<MaaInterface>(jsonContent, settings);
             if (@interface != null)
@@ -673,14 +675,56 @@ rm $0
             // 构建完整路径
             string sourceUpdaterPath = Path.Combine(sourceDirectory, updaterName); // 源目录路径
             string targetUpdaterPath = Path.Combine(utf8BaseDirectory, updaterName); // 目标目录路径
-
+            bool update = false;
             try
             {
-                if (File.Exists(sourceUpdaterPath) && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (File.Exists(targetUpdaterPath) && File.Exists(sourceUpdaterPath))
                 {
-                    var chmodProcess = Process.Start("/bin/chmod", $"+x {sourceDirectory}");
-                    await chmodProcess?.WaitForExitAsync();
+                    update = true;
+                    var targetVersionInfo = FileVersionInfo.GetVersionInfo(targetUpdaterPath);
+                    var sourceVersionInfo = FileVersionInfo.GetVersionInfo(sourceUpdaterPath);
+                    var targetVersion = targetVersionInfo.FileVersion; // 或 ProductVersion
+                    var sourceVersion = sourceVersionInfo.FileVersion;
+
+                    // 使用Version类比较版本
+                    var vTarget = new Version(targetVersion);
+                    var vSource = new Version(sourceVersion);
+
+                    int result = vTarget.CompareTo(vSource);
+                    if (result < 0)
+                    {
+                        if (File.Exists(sourceUpdaterPath) && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            var chmodProcess = Process.Start("/bin/chmod", $"+x {sourceDirectory}");
+                            await chmodProcess?.WaitForExitAsync();
+                        }
+                    }
+
                 }
+
+                // 验证源文件存在性
+                if (!File.Exists(sourceUpdaterPath))
+                {
+                    LoggerHelper.Error($"更新器在源目录缺失: {sourceUpdaterPath}");
+                }
+            }
+            catch (IOException ex)
+            {
+                LoggerHelper.Error($"文件操作失败: {ex.Message} (错误代码: {ex.HResult})");
+                throw new InvalidOperationException("文件复制过程中发生I/O错误", ex);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                LoggerHelper.Error($"权限不足: {ex.Message}");
+                throw new SecurityException("文件访问权限被拒绝", ex);
+            }
+            catch (Exception ex)
+            {
+                update = true;
+                LoggerHelper.Error($"操作失败: {ex.Message} (具体: {ex})");
+            }
+            if (update)
+            {
                 File.Copy(sourceUpdaterPath, targetUpdaterPath, overwrite: true);
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
@@ -695,25 +739,7 @@ rm $0
                     }
                 }
                 LoggerHelper.Info($"成功复制更新器到目标目录: {targetUpdaterPath}");
-
-                // 验证源文件存在性
-                if (!File.Exists(sourceUpdaterPath))
-                {
-                    LoggerHelper.Error($"更新器在源目录缺失: {sourceUpdaterPath}");
-                    throw new FileNotFoundException("更新程序源文件未找到");
-                }
             }
-            catch (IOException ex)
-            {
-                LoggerHelper.Error($"文件操作失败: {ex.Message} (错误代码: {ex.HResult})");
-                throw new InvalidOperationException("文件复制过程中发生I/O错误", ex);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                LoggerHelper.Error($"权限不足: {ex.Message}");
-                throw new SecurityException("文件访问权限被拒绝", ex);
-            }
-
             SetProgress(progress, 100);
             
             string executableName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
@@ -749,9 +775,34 @@ rm $0
         }
         return false;
     }
+    private static string BuildArguments(string source, string target, string oldName, string newName)
+    {
+        var args = new List<string>
+        {
+            EscapeArgument(source),
+            EscapeArgument(target)
+        };
+
+        if (!string.IsNullOrWhiteSpace(oldName))
+            args.Add(EscapeArgument(oldName));
+        
+        if (!string.IsNullOrWhiteSpace(newName))
+            args.Add(EscapeArgument(newName));
+        
+        return string.Join(" ", args);
+    }
+
+// 处理含空格的参数
+    private static string EscapeArgument(string arg) => $"\"{arg.Replace("\"", "\\\"")}\"";
 
     async private static Task ApplySecureUpdate(string source, string target, string oldName = "", string newName = "")
     {
+        source = Path.GetFullPath(source).Replace('\\', Path.DirectorySeparatorChar);
+        target = Path.GetFullPath(target).Replace('\\', Path.DirectorySeparatorChar);
+
+        target = target.TrimEnd('\\', '/');
+        source = source.TrimEnd('\\', '/');
+
         string updaterName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
             ? "MFAUpdater.exe"
             : "MFAUpdater";
@@ -778,15 +829,15 @@ rm $0
 
         var psi = new ProcessStartInfo
         {
-            FileName = updaterName,
             WorkingDirectory = AppContext.BaseDirectory,
-            UseShellExecute = RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
-            Arguments = (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) ? $"{source} {target}" : $"{source} {target} {oldName} {newName}",
+            FileName = updaterName,
+            Arguments = BuildArguments(source, target, oldName, newName),
             CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden
         };
 
-        LoggerHelper.Info($"{AppContext.BaseDirectory}{updaterName} {source} {target} {oldName} {newName}");
+
+        LoggerHelper.Info($"{Path.Combine(AppContext.BaseDirectory, updaterName)} {BuildArguments(source, target, oldName, newName)}");
 
         try
         {
@@ -880,8 +931,17 @@ rm $0
             var resId = "MaaFramework";
             var currentVersion = MaaProcessor.Utility.Version;
             string downloadUrl = string.Empty, latestVersion = string.Empty;
-            GetDownloadUrlFromMirror(currentVersion, resId, CDK(), out downloadUrl, out latestVersion, "MFA", true);
-
+            try
+            {
+                GetDownloadUrlFromMirror(currentVersion, resId, CDK(), out downloadUrl, out latestVersion, "MFA", true);
+            }
+            catch (Exception ex)
+            {
+                Dismiss(sukiToast);
+                ToastHelper.Warn($"{"FailToGetLatestVersionInfo".ToLocalization()}", ex.Message);
+                LoggerHelper.Error(ex);
+                return;
+            }
             // 版本校验（保持原有逻辑）
             SetProgress(progress, 50);
             if (!IsNewVersionAvailable(latestVersion, currentVersion))
@@ -915,11 +975,11 @@ rm $0
             var utf8Bytes = Encoding.UTF8.GetBytes(AppContext.BaseDirectory);
             var utf8BaseDirectory = Encoding.UTF8.GetString(utf8Bytes);
             var sourceBytes = Encoding.UTF8.GetBytes(Path.Combine(extractDir, "bin"));
-            var sourceDirectory = Encoding.UTF8.GetString(utf8Bytes);
+            var sourceDirectory = Encoding.UTF8.GetString(sourceBytes);
             SetProgress(progress, 100);
 
             // 清理与重启（复用ApplySecureUpdate）
-            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory);
+            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, Process.GetCurrentProcess().MainModule.ModuleName);
         }
         finally
         {
@@ -960,6 +1020,14 @@ rm $0
         int page = 1;
         const int perPage = 5;
         using var httpClient = new HttpClient();
+
+        if (!string.IsNullOrWhiteSpace(Instances.VersionUpdateSettingsUserControlModel.GitHubToken))
+        {
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Bearer",
+                Instances.VersionUpdateSettingsUserControlModel.GitHubToken);
+        }
+
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("request");
         httpClient.DefaultRequestHeaders.Accept.TryParseAdd("application/json");
 
@@ -1023,6 +1091,13 @@ rm $0
         using var httpClient = new HttpClient();
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("MFAComponentUpdater/1.0");
         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+
+        if (!string.IsNullOrWhiteSpace(Instances.VersionUpdateSettingsUserControlModel.GitHubToken))
+        {
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+                "Bearer",
+                Instances.VersionUpdateSettingsUserControlModel.GitHubToken);
+        }
 
         try
         {
@@ -1269,7 +1344,7 @@ rm $0
 
     private static string GetLocalVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "DEBUG";
+        return RootViewModel.Version;
     }
 
     private static string GetResourceVersion()
@@ -1299,55 +1374,23 @@ rm $0
 
     private static SemVersion ParseAndNormalizeVersion(string version)
     {
-        // 移除v前缀和前后空格
-        var sanitized = version.Trim().TrimStart('v', 'V');
+        if (!version.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+            version = $"v{version}";
+        var pattern = @"^[vV]?(?<major>\d+)(\.(?<minor>\d+))?(\.(?<patch>\d+))?(?:-(?<prerelease>[0-9a-zA-Z\-\.]+))?(?:\+(?<build>[0-9a-zA-Z\-\.]+))?$";
+        var match = Regex.Match(version.Trim(), pattern);
 
-        // 分离构建元数据和预发布标签
-        var buildSeparatorIndex = sanitized.IndexOf('+');
-        var prereleaseSeparatorIndex = sanitized.IndexOf('-');
+        var major = match.Groups["major"].Success ? int.Parse(match.Groups["major"].Value) : 0;
+        var minor = match.Groups["minor"].Success ? int.Parse(match.Groups["minor"].Value) : 0;
+        var patch = match.Groups["patch"].Success ? int.Parse(match.Groups["patch"].Value) : 0;
+        var prerelease = match.Groups["prerelease"].Success
+            ? match.Groups["prerelease"].Value.Split('.')
+            : null;
 
-        var versionPart = sanitized;
-        var suffix = "";
+        var build = match.Groups["build"].Success
+            ? match.Groups["build"].Value.Split('.')
+            : null;
 
-        // 提取基础版本部分
-        if (prereleaseSeparatorIndex > 0 || buildSeparatorIndex > 0)
-        {
-            var firstSpecialIndex = new[]
-                {
-                    prereleaseSeparatorIndex,
-                    buildSeparatorIndex
-                }
-                .Where(i => i > 0)
-                .DefaultIfEmpty(-1)
-                .Min();
-
-            if (firstSpecialIndex > 0)
-            {
-                versionPart = sanitized.Substring(0, firstSpecialIndex);
-                suffix = sanitized.Substring(firstSpecialIndex);
-            }
-        }
-
-        // 分割版本号组件
-        var versionComponents = versionPart.Split('.')
-            .Select(s => int.TryParse(s, out var num) ? num : 0)
-            .ToList();
-
-        // 标准化为三位版本号
-        while (versionComponents.Count < 3)
-        {
-            versionComponents.Add(0);
-        }
-
-        if (versionComponents.Count > 3)
-        {
-            versionComponents = versionComponents.Take(3).ToList();
-        }
-
-        // 重组标准化版本字符串
-        var normalized = $"{versionComponents[0]}.{versionComponents[1]}.{versionComponents[2]}{suffix}";
-
-        return SemVersion.Parse(normalized, SemVersionStyles.AllowV);
+        return new SemVersion(new BigInteger(major), new BigInteger(minor), new BigInteger(patch), prerelease, build);
     }
 
     async private static Task<bool> DownloadFileAsync(string url, string filePath, ProgressBar? progressBar, string key)
