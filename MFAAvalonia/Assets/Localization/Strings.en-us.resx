@@ -1073,4 +1073,10 @@
     <data name="GlobalHotkeyServiceError" xml:space="preserve">
         <value>Global Hotkey Service Failed to Load</value>
     </data>
+    <data name="Manual" xml:space="preserve">
+        <value>Manual</value>
+   </data>
+    <data name="QQChannel" xml:space="preserve">
+        <value>QQChannel: Maa鸢</value>
+   </data>
 </root>

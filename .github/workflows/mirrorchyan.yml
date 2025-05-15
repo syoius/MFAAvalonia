@@ -17,8 +17,8 @@ jobs:
         if: always()
         with:
           filetype: latest-release
-          filename: "MFAAvalonia-*-${{ matrix.os }}-${{ matrix.arch }}.zip"
-          mirrorchyan_rid: MFAAvalonia
+          fileName: "MFAAvalonia-*-${{ matrix.os }}-${{ matrix.arch }}.zip"
+          mirrorchyan_rid: YuanMFA
 
           github_token: ${{ secrets.GITHUB_TOKEN }}
           owner: ${{ github.repository_owner }}

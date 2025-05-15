@@ -46,10 +46,10 @@
         <!-- 左侧列 -->
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" MaxHeight="150" />
+                <RowDefinition Height="Auto" MaxHeight="230" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <suki:GlassCard Grid.Row="0" Margin="15,15,0,5">
+            <suki:GlassCard Grid.Row="0" Margin="15,15,0,0">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -58,19 +58,59 @@
                             Foreground="{DynamicResource SukiLowText}"
                             HorizontalAlignment="Left"
                             Margin="2,0,0,0"
-                            Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
+                            Text="运行环境"
                             VerticalAlignment="Center" />
                     </suki:GroupBox.Header>
-                    <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                              DisplayMemberBinding="{Binding Name}"
-                              IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                              ItemsSource="{Binding CurrentResources}"
-                              Margin="10,0,10,0"
-                              SelectedValue="{Binding CurrentResource}"
-                              SelectedValueBinding="{Binding Name}"
-                              VerticalAlignment="Center" />
+                    <StackPanel Spacing="4">
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
+                                VerticalAlignment="Center"
+                                Margin="10,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding CurrentResources}"
+                                      Margin="15,0,0,0"
+                                      SelectedValue="{Binding CurrentResource}"
+                                      SelectedValueBinding="{Binding Name}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                        
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.AutoStartOption}}"
+                                VerticalAlignment="Center"
+                                Margin="2,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding BeforeTaskList}"
+                                      Margin="10,0,0,0"
+                                      SelectedValue="{Binding BeforeTask}"
+                                      SelectedValueBinding="{Binding ResourceKey}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                        
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.AfterTaskOption}}"
+                                VerticalAlignment="Center"
+                                Margin="2,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding AfterTaskList}"
+                                      Margin="10,0,0,0"
+                                      SelectedValue="{Binding AfterTask}"
+                                      SelectedValueBinding="{Binding ResourceKey}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
                 </suki:GroupBox>
-
             </suki:GlassCard>
             <Grid Grid.Row="1">
                 <suki:GlassCard Grid.Column="0" Margin="15,5,0,25">
@@ -181,6 +221,17 @@
                                                     </DataTemplate>
                                                 </CheckBox.ContentTemplate>
                                             </CheckBox>
+                                            
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding Name}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="NoWrap"
+                                                MinWidth="170"
+                                                Margin="3,0,25,0"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                Tapped="TextBlock_Tapped" />
 
                                             <!--  ReSharper disable once Xaml.StaticResourceNotResolved  -->
                                             <RadioButton Classes="Icon"
@@ -265,8 +316,8 @@
         <!-- 中间列 -->
         <Grid Grid.Column="2" x:Name="Grid1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="3*" MinHeight="100" />
+                <RowDefinition Height="2*" MinHeight="100" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,0,5" x:Name="Row1">
                 <suki:GroupBox>
@@ -309,9 +360,10 @@
                     <!-- </avaloniaEdit:TextEditor> -->
                     <ScrollViewer
                         HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollBarVisibility="Auto">
+                        VerticalScrollBarVisibility="Auto"
+                        Padding="2,2,8,2"
+                        Margin="0">
                         <mdxaml:MarkdownScrollViewer
-
                             Focusable="True" x:Name="Introduction"
                             Margin="10,0,10,0">
                             <mdxaml:MarkdownScrollViewer.Styles>
@@ -459,24 +511,38 @@
                             IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
                             IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
-                            MinWidth="120"
-                            x:Name="FirstButton" />
-                        <RadioButton
-                            Classes="GigaChips"
-                            Content="{markup:I18n {x:Static helper:LangKeys.TabWin32}}"
-                            FontSize="12"
-                            GroupName="Controller"
-                            IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
-                            IsEnabled="{calcBinding:Binding '!LockController and Idle',
+                                MinWidth="{Binding Bounds.Width, ElementName=SecondButton}"
+                                Height="55"
+                                VerticalContentAlignment="Center"
+                                x:Name="FirstButton" />
+                            <RadioButton
+                                Classes="GigaChips"
+                                Content="{markup:I18n {x:Static helper:LangKeys.TabWin32}}"
+                                FontSize="12"
+                                GroupName="Controller"
+                                IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
+                                IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
-                            MinWidth="120"
-                            x:Name="SecondButton" />
-
-                        <DockPanel x:Name="ControllerPanel"
-                                   HorizontalAlignment="Stretch"
-                                   LastChildFill="True"
-                                   Margin="5,0"
-                                   MinWidth="200">
+                                MinWidth="{Binding Bounds.Width, ElementName=FirstButton}"
+                                Height="55"
+                                VerticalContentAlignment="Center"
+                                x:Name="SecondButton" />
+                        </WrapPanel>
+                        <DockPanel
+                            HorizontalAlignment="Stretch"
+                            LastChildFill="True"
+                            Margin="5,0"
+                            MinWidth="200">
+                            <DockPanel.Width>
+                                <MultiBinding Converter="{converters:DynamicWidthConverter}">
+                                    <!--  父容器宽度  -->
+                                    <Binding ElementName="connectionPanel" Path="Bounds.Width" />
+                                    <!--  同级元素宽度  -->
+                                    <Binding ElementName="Tab" Path="Bounds.Width" />
+                                    <!--  自身最小宽度  -->
+                                    <Binding Path="MinWidth" RelativeSource="{RelativeSource Self}" />
+                                </MultiBinding>
+                            </DockPanel.Width>
                             <TextBlock
                                 FontSize="12"
                                 Foreground="{DynamicResource SukiLowText}"

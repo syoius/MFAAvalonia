@@ -835,7 +835,7 @@
         <value>软件路径</value>
     </data>
     <data name="SoftwareUpdate" xml:space="preserve">
-        <value>软件更新</value>
+        <value>更新软件</value>
     </data>
     <data name="SoftwareVersion" xml:space="preserve">
         <value>软件版本</value>
@@ -961,10 +961,10 @@
         <value>更新完成</value>
     </data>
     <data name="UpdateMaaFW" xml:space="preserve">
-        <value>框架更新</value>
+        <value>更新框架</value>
     </data>
     <data name="UpdateResource" xml:space="preserve">
-        <value>资源更新</value>
+        <value>更新资源</value>
     </data>
     <data name="UpdateSettings" xml:space="preserve">
         <value>更新设置</value>
@@ -1079,5 +1079,10 @@
     </data>
     <data name="GlobalHotkeyServiceError" xml:space="preserve">
         <value>全局热键服务加载失败</value>
+    <data name="Manual" xml:space="preserve">
+        <value>使用指南</value>
+    </data>
+    <data name="QQChannel" xml:space="preserve">
+        <value>交流反馈: QQ频道搜索Maa鸢</value>
     </data>
 </root>

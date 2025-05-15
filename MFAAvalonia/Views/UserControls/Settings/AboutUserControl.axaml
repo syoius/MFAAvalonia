@@ -14,119 +14,66 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages">
     <StackPanel Spacing="10">
-        <suki:GlassCard Padding="25,8,25,8">
+        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+            <suki:GlassCard Padding="25,8,25,8">
+                <DockPanel>
+                    <Button
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        Command="{x:Static utilities:UrlUtilities.OpenLink}"
+                        CommandParameter="{x:Static helper:MFAUrls.GitHub}"
+                        Content="{markupExtensions:FluentIcon Icon=Send,
+                                                              IconSize=Size16}"
+                        DockPanel.Dock="Right"
+                        Height="40"
+                        HorizontalAlignment="Right"
+                        Margin="0,0,4,0" />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="{markup:I18n {x:Static helper:LangKeys.Github}}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </DockPanel>
 
-            <DockPanel>
-                <Button
-                    BorderBrush="Transparent"
-                    BorderThickness="0"
-                    Command="{x:Static utilities:UrlUtilities.OpenLink}"
-                    CommandParameter="{x:Static helper:MFAUrls.GitHub}"
-                    Content="{markupExtensions:FluentIcon Icon=Send,
-                                                          IconSize=Size16}"
-                    DockPanel.Dock="Right"
-                    Height="40"
-                    HorizontalAlignment="Center"
-                    Margin="0,0,4,0" />
-                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock
-                        FontSize="16" Margin="5,0"
-                        FontWeight="SemiBold"
-                        Text="UI"
-                        VerticalAlignment="Center" />
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Text="{markup:I18n {x:Static helper:LangKeys.Github}}"
-                        VerticalAlignment="Center" />
-                </StackPanel>
-            </DockPanel>
-
-        </suki:GlassCard>
-        <suki:GlassCard Padding="25,8,25,8">
-            <DockPanel>
-                <Button
-                    BorderBrush="Transparent"
-                    BorderThickness="0"
-                    Command="{x:Static utilities:UrlUtilities.OpenLink}"
-                    CommandParameter="{x:Static helper:MFAUrls.GitHubIssues}"
-                    Content="{markupExtensions:FluentIcon Icon=Send,
-                                                          IconSize=Size16}"
-                    DockPanel.Dock="Right"
-                    Height="40"
-                    HorizontalAlignment="Center"
-                    Margin="0,0,4,0" />
-                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Text="UI" Margin="5,0"
-                        VerticalAlignment="Center" />
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Text="{markup:I18n {x:Static helper:LangKeys.Issue}}"
-                        VerticalAlignment="Center" />
-                </StackPanel>
-            </DockPanel>
-
-        </suki:GlassCard>
-
-        <suki:GlassCard Padding="25,8,25,8" IsVisible="{Binding ShowResourceIssues}">
-            <DockPanel>
-                <Button
-                    BorderBrush="Transparent"
-                    BorderThickness="0"
-                    Command="{x:Static utilities:UrlUtilities.OpenLink}"
-                    CommandParameter="{Binding ResourceGithub}"
-                    Content="{markupExtensions:FluentIcon Icon=Send,
-                                                          IconSize=Size16}"
-                    DockPanel.Dock="Right"
-                    Height="40"
-                    HorizontalAlignment="Center"
-                    Margin="0,0,4,0" />
-                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Text="{markup:I18n {x:Static helper:LangKeys.Resource}}" Margin="5,0"
-                        VerticalAlignment="Center" />
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Text="{markup:I18n {x:Static helper:LangKeys.Github}}"
-                        VerticalAlignment="Center" />
-                </StackPanel>
-            </DockPanel>
-
-        </suki:GlassCard>
-        <suki:GlassCard Padding="25,8,25,8" IsVisible="{Binding ShowResourceIssues}">
-            <DockPanel>
-                <Button
-                    BorderBrush="Transparent"
-                    BorderThickness="0"
-                    Command="{x:Static utilities:UrlUtilities.OpenLink}"
-                    CommandParameter="{Binding ResourceIssues}"
-                    Content="{markupExtensions:FluentIcon Icon=Send,
-                                                          IconSize=Size16}"
-                    DockPanel.Dock="Right"
-                    Height="40"
-                    HorizontalAlignment="Center"
-                    Margin="0,0,4,0" />
-                <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Text="{markup:I18n {x:Static helper:LangKeys.Resource}}" Margin="5,0"
-                        VerticalAlignment="Center" />
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Text="{markup:I18n {x:Static helper:LangKeys.Issue}}"
-                        VerticalAlignment="Center" />
-                </StackPanel>
-            </DockPanel>
-
-        </suki:GlassCard>
+            </suki:GlassCard>
+            <suki:GlassCard Padding="25,8,25,8">
+                <DockPanel>
+                    <Button
+                        BorderBrush="Transparent"
+                        BorderThickness="0"
+                        Command="{x:Static utilities:UrlUtilities.OpenLink}"
+                        CommandParameter="{x:Static helper:MFAUrls.MaayuanDoc}"
+                        Content="{markupExtensions:FluentIcon Icon=Book,
+                                                              IconSize=Size16}"
+                        DockPanel.Dock="Right"
+                        Height="40"
+                        HorizontalAlignment="Right"
+                        Margin="0,0,4,0" />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="{markup:I18n {x:Static helper:LangKeys.Manual}}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </DockPanel>
+            </suki:GlassCard>
+        </StackPanel>
+        
+        <StackPanel HorizontalAlignment="Center">
+            <suki:GlassCard Padding="25,8,25,8" Width="400">
+                <DockPanel>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="{markup:I18n {x:Static helper:LangKeys.QQChannel}}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </DockPanel>
+            </suki:GlassCard>
+        </StackPanel>
     </StackPanel>
 </UserControl>
