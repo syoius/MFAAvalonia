@@ -1079,6 +1079,7 @@
     </data>
     <data name="GlobalHotkeyServiceError" xml:space="preserve">
         <value>全局热键服务加载失败</value>
+    </data>
     <data name="Manual" xml:space="preserve">
         <value>使用指南</value>
     </data>

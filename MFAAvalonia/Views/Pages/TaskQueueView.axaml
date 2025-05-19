@@ -178,7 +178,7 @@
                             </Grid>
                         </suki:GroupBox.Header>
                         <Grid>
-                            <ListBox Classes="Fluent" 
+                            <ListBox Classes="Fluent"
                                      DragDrop.AllowDrop="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
                                      ex:DragDropExtensions.EnableDragDrop="True"
                                      ex:DragDropExtensions.DragStartThreshold="2"
@@ -201,27 +201,16 @@
                                         <Grid
                                             ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
                                             Background="Transparent" ex:DragDropExtensions.LimitDragDrop="True"
-                                            ColumnDefinitions="*,Auto" ContextMenu="{StaticResource TaskMenu}"
+                                            ColumnDefinitions="30,1*,Auto" ContextMenu="{StaticResource TaskMenu}"
                                             x:Name="ListGrid">
                                             <CheckBox IsThreeState="True"
-                                                      Content="{Binding Name}"
                                                       Grid.Column="0" MinWidth="150"
                                                       ex:CheckBoxExtensions.EnableRightClickNull="True"
                                                       HorizontalAlignment="Left"
                                                       ex:CheckBoxExtensions.LimitDragDrop="True"
                                                       IsEnabled="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                                      IsChecked="{Binding IsCheckedWithNull}">
-                                                <CheckBox.ContentTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock
-                                                            Text="{Binding}"
-                                                            TextTrimming="CharacterEllipsis"
-                                                            TextWrapping="NoWrap"
-                                                            x:DataType="System:String" />
-                                                    </DataTemplate>
-                                                </CheckBox.ContentTemplate>
-                                            </CheckBox>
-                                            
+                                                      IsChecked="{Binding IsCheckedWithNull}"
+                                                      Tapped="CheckBox_Tapped" />
                                             <TextBlock
                                                 Grid.Column="1"
                                                 Text="{Binding Name}"
@@ -237,11 +226,11 @@
                                             <RadioButton Classes="Icon"
                                                          Background="Transparent" IsHitTestVisible="False"
                                                          BorderThickness="0" IsChecked="{Binding EnableSetting}"
-                                                         Grid.Column="1"
+                                                         Grid.Column="2"
                                                          ex:IconElement.Width="16" ex:IconElement.Height="16"
                                                          ex:IconElement.Geometry="{x:Static suki:Icons.Setting}"
                                                          GroupName="TaskSettings" IsVisible="{Binding IsVisible}"
-                                                         HorizontalContentAlignment="Right" />
+                                                         HorizontalContentAlignment="Center" />
                                         </Grid>
 
                                     </DataTemplate>
@@ -316,8 +305,8 @@
         <!-- 中间列 -->
         <Grid Grid.Column="2" x:Name="Grid1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="3*" MinHeight="100" />
-                <RowDefinition Height="2*" MinHeight="100" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,0,5" x:Name="Row1">
                 <suki:GroupBox>
@@ -511,38 +500,24 @@
                             IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
                             IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
-                                MinWidth="{Binding Bounds.Width, ElementName=SecondButton}"
-                                Height="55"
-                                VerticalContentAlignment="Center"
-                                x:Name="FirstButton" />
-                            <RadioButton
-                                Classes="GigaChips"
-                                Content="{markup:I18n {x:Static helper:LangKeys.TabWin32}}"
-                                FontSize="12"
-                                GroupName="Controller"
-                                IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
-                                IsEnabled="{calcBinding:Binding '!LockController and Idle',
+                            MinWidth="120"
+                            x:Name="FirstButton" />
+                        <RadioButton
+                            Classes="GigaChips"
+                            Content="{markup:I18n {x:Static helper:LangKeys.TabWin32}}"
+                            FontSize="12"
+                            GroupName="Controller"
+                            IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
+                            IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
-                                MinWidth="{Binding Bounds.Width, ElementName=FirstButton}"
-                                Height="55"
-                                VerticalContentAlignment="Center"
-                                x:Name="SecondButton" />
-                        </WrapPanel>
-                        <DockPanel
-                            HorizontalAlignment="Stretch"
-                            LastChildFill="True"
-                            Margin="5,0"
-                            MinWidth="200">
-                            <DockPanel.Width>
-                                <MultiBinding Converter="{converters:DynamicWidthConverter}">
-                                    <!--  父容器宽度  -->
-                                    <Binding ElementName="connectionPanel" Path="Bounds.Width" />
-                                    <!--  同级元素宽度  -->
-                                    <Binding ElementName="Tab" Path="Bounds.Width" />
-                                    <!--  自身最小宽度  -->
-                                    <Binding Path="MinWidth" RelativeSource="{RelativeSource Self}" />
-                                </MultiBinding>
-                            </DockPanel.Width>
+                            MinWidth="120"
+                            x:Name="SecondButton" />
+
+                        <DockPanel x:Name="ControllerPanel"
+                                   HorizontalAlignment="Stretch"
+                                   LastChildFill="True"
+                                   Margin="5,0"
+                                   MinWidth="200">
                             <TextBlock
                                 FontSize="12"
                                 Foreground="{DynamicResource SukiLowText}"

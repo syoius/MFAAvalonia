@@ -313,6 +313,7 @@ public partial class TaskQueueView : UserControl
                 }
                 // 然后设置当前项为true
                 itemViewModel.EnableSetting = true;
+                itemViewModel.IsCheckedWithNull = true;
                 
                 // 同时更新ListBox的选中项
                 var listBox = this.FindControl<ListBox>("TaskListBox");
