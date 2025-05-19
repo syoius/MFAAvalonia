@@ -146,7 +146,7 @@ public partial class TimerSettingsUserControlModel : ViewModelBase
                 if (config != ConfigurationManager.GetCurrentConfiguration())
                 {
                     ConfigurationManager.SetDefaultConfig(config);
-                    Instances.RestartApplication(true);
+                    Instances.RestartApplication(true, true);
                 }
             }
         }

@@ -65,7 +65,7 @@ public static partial class Instances
     /// <summary>
     /// 重启当前应用程序
     /// </summary>
-    public static void RestartApplication(bool noAutoStart = false)
+    public static void RestartApplication(bool noAutoStart = false, bool forgeStop = false)
     {
         if (noAutoStart)
             GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.TrueString);
@@ -81,7 +81,10 @@ public static partial class Instances
         try
         {
             process.Start();
-            ShutdownApplication();
+            if (forgeStop)
+                Environment.Exit(0);
+            else
+                ShutdownApplication();
         }
         catch (Exception ex)
         {
