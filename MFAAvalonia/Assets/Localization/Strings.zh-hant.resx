@@ -90,13 +90,13 @@
         <value>自動檢測更新</value>
     </data>
     <data name="AutomaticHide" xml:space="preserve">
-        <value>啟動 MFA 後直接隱藏</value>
+        <value>啟動 MaaYuan 後直接隱藏</value>
     </data>
     <data name="AutomaticMinimize" xml:space="preserve">
-        <value>啟動 MFA 後直接最小化</value>
+        <value>啟動 MaaYuan 後直接最小化</value>
     </data>
     <data name="AutomaticUpdateMFA" xml:space="preserve">
-        <value>自動更新軟體</value>
+        <value>自動更新GUI</value>
     </data>
     <data name="AutomaticUpdateResource" xml:space="preserve">
         <value>自動更新資源</value>
@@ -144,7 +144,7 @@
         <value>捕獲方式</value>
     </data>
     <data name="CheckMFA" xml:space="preserve">
-        <value>檢查軟體</value>
+        <value>檢查GUI</value>
     </data>
     <data name="CheckResource" xml:space="preserve">
         <value>檢查資源</value>
@@ -153,16 +153,16 @@
         <value>目前剪貼簿中資料不可轉換為文字</value>
     </data>
     <data name="CloseEmulator" xml:space="preserve">
-        <value>關閉軟體</value>
+        <value>關閉模擬器</value>
     </data>
     <data name="CloseEmulatorAndMFA" xml:space="preserve">
-        <value>關閉MFA和軟體</value>
+        <value>關閉MaaYuan和模擬器</value>
     </data>
     <data name="CloseEmulatorAndRestartMFA" xml:space="preserve">
-        <value>重啟MFA和關閉軟體</value>
+        <value>重啟MaaYuan並關閉模擬器</value>
     </data>
     <data name="CloseMFA" xml:space="preserve">
-        <value>關閉MFA</value>
+        <value>關閉MaaYuan</value>
     </data>
     <data name="ColorPickerTitle" xml:space="preserve">
         <value>取色器</value>
@@ -537,7 +537,7 @@
         <value>快速鍵設定</value>
     </data>
     <data name="HotKeyShowGui" xml:space="preserve">
-        <value>[快速鍵] 顯示/隱藏軟體</value>
+        <value>[快速鍵] 顯示/隱藏MaaYuan</value>
     </data>
     <data name="ImageBrowserTitle" xml:space="preserve">
         <value>圖片瀏覽器</value>
@@ -624,7 +624,7 @@
         <value>MaaTouch (實驗功能)</value>
     </data>
     <data name="MFAIsLatestVersion" xml:space="preserve">
-        <value>軟體已為最新版本！</value>
+        <value>GUI已為最新版本！</value>
     </data>
     <data name="MinimizeToTray" xml:space="preserve">
         <value>最小化時隱藏至工作列</value>
@@ -759,7 +759,7 @@
         <value>正在嘗試重開 ADB 伺服器</value>
     </data>
     <data name="RestartMFA" xml:space="preserve">
-        <value>重啟MFA</value>
+        <value>重啟MaaYuan</value>
     </data>
     <data name="RestartPC" xml:space="preserve">
         <value>重啟電腦</value>
@@ -846,10 +846,10 @@
         <value>啟動設定</value>
     </data>
     <data name="StartupSoftware" xml:space="preserve">
-        <value>啟動軟體</value>
+        <value>啟動模擬器</value>
     </data>
     <data name="StartupSoftwareAndScript" xml:space="preserve">
-        <value>啟動軟體並啟動腳本</value>
+        <value>啟動模擬器並開始任務</value>
     </data>
     <data name="Stopping" xml:space="preserve">
         <value>正在停止......</value>

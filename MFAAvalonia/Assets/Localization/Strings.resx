@@ -97,13 +97,13 @@
         <value>自动检测更新</value>
     </data>
     <data name="AutomaticHide" xml:space="preserve">
-        <value>启动 MFA 后直接隐藏</value>
+        <value>启动 MaaYuan 后直接隐藏</value>
     </data>
     <data name="AutomaticMinimize" xml:space="preserve">
-        <value>启动 MFA 后直接最小化</value>
+        <value>启动 MaaYuan 后直接最小化</value>
     </data>
     <data name="AutomaticUpdateMFA" xml:space="preserve">
-        <value>自动更新软件</value>
+        <value>自动更新GUI</value>
     </data>
     <data name="AutomaticUpdateResource" xml:space="preserve">
         <value>自动更新资源</value>
@@ -151,7 +151,7 @@
         <value>捕获方式</value>
     </data>
     <data name="CheckMFA" xml:space="preserve">
-        <value>检查软件</value>
+        <value>检查GUI</value>
     </data>
     <data name="CheckResource" xml:space="preserve">
         <value>检查资源</value>
@@ -160,16 +160,16 @@
         <value>目前剪贴板中数据不可转换为文本</value>
     </data>
     <data name="CloseEmulator" xml:space="preserve">
-        <value>关闭软件</value>
+        <value>关闭模拟器</value>
     </data>
     <data name="CloseEmulatorAndMFA" xml:space="preserve">
-        <value>关闭MFA和软件</value>
+        <value>关闭MaaYuan和模拟器</value>
     </data>
     <data name="CloseEmulatorAndRestartMFA" xml:space="preserve">
-        <value>重启MFA和关闭软件</value>
+        <value>关闭模拟器并重启MaaYuan</value>
     </data>
     <data name="CloseMFA" xml:space="preserve">
-        <value>关闭MFA</value>
+        <value>关闭MaaYuan</value>
     </data>
     <data name="ColorPickerTitle" xml:space="preserve">
         <value>取色器</value>
@@ -631,7 +631,7 @@
         <value>MaaTouch (实验功能)</value>
     </data>
     <data name="MFAIsLatestVersion" xml:space="preserve">
-        <value>软件已为最新版本！</value>
+        <value>GUI已为最新版本！</value>
     </data>
     <data name="MinimizeToTray" xml:space="preserve">
         <value>最小化时隐藏至托盘</value>
@@ -766,7 +766,7 @@
         <value>正在尝试重启 ADB Server</value>
     </data>
     <data name="RestartMFA" xml:space="preserve">
-        <value>重启MFA</value>
+        <value>重启MaaYuan</value>
     </data>
     <data name="RestartPC" xml:space="preserve">
         <value>重启电脑</value>
@@ -853,10 +853,10 @@
         <value>启动设置</value>
     </data>
     <data name="StartupSoftware" xml:space="preserve">
-        <value>启动软件</value>
+        <value>启动模拟器</value>
     </data>
     <data name="StartupSoftwareAndScript" xml:space="preserve">
-        <value>启动软件并启动脚本</value>
+        <value>启动模拟器并开始任务</value>
     </data>
     <data name="Stopping" xml:space="preserve">
         <value>正在停止......</value>
