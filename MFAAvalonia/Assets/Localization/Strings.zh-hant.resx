@@ -483,7 +483,7 @@
         <value>停止當前任務，重新啟動遊戲並開始新任務</value>
     </data>
     <data name="GameResourceUpdated" xml:space="preserve">
-        <value>遊戲資源已更新，請重啟軟體。</value>
+        <value>遊戲資源已更新，請重啟MaaYuan。</value>
     </data>
     <data name="General" xml:space="preserve">
         <value>通用模式</value>
@@ -495,7 +495,7 @@
         <value>正在獲取最新資源.....</value>
     </data>
     <data name="GettingLatestSoftware" xml:space="preserve">
-        <value>正在獲取最新軟體.....</value>
+        <value>正在獲取最新GUI.....</value>
     </data>
     <data name="Github" xml:space="preserve">
         <value>原始碼: GitHub</value>
@@ -825,13 +825,13 @@
         <value>滑動獲取器</value>
     </data>
     <data name="SoftwarePath" xml:space="preserve">
-        <value>軟體路徑</value>
+        <value>模擬器路徑</value>
     </data>
     <data name="SoftwareUpdate" xml:space="preserve">
-        <value>更新軟體</value>
+        <value>更新GUI</value>
     </data>
     <data name="SoftwareVersion" xml:space="preserve">
-        <value>軟體版本</value>
+        <value>GUI版本</value>
     </data>
     <data name="StartTask" xml:space="preserve">
         <value>開始任務</value>
@@ -966,7 +966,7 @@
         <value>使用 GPU 加速推理</value>
     </data>
     <data name="WaitSoftware" xml:space="preserve">
-        <value>等待軟體啟動時間(秒)</value>
+        <value>等待模擬器啟動時間(秒)</value>
     </data>
     <data name="WaitSoftwareTime" xml:space="preserve">
         <value>等待{0}啟動時間(秒): {1}(s)</value>

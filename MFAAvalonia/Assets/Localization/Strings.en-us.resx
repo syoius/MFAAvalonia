@@ -495,7 +495,7 @@
         <value>Getting the latest resources...</value>
     </data>
     <data name="GettingLatestSoftware" xml:space="preserve">
-        <value>Getting the latest software...</value>
+        <value>Getting the latest GUI...</value>
     </data>
     <data name="Github" xml:space="preserve">
         <value>Source code: GitHub</value>
@@ -825,13 +825,13 @@
         <value>Slider Control</value>
     </data>
     <data name="SoftwarePath" xml:space="preserve">
-        <value>Software Path</value>
+        <value>Emulator Path</value>
     </data>
     <data name="SoftwareUpdate" xml:space="preserve">
-        <value>Update Software</value>
+        <value>Update GUI</value>
     </data>
     <data name="SoftwareVersion" xml:space="preserve">
-        <value>Software Version</value>
+        <value>GUI Version</value>
     </data>
     <data name="StartTask" xml:space="preserve">
         <value>Start Task</value>
@@ -966,7 +966,7 @@
         <value>Use GPU for inference acceleration</value>
     </data>
     <data name="WaitSoftware" xml:space="preserve">
-        <value>Wait time for Software to start (seconds)</value>
+        <value>Wait time for Emulator to start (seconds)</value>
     </data>
     <data name="WaitSoftwareTime" xml:space="preserve">
         <value>Wait time for {0} to start (seconds): {1}(s)</value>

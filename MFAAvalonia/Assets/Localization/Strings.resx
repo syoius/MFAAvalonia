@@ -490,7 +490,7 @@
         <value>停止当前任务，重启游戏并开始新任务</value>
     </data>
     <data name="GameResourceUpdated" xml:space="preserve">
-        <value>游戏资源已更新，请重启软件。</value>
+        <value>游戏资源已更新，请重启MaaYuan。</value>
     </data>
     <data name="General" xml:space="preserve">
         <value>通用模式</value>
@@ -502,7 +502,7 @@
         <value>正在获取最新资源.....</value>
     </data>
     <data name="GettingLatestSoftware" xml:space="preserve">
-        <value>正在获取最新软件.....</value>
+        <value>正在获取最新GUI.....</value>
     </data>
     <data name="Github" xml:space="preserve">
         <value>源码: GitHub</value>
@@ -544,7 +544,7 @@
         <value>热键设置</value>
     </data>
     <data name="HotKeyShowGui" xml:space="preserve">
-        <value>[热键] 显示/隐藏软件</value>
+        <value>[热键] 显示/隐藏GUI</value>
     </data>
     <data name="ImageBrowserTitle" xml:space="preserve">
         <value>图片浏览器</value>
@@ -832,13 +832,13 @@
         <value>滑动获取器</value>
     </data>
     <data name="SoftwarePath" xml:space="preserve">
-        <value>软件路径</value>
+        <value>模拟器路径</value>
     </data>
     <data name="SoftwareUpdate" xml:space="preserve">
-        <value>更新软件</value>
+        <value>更新GUI</value>
     </data>
     <data name="SoftwareVersion" xml:space="preserve">
-        <value>软件版本</value>
+        <value>GUI版本</value>
     </data>
     <data name="StartTask" xml:space="preserve">
         <value>开始任务</value>
@@ -973,7 +973,7 @@
         <value>使用 GPU 加速推理</value>
     </data>
     <data name="WaitSoftware" xml:space="preserve">
-        <value>等待软件启动时间(秒)</value>
+        <value>等待模拟器启动时间(秒)</value>
     </data>
     <data name="WaitSoftwareTime" xml:space="preserve">
         <value>等待{0}启动时间(秒): {1}(s)</value>
