@@ -894,7 +894,7 @@
         <value>Task List:</value>
     </data>
     <data name="TaskNotFoundError" xml:space="preserve">
-        <value>The task "{1}" used in {0} does not exist in the Pipeline file!</value>
+        <value>The task "{2}" used in {1} of "{0}" does not exist in the Pipeline file!</value>
     </data>
     <data name="TaskSettings" xml:space="preserve">
         <value>Task Settings</value>

@@ -901,7 +901,7 @@
         <value>任务列表</value>
     </data>
     <data name="TaskNotFoundError" xml:space="preserve">
-        <value>Pipeline文件中任务的{0}使用了不存在的任务:"{1}"！</value>
+        <value>Pipeline文件中任务"{0}"的{1}使用了不存在的任务:"{2}"！</value>
     </data>
     <data name="TaskSettings" xml:space="preserve">
         <value>任务设置</value>

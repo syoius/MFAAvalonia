@@ -744,7 +744,7 @@ public class MaaProcessor
                     {
                         if (!Path.Exists($"{resourcePath}/pipeline/"))
                             break;
-                        var jsonFiles = Directory.GetFiles($"{resourcePath}/pipeline/", "*.json", SearchOption.AllDirectories);
+                        var jsonFiles = Directory.GetFiles(Path.GetFullPath($"{resourcePath}/pipeline/"), "*.json", SearchOption.AllDirectories);
                         var taskDictionaryA = new Dictionary<string, MaaNode>();
                         foreach (var file in jsonFiles)
                         {
@@ -836,12 +836,13 @@ public class MaaProcessor
     private void ValidateTaskLinks(Dictionary<string, MaaNode> taskDictionary,
         KeyValuePair<string, MaaNode> task)
     {
-        ValidateNextTasks(taskDictionary, task.Value.Next);
-        ValidateNextTasks(taskDictionary, task.Value.OnError, "on_error");
-        ValidateNextTasks(taskDictionary, task.Value.Interrupt, "interrupt");
+        ValidateNextTasks(taskDictionary, task.Value.Name, task.Value.Next);
+        ValidateNextTasks(taskDictionary, task.Value.Name, task.Value.OnError, "on_error");
+        ValidateNextTasks(taskDictionary, task.Value.Name, task.Value.Interrupt, "interrupt");
     }
 
     private void ValidateNextTasks(Dictionary<string, MaaNode> taskDictionary,
+        string? taskName,
         object? nextTasks,
         string name = "next")
     {
@@ -851,7 +852,8 @@ public class MaaProcessor
             {
                 if (!taskDictionary.ContainsKey(task))
                 {
-                    ToastHelper.Error("Error".ToLocalization(), "TaskNotFoundError".ToLocalizationFormatted(false, name, task));
+                    ToastHelper.Error("Error".ToLocalization(), "TaskNotFoundError".ToLocalizationFormatted(false, taskName, name, task));
+                    LoggerHelper.Error("TaskNotFoundError".ToLocalizationFormatted(false, taskName, name, task));
                 }
             }
         }
