@@ -163,7 +163,7 @@ public class MaaProcessor
                 return new MaaResource(resources);
             }, token, catchException: true, shouldLog: false, handleError: exception => HandleInitializationError(exception, "LoadResourcesFailed".ToLocalization()));
 
-            maaResource.SetOptionInferenceDevice(Instances.PerformanceUserControlModel.GpuOption);
+            maaResource.SetOption_InferenceDevice(Instances.PerformanceUserControlModel.GpuOption);
             LoggerHelper.Info($"GPU acceleration: {Instances.PerformanceUserControlModel.GpuOption}");
         }
         catch (OperationCanceledException)
@@ -228,25 +228,17 @@ public class MaaProcessor
                     _agentProcess?.Dispose();
                     _agentProcess = null;
                 }
-                _agentClient = new MaaAgentClient
-                {
-                    Resource = maaResource,
-                    DisposeOptions = DisposeOptions.All
-                };
+
                 var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
                 var identifier = string.IsNullOrWhiteSpace(Interface?.Agent?.Identifier) ? new string(Enumerable.Repeat(chars, 8).Select(c => c[Random.Next(c.Length)]).ToArray()) : Interface.Agent.Identifier;
-                var socket = _agentClient.CreateSocket(identifier);
-                if (string.IsNullOrWhiteSpace(socket))
-                {
-                    throw new Exception("Socket creation failed");
-                }
+                var agentClient = MaaAgentClient.Create(identifier, maaResource);
 
                 try
                 {
                     if (!Directory.Exists($"{AppContext.BaseDirectory}"))
                         Directory.CreateDirectory($"{AppContext.BaseDirectory}");
                     var program = MaaInterface.ReplacePlaceholder(agentConfig.ChildExec, AppContext.BaseDirectory);
-                    var args = $"{string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory).Select(ConvertPath))} {socket}";
+                    var args = $"{string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory).Select(ConvertPath))} {agentClient.Id}";
                     var startInfo = new ProcessStartInfo
                     {
                         FileName = program,
@@ -306,8 +298,8 @@ public class MaaProcessor
 
                     _agentProcess.Start();
                     LoggerHelper.Info(
-                        $"Agent启动: {MaaInterface.ReplacePlaceholder(agentConfig.ChildExec, AppContext.BaseDirectory)} {string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory))} {socket} "
-                        + $"socket_id: {socket}");
+                        $"Agent启动: {MaaInterface.ReplacePlaceholder(agentConfig.ChildExec, AppContext.BaseDirectory)} {string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory))} {agentClient.Id} "
+                        + $"socket_id: {agentClient.Id}");
                     _agentProcess.BeginOutputReadLine();
                     _agentProcess.BeginErrorReadLine();
 
@@ -325,9 +317,9 @@ public class MaaProcessor
             }
             // RegisterCustomRecognitionsAndActions(tasker);
             Instances.TaskQueueViewModel.SetConnected(true);
-            tasker.Utility.SetOptionRecording(ConfigurationManager.Maa.GetValue(ConfigurationKeys.Recording, false));
-            tasker.Utility.SetOptionSaveDraw(ConfigurationManager.Maa.GetValue(ConfigurationKeys.SaveDraw, false));
-            tasker.Utility.SetOptionShowHitDraw(ConfigurationManager.Maa.GetValue(ConfigurationKeys.ShowHitDraw, false));
+            tasker.Utility.SetOption_Recording(ConfigurationManager.Maa.GetValue(ConfigurationKeys.Recording, false));
+            tasker.Utility.SetOption_SaveDraw(ConfigurationManager.Maa.GetValue(ConfigurationKeys.SaveDraw, false));
+            tasker.Utility.SetOption_ShowHitDraw(ConfigurationManager.Maa.GetValue(ConfigurationKeys.ShowHitDraw, false));
             tasker.Callback += (_, args) =>
             {
                 var jObject = JObject.Parse(args.Details);
@@ -1790,7 +1782,7 @@ public class MaaProcessor
     {
         token.ThrowIfCancellationRequested();
         var instance = await GetTaskerAsync(token);
-        return instance is { Initialized: true };
+        return instance is { IsInitialized: true };
     }
 
     private void HandleConnectionFailureAsync(bool isAdb, CancellationToken token)

@@ -26,6 +26,6 @@ public partial class PerformanceUserControlModel : ViewModelBase
 
     partial void OnGpuOptionChanged(InferenceDevice value) => HandleStringPropertyChanged(ConfigurationKeys.GPUOption, value, v =>
     {
-        MaaProcessor.Instance.MaaTasker?.Resource?.SetOptionInferenceDevice(v);
+        MaaProcessor.Instance.MaaTasker?.Resource?.SetOption_InferenceDevice(v);
     });
 }

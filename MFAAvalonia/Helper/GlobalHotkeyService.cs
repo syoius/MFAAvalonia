@@ -2,6 +2,7 @@
 using Avalonia.Threading;
 using MFAAvalonia.Extensions;
 using SharpHook;
+using SharpHook.Data;
 using SharpHook.Native;
 using System;
 using System.Collections.Concurrent;
@@ -12,7 +13,7 @@ namespace MFAAvalonia.Helper;
 public static class GlobalHotkeyService
 {
     // 线程安全的热键存储（Key: 组合键标识，Value: 关联命令）
-    private static readonly ConcurrentDictionary<(KeyCode, ModifierMask), ICommand> _commands = new();
+    private static readonly ConcurrentDictionary<(KeyCode, EventMask), ICommand> _commands = new();
     private static TaskPoolGlobalHook? _hook;
 
     /// <summary>
@@ -69,16 +70,16 @@ public static class GlobalHotkeyService
     }
 
     // 转换Avalonia手势到SharpHook标识
-    private static (KeyCode, ModifierMask) ConvertGesture(KeyGesture gesture)
+    private static (KeyCode, EventMask) ConvertGesture(KeyGesture gesture)
     {
         var keyCode = Enum.TryParse(typeof(KeyCode), $"Vc{gesture.Key.ToString()}", out var key) ? (KeyCode)key : KeyCode.VcEscape;
         var modifiers = gesture.KeyModifiers switch
         {
-            KeyModifiers.Control => ModifierMask.LeftCtrl,
-            KeyModifiers.Alt => ModifierMask.LeftAlt,
-            KeyModifiers.Shift => ModifierMask.LeftShift,
-            KeyModifiers.Meta => ModifierMask.LeftMeta,
-            _ => ModifierMask.None
+            KeyModifiers.Control => EventMask.LeftCtrl,
+            KeyModifiers.Alt => EventMask.LeftAlt,
+            KeyModifiers.Shift => EventMask.LeftShift,
+            KeyModifiers.Meta => EventMask.LeftMeta,
+            _ => EventMask.None
         };
         return (keyCode, modifiers);
     }
