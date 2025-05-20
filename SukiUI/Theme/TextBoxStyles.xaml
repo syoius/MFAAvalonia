@@ -28,7 +28,7 @@
                 <StackPanel Orientation="Vertical">
                     <TextBox Height="" Text="54" />
 
-                    <suki:PasswordBox Password="44444" IsPasswordVisible="True"></suki:PasswordBox>
+                    <suki:PasswordBox Password="44444" Height="30" IsPasswordVisible="True"></suki:PasswordBox>
                 </StackPanel>
                 <TextBox Width="200"
                          Margin="5"
