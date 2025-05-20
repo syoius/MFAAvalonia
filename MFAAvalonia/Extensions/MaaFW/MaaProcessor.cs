@@ -140,7 +140,75 @@ public class MaaProcessor
         }
         return path;
     }
+    public static string FindPythonPath(string? program)
+    {
+        // 仅在程序为 "python" 且运行在 Windows 系统上时进行处理
+        if (program != "python" || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return program;
+        }
 
+        // 检查 PATH 环境变量
+        var pathEnv = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrEmpty(pathEnv))
+        {
+            return program;
+        }
+
+        // 分割 PATH 并查找 python.exe
+        var pathDirs = pathEnv.Split(Path.PathSeparator);
+        foreach (var dir in pathDirs)
+        {
+            try
+            {
+                var pythonPath = Path.Combine(dir, "python.exe");
+                if (File.Exists(pythonPath))
+                {
+                    return pythonPath;
+                }
+            }
+            catch
+            {
+                // 忽略无效路径
+            }
+        }
+
+        // 尝试查找 Python 安装目录
+        var pythonDirs = new[]
+        {
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "Python"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Python")
+        };
+
+        foreach (var baseDir in pythonDirs)
+        {
+            if (Directory.Exists(baseDir))
+            {
+                try
+                {
+                    var pythonDir = Directory.GetDirectories(baseDir)
+                        .OrderByDescending(d => d)
+                        .FirstOrDefault();
+
+                    if (pythonDir != null)
+                    {
+                        var pythonPath = Path.Combine(pythonDir, "python.exe");
+                        if (File.Exists(pythonPath))
+                        {
+                            return pythonPath;
+                        }
+                    }
+                }
+                catch
+                {
+                    // 忽略错误
+                }
+            }
+        }
+
+        // 未找到，返回原程序名
+        return program;
+    }
     async private Task<MaaTasker?> InitializeMaaTasker(CancellationToken token) // 添加 async 和 token
     {
         AutoInitDictionary.Clear();
@@ -231,17 +299,17 @@ public class MaaProcessor
 
                 var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
                 var identifier = string.IsNullOrWhiteSpace(Interface?.Agent?.Identifier) ? new string(Enumerable.Repeat(chars, 8).Select(c => c[Random.Next(c.Length)]).ToArray()) : Interface.Agent.Identifier;
-                var agentClient = MaaAgentClient.Create(identifier, maaResource);
+                _agentClient = MaaAgentClient.Create(identifier, maaResource);
 
                 try
                 {
                     if (!Directory.Exists($"{AppContext.BaseDirectory}"))
                         Directory.CreateDirectory($"{AppContext.BaseDirectory}");
                     var program = MaaInterface.ReplacePlaceholder(agentConfig.ChildExec, AppContext.BaseDirectory);
-                    var args = $"{string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory).Select(ConvertPath))} {agentClient.Id}";
+                    var args = $"{string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory).Select(ConvertPath))} {_agentClient.Id}";
                     var startInfo = new ProcessStartInfo
                     {
-                        FileName = program,
+                        FileName = FindPythonPath(program),
                         WorkingDirectory = AppContext.BaseDirectory,
                         Arguments = $"{(program.Contains("python") && args.Contains(".py") && !args.Contains("-u ") ? "-u " : "")}{args}",
                         UseShellExecute = false,
@@ -298,8 +366,8 @@ public class MaaProcessor
 
                     _agentProcess.Start();
                     LoggerHelper.Info(
-                        $"Agent启动: {MaaInterface.ReplacePlaceholder(agentConfig.ChildExec, AppContext.BaseDirectory)} {string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory))} {agentClient.Id} "
-                        + $"socket_id: {agentClient.Id}");
+                        $"Agent启动: {MaaInterface.ReplacePlaceholder(agentConfig.ChildExec, AppContext.BaseDirectory)} {string.Join(" ", MaaInterface.ReplacePlaceholder(agentConfig.ChildArgs ?? Enumerable.Empty<string>(), AppContext.BaseDirectory))} {_agentClient.Id} "
+                        + $"socket_id: {_agentClient.Id}");
                     _agentProcess.BeginOutputReadLine();
                     _agentProcess.BeginErrorReadLine();
 
@@ -346,7 +414,7 @@ public class MaaProcessor
         }
     }
 
-#pragma warning disable CS0649 // 
+#pragma warning disable CS0649 //
     private class Focus
     {
         [JsonConverter(typeof(GenericSingleOrListConverter<string>))] [JsonProperty("start")]
