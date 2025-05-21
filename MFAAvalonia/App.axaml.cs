@@ -49,7 +49,6 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-
             desktop.ShutdownRequested += OnShutdownRequested;
             var services = new ServiceCollection();
 
@@ -75,14 +74,12 @@ public partial class App : Application
 
     private void OnShutdownRequested(object sender, ShutdownRequestedEventArgs e)
     {
-        if (!GlobalHotkeyService.IsStopped)
-        {
-            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+        ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
 
-            MaaProcessor.Instance.SetTasker();
-            GlobalHotkeyService.Shutdown();
-        }
-    }    private static ViewsHelper ConfigureViews(ServiceCollection services)
+        MaaProcessor.Instance.SetTasker();
+        GlobalHotkeyService.Shutdown();
+    }
+    private static ViewsHelper ConfigureViews(ServiceCollection services)
     {
 
         return new ViewsHelper()

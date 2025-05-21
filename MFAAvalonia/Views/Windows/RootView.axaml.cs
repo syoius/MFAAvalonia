@@ -157,8 +157,6 @@ public partial class RootView : SukiWindow
         {
             try
             {
-                if (Instances.RootViewModel.IsRunning)
-                    MaaProcessor.Instance.Stop();
                 action?.Invoke();
             }
             catch (Exception e)
