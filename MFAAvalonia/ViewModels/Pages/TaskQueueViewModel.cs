@@ -940,4 +940,6 @@ public partial class TaskQueueViewModel : ViewModelBase
     }
 
     #endregion
+
+    public bool Idle => Instances.RootViewModel.Idle;
 }

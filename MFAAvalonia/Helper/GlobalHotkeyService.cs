@@ -15,7 +15,7 @@ public static class GlobalHotkeyService
     // 线程安全的热键存储（Key: 组合键标识，Value: 关联命令）
     private static readonly ConcurrentDictionary<(KeyCode, EventMask), ICommand> _commands = new();
     private static TaskPoolGlobalHook? _hook;
-
+    public static bool IsStopped = false;
     /// <summary>
     /// 初始化全局钩子服务
     /// </summary>
@@ -67,6 +67,7 @@ public static class GlobalHotkeyService
     {
         _hook?.Dispose();
         _commands.Clear();
+        IsStopped = true;
     }
 
     // 转换Avalonia手势到SharpHook标识

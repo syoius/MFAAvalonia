@@ -126,13 +126,15 @@ public partial class RootView : SukiWindow
 
     protected override void OnClosed(EventArgs e)
     {
-        ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+        if (!GlobalHotkeyService.IsStopped)
+        {
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+            // 确保窗口大小被保存
+            SaveWindowSize();
+            MaaProcessor.Instance.SetTasker();
+            GlobalHotkeyService.Shutdown();
+        }
 
-        // 确保窗口大小被保存
-        SaveWindowSize();
-
-        MaaProcessor.Instance.SetTasker();
-        GlobalHotkeyService.Shutdown();
         base.OnClosed(e);
     }
 
@@ -155,6 +157,8 @@ public partial class RootView : SukiWindow
         {
             try
             {
+                if (Instances.RootViewModel.IsRunning)
+                    MaaProcessor.Instance.Stop();
                 action?.Invoke();
             }
             catch (Exception e)

@@ -4,6 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Pages;
 using MFAAvalonia.ViewModels.UsersControls;
@@ -17,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SukiUI.Dialogs;
 using SukiUI.Toasts;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -47,6 +49,8 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+
+            desktop.ShutdownRequested += OnShutdownRequested;
             var services = new ServiceCollection();
 
             services.AddSingleton(desktop);
@@ -69,7 +73,16 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static ViewsHelper ConfigureViews(ServiceCollection services)
+    private void OnShutdownRequested(object sender, ShutdownRequestedEventArgs e)
+    {
+        if (!GlobalHotkeyService.IsStopped)
+        {
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+
+            MaaProcessor.Instance.SetTasker();
+            GlobalHotkeyService.Shutdown();
+        }
+    }    private static ViewsHelper ConfigureViews(ServiceCollection services)
     {
 
         return new ViewsHelper()
@@ -86,7 +99,7 @@ public partial class App : Application
             .AddView<AddTaskDialogView, AddTaskDialogViewModel>(services)
             .AddView<AdbEditorDialogView, AdbEditorDialogViewModel>(services)
             .AddView<CustomThemeDialogView, CustomThemeDialogViewModel>(services)
-            
+
             .AddView<ConnectSettingsUserControl, ConnectSettingsUserControlModel>(services)
             .AddView<GameSettingsUserControl, GameSettingsUserControlModel>(services)
             .AddView<GuiSettingsUserControl, GuiSettingsUserControlModel>(services)
@@ -95,7 +108,7 @@ public partial class App : Application
             .AddView<TimerSettingsUserControl, TimerSettingsUserControlModel>(services)
             .AddView<PerformanceUserControl, PerformanceUserControlModel>(services)
             .AddView<VersionUpdateSettingsUserControl, VersionUpdateSettingsUserControlModel>(services)
-            
+
             .AddOnlyViewModel<AnnouncementView, AnnouncementViewModel>(services)
             .AddOnlyView<AboutUserControl, SettingsViewModel>(services)
             .AddOnlyView<HotKeySettingsUserControl, SettingsViewModel>(services)

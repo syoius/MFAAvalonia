@@ -817,7 +817,7 @@ public class MaaProcessor
                         foreach (var file in jsonFiles)
                         {
                             var content = File.ReadAllText(file);
-                            Console.WriteLine($"Loading Pipeline: {file}");
+                            LoggerHelper.Info($"Loading Pipeline: {file}");
                             try
                             {
                                 var taskData = JsonConvert.DeserializeObject<Dictionary<string, MaaNode>>(content);

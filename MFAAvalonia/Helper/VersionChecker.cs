@@ -432,11 +432,6 @@ public static class VersionChecker
             // 将配置文件复制到备份目录
             DirectoryMerge(sourceConfigDir, configBackupDir);
             
-            // 准备启动Updater进行配置更新
-            string updaterName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? "ConfigUpdater.exe"
-                : "ConfigUpdater";
-                
             // 创建更新配置的脚本
             var updaterScriptPath = Path.Combine(AppContext.BaseDirectory, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
                 ? "update_config.bat" 
@@ -472,7 +467,7 @@ rm $0
                     File.WriteAllText(updaterScriptPath, shContent);
                     // 设置执行权限
                     var chmodProcess = Process.Start("/bin/chmod", $"+x {updaterScriptPath}");
-                    chmodProcess?.WaitForExit();
+                    chmodProcess?.WaitForExitAsync();
                 }
                 
                 // 通知用户需要重启应用以完成配置更新

@@ -103,7 +103,7 @@
         <value>启动 MaaYuan 后直接最小化</value>
     </data>
     <data name="AutomaticUpdateMFA" xml:space="preserve">
-        <value>自动更新GUI</value>
+        <value>自动更新 GUI</value>
     </data>
     <data name="AutomaticUpdateResource" xml:space="preserve">
         <value>自动更新资源</value>
@@ -151,7 +151,7 @@
         <value>捕获方式</value>
     </data>
     <data name="CheckMFA" xml:space="preserve">
-        <value>检查GUI</value>
+        <value>检查 GUI</value>
     </data>
     <data name="CheckResource" xml:space="preserve">
         <value>检查资源</value>
@@ -544,7 +544,7 @@
         <value>热键设置</value>
     </data>
     <data name="HotKeyShowGui" xml:space="preserve">
-        <value>[热键] 显示/隐藏GUI</value>
+        <value>[热键] 显示/隐藏 MaaYuan</value>
     </data>
     <data name="ImageBrowserTitle" xml:space="preserve">
         <value>图片浏览器</value>
@@ -631,7 +631,7 @@
         <value>MaaTouch (实验功能)</value>
     </data>
     <data name="MFAIsLatestVersion" xml:space="preserve">
-        <value>GUI已为最新版本！</value>
+        <value>GUI 已为最新版本！</value>
     </data>
     <data name="MinimizeToTray" xml:space="preserve">
         <value>最小化时隐藏至托盘</value>
@@ -835,10 +835,10 @@
         <value>模拟器路径</value>
     </data>
     <data name="SoftwareUpdate" xml:space="preserve">
-        <value>更新GUI</value>
+        <value>更新 GUI</value>
     </data>
     <data name="SoftwareVersion" xml:space="preserve">
-        <value>GUI版本</value>
+        <value>GUI 版本</value>
     </data>
     <data name="StartTask" xml:space="preserve">
         <value>开始任务</value>
