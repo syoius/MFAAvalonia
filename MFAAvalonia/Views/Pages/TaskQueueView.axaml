@@ -47,10 +47,10 @@
         <!-- 左侧列 -->
         <Grid Grid.Column="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" MaxHeight="150" />
+                <RowDefinition Height="Auto" MaxHeight="230" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <suki:GlassCard Grid.Row="0" Margin="15,15,0,5">
+            <suki:GlassCard Grid.Row="0" Margin="15,15,0,0">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock
@@ -59,19 +59,59 @@
                             Foreground="{DynamicResource SukiLowText}"
                             HorizontalAlignment="Left"
                             Margin="2,0,0,0"
-                            Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
+                            Text="运行环境"
                             VerticalAlignment="Center" />
                     </suki:GroupBox.Header>
-                    <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                              DisplayMemberBinding="{Binding Name}"
-                              IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                              ItemsSource="{Binding CurrentResources}"
-                              Margin="10,0,10,0"
-                              SelectedValue="{Binding CurrentResource}"
-                              SelectedValueBinding="{Binding Name}"
-                              VerticalAlignment="Center" />
+                    <StackPanel Spacing="4">
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
+                                VerticalAlignment="Center"
+                                Margin="10,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding CurrentResources}"
+                                      Margin="15,0,0,0"
+                                      SelectedValue="{Binding CurrentResource}"
+                                      SelectedValueBinding="{Binding Name}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                        
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.AutoStartOption}}"
+                                VerticalAlignment="Center"
+                                Margin="2,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding BeforeTaskList}"
+                                      Margin="10,0,0,0"
+                                      SelectedValue="{Binding BeforeTask}"
+                                      SelectedValueBinding="{Binding ResourceKey}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                        
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.AfterTaskOption}}"
+                                VerticalAlignment="Center"
+                                Margin="2,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding AfterTaskList}"
+                                      Margin="10,0,0,0"
+                                      SelectedValue="{Binding AfterTask}"
+                                      SelectedValueBinding="{Binding ResourceKey}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
                 </suki:GroupBox>
-
             </suki:GlassCard>
             <Grid Grid.Row="1">
                 <suki:GlassCard Grid.Column="0" Margin="15,5,0,25">
@@ -162,36 +202,36 @@
                                         <Grid
                                             ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
                                             Background="Transparent" ex:DragDropExtensions.LimitDragDrop="True"
-                                            ColumnDefinitions="*,Auto" ContextMenu="{StaticResource TaskMenu}"
+                                            ColumnDefinitions="30,1*,Auto" ContextMenu="{StaticResource TaskMenu}"
                                             x:Name="ListGrid">
                                             <CheckBox IsThreeState="True"
-                                                      Content="{Binding Name}"
                                                       Grid.Column="0" MinWidth="150"
                                                       ex:CheckBoxExtensions.EnableRightClickNull="True"
                                                       HorizontalAlignment="Left"
                                                       ex:CheckBoxExtensions.LimitDragDrop="True"
                                                       IsEnabled="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                                      IsChecked="{Binding IsCheckedWithNull}">
-                                                <CheckBox.ContentTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock
-                                                            Text="{Binding}"
-                                                            TextTrimming="CharacterEllipsis"
-                                                            TextWrapping="NoWrap"
-                                                            x:DataType="System:String" />
-                                                    </DataTemplate>
-                                                </CheckBox.ContentTemplate>
-                                            </CheckBox>
+                                                      IsChecked="{Binding IsCheckedWithNull}"
+                                                      Tapped="CheckBox_Tapped" />
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding Name}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="NoWrap"
+                                                MinWidth="170"
+                                                Margin="3,0,25,0"
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                Tapped="TextBlock_Tapped" />
 
                                             <!--  ReSharper disable once Xaml.StaticResourceNotResolved  -->
                                             <RadioButton Classes="Icon"
                                                          Background="Transparent" IsHitTestVisible="False"
                                                          BorderThickness="0" IsChecked="{Binding EnableSetting}"
-                                                         Grid.Column="1"
+                                                         Grid.Column="2"
                                                          ex:IconElement.Width="16" ex:IconElement.Height="16"
                                                          ex:IconElement.Geometry="{x:Static suki:Icons.Setting}"
                                                          GroupName="TaskSettings" IsVisible="{Binding IsVisible}"
-                                                         HorizontalContentAlignment="Right" />
+                                                         HorizontalContentAlignment="Center" />
                                         </Grid>
 
                                     </DataTemplate>
@@ -344,9 +384,10 @@
                     <!-- </avaloniaEdit:TextEditor> -->
                     <ScrollViewer
                         HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollBarVisibility="Auto">
+                        VerticalScrollBarVisibility="Auto"
+                        Padding="2,2,8,2"
+                        Margin="0">
                         <mdxaml:MarkdownScrollViewer
-
                             Focusable="True" x:Name="Introduction"
                             Margin="10,0,10,0">
                             <mdxaml:MarkdownScrollViewer.Styles>

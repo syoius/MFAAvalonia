@@ -21,14 +21,26 @@ public class TitleConverter : MarkupExtension, IMultiValueConverter
         var resourceName = SafeGetValue<string>(values, 4);
         var resourceVersion = SafeGetValue<string>(values, 5);
         var isResourceVisible = SafeGetValue<bool>(values, 6);
+        var currentConfig = SafeGetValue<string>(values, 7);
 
         var result = $"{appName} {appVersion}";
         // 主逻辑
         if (isCustomVisible && !string.IsNullOrEmpty(customTitle))
-            result = customTitle;
+        {
+            if (!string.IsNullOrEmpty(resourceVersion))
+                result = $"{customTitle}  {resourceVersion}";
+            else
+                result = customTitle;
+        }
 
         if (isResourceVisible && !string.IsNullOrEmpty(resourceName))
             result = $"{appName} {appVersion} | {resourceName} {resourceVersion}";
+
+        // 新增：显示当前配置
+        if (!string.IsNullOrEmpty(currentConfig))
+        {
+            result += $"  ✏️ 当前配置: {currentConfig}";
+        }
         return result;
     }
 

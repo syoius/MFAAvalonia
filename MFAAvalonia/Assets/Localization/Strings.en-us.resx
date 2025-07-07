@@ -96,7 +96,7 @@
         <value>Auto Minimize after launched</value>
     </data>
     <data name="AutomaticUpdateMFA" xml:space="preserve">
-        <value>Automatic Software Update</value>
+        <value>Automatic GUI Update</value>
     </data>
     <data name="AutomaticUpdateResource" xml:space="preserve">
         <value>Automatic Resource Update</value>
@@ -144,7 +144,7 @@
         <value>Capture Mode</value>
     </data>
     <data name="CheckMFA" xml:space="preserve">
-        <value>Check Software</value>
+        <value>Check GUI</value>
     </data>
     <data name="CheckResource" xml:space="preserve">
         <value>Check resources</value>
@@ -153,16 +153,16 @@
         <value>The data currently in the clipboard cannot be converted to text.</value>
     </data>
     <data name="CloseEmulator" xml:space="preserve">
-        <value>Disable Software</value>
+        <value>Terminate Emulator</value>
     </data>
     <data name="CloseEmulatorAndMFA" xml:space="preserve">
-        <value>Disable MFA and Software</value>
+        <value>Terminate MaaYuan and Emulator</value>
     </data>
     <data name="CloseEmulatorAndRestartMFA" xml:space="preserve">
-        <value>Disable MFA and Restart Software</value>
+        <value>Terminate Emulator and restart MaaYuan</value>
     </data>
     <data name="CloseMFA" xml:space="preserve">
-        <value>Disable MFA</value>
+        <value>Terminate MaaYuan</value>
     </data>
     <data name="ColorPickerTitle" xml:space="preserve">
         <value>Color Picker</value>
@@ -483,7 +483,7 @@
         <value>Stop current task, restart game and start new tasks</value>
     </data>
     <data name="GameResourceUpdated" xml:space="preserve">
-        <value>Game resources updated, please restart software.</value>
+        <value>Game resources updated, please restart MaaYuan.</value>
     </data>
     <data name="General" xml:space="preserve">
         <value>General Mode</value>
@@ -495,7 +495,7 @@
         <value>Getting the latest resources...</value>
     </data>
     <data name="GettingLatestSoftware" xml:space="preserve">
-        <value>Getting the latest software...</value>
+        <value>Getting the latest GUI...</value>
     </data>
     <data name="Github" xml:space="preserve">
         <value>Source code: GitHub</value>
@@ -624,7 +624,7 @@
         <value>MaaTouch (Experimental)</value>
     </data>
     <data name="MFAIsLatestVersion" xml:space="preserve">
-        <value>Software is already in the latest version!</value>
+        <value>GUI is already in the latest version!</value>
     </data>
     <data name="MinimizeToTray" xml:space="preserve">
         <value>Hide to tray when minimized</value>
@@ -759,7 +759,7 @@
         <value>Trying to restart the ADB Server</value>
     </data>
     <data name="RestartMFA" xml:space="preserve">
-        <value>Restart MFA</value>
+        <value>Restart MaaYuan</value>
     </data>
     <data name="RestartPC" xml:space="preserve">
         <value>Restart computer</value>
@@ -825,13 +825,13 @@
         <value>Slider Control</value>
     </data>
     <data name="SoftwarePath" xml:space="preserve">
-        <value>Software Path</value>
+        <value>Emulator Path</value>
     </data>
     <data name="SoftwareUpdate" xml:space="preserve">
-        <value>Update Software</value>
+        <value>Update GUI</value>
     </data>
     <data name="SoftwareVersion" xml:space="preserve">
-        <value>Software Version</value>
+        <value>GUI Version</value>
     </data>
     <data name="StartTask" xml:space="preserve">
         <value>Start Task</value>
@@ -846,10 +846,10 @@
         <value>Startup</value>
     </data>
     <data name="StartupSoftware" xml:space="preserve">
-        <value>Startup software</value>
+        <value>Startup Emulator</value>
     </data>
     <data name="StartupSoftwareAndScript" xml:space="preserve">
-        <value>Startup software and script</value>
+        <value>Startup Emulator and start tasks</value>
     </data>
     <data name="Stopping" xml:space="preserve">
         <value>Stopping......</value>
@@ -966,7 +966,7 @@
         <value>Use GPU for inference acceleration</value>
     </data>
     <data name="WaitSoftware" xml:space="preserve">
-        <value>Wait time for Software to start (seconds)</value>
+        <value>Wait time for Emulator to start (seconds)</value>
     </data>
     <data name="WaitSoftwareTime" xml:space="preserve">
         <value>Wait time for {0} to start (seconds): {1}(s)</value>
@@ -1073,6 +1073,12 @@
     <data name="GlobalHotkeyServiceError" xml:space="preserve">
         <value>Global Hotkey Service Failed to Load</value>
     </data>
+    <data name="Manual" xml:space="preserve">
+        <value>Manual</value>
+   </data>
+    <data name="QQChannel" xml:space="preserve">
+        <value>QQChannel: Maa鸢</value>
+   </data>
     <data name="UpcomingChanges" xml:space="preserve">
         <value>Upcoming Changes</value>
     </data>
