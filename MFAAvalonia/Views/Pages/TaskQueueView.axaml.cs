@@ -7,6 +7,7 @@ using Avalonia.Data;
 using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
@@ -44,7 +45,10 @@ using HorizontalAlignment = Avalonia.Layout.HorizontalAlignment;
 using Point = Avalonia.Point;
 using VerticalAlignment = Avalonia.Layout.VerticalAlignment;
 using Avalonia.Threading;
+using Avalonia.Xaml.Interactivity;
 using MFAAvalonia.ViewModels.Other;
+using Newtonsoft.Json.Linq;
+using SukiUI.Extensions;
 
 namespace MFAAvalonia.Views.Pages;
 
@@ -340,13 +344,17 @@ public partial class TaskQueueView : UserControl
             vm.TaskItemViewModels.RemoveAt(index);
             Instances.TaskQueueView.SetOption(taskItemViewModel, false);
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, vm.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+            vm.ShowSettings = false;
         }
     }
 
     #region 任务选项
 
-    private static readonly ConcurrentDictionary<string, StackPanel> CommonPanelCache = new();
+    private static readonly ConcurrentDictionary<string, Control> CommonPanelCache = new();
+    private static readonly ConcurrentDictionary<string, Control> AdvancedPanelCache = new();
     private static readonly ConcurrentDictionary<string, string> IntroductionsCache = new();
+    private static readonly ConcurrentDictionary<string, bool> ShowCache = new();
+
     private void SetMarkDown(string markDown)
     {
         // 使用TaskQueueViewModel的增强方法
@@ -357,44 +365,102 @@ public partial class TaskQueueView : UserControl
         Introduction.Markdown = markDown;
     }
 
-    public void SetOption(DragItemViewModel dragItem, bool value)
+    public void SetOption(DragItemViewModel dragItem, bool value, bool init = false)
     {
-        var cacheKey = $"{dragItem.Name}_{dragItem.InterfaceItem.GetHashCode()}";
+        if (!init)
+            Instances.TaskQueueViewModel.IsCommon = true;
+        var cacheKey = $"{dragItem.Name}_{dragItem.InterfaceItem?.Entry}_{dragItem.InterfaceItem?.GetHashCode()}";
+
         if (!value)
         {
             HideCurrentPanel(cacheKey);
             return;
         }
+
         HideAllPanels();
-        var newPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
+        var juggle = (dragItem.InterfaceItem?.Advanced == null || dragItem.InterfaceItem.Advanced.Count == 0) || (dragItem.InterfaceItem?.Option == null || dragItem.InterfaceItem.Option.Count == 0);
+        Instances.TaskQueueViewModel.ShowSettings = ShowCache.GetOrAdd(cacheKey,
+            !juggle);
+        if (juggle)
         {
-            var p = new StackPanel();
-            GeneratePanelContent(p, dragItem);
-            CommonOptionSettings.Children.Add(p);
-            return p;
-        });
-
-        var newIntroduction = IntroductionsCache.GetOrAdd(cacheKey, key =>
-        {
-            var input = string.Empty;
-
-            // 原始带标记的文本
-            if (dragItem.InterfaceItem?.Document?.Count > 0)
+            var newPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
             {
-                input = Regex.Unescape(string.Join("\\n", dragItem.InterfaceItem.Document));
+                var p = new StackPanel();
+                GeneratePanelContent(p, dragItem);
+                CommonOptionSettings.Children.Add(p);
+                return p;
+            });
+            newPanel.IsVisible = true;
+        }
+        else
+        {
+            if (!init)
+            {
+                var commonPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
+                {
+                    var p = new StackPanel();
+                    GenerateCommonPanelContent(p, dragItem);
+                    CommonOptionSettings.Children.Add(p);
+                    return p;
+                });
+                commonPanel.IsVisible = true;
             }
-            input = LanguageHelper.GetLocalizedString(input);
-            return ConvertCustomMarkup(input);
-        });
+            var advancedPanel = AdvancedPanelCache.GetOrAdd(cacheKey, key =>
+            {
+                var p = new StackPanel();
+                GenerateAdvancedPanelContent(p, dragItem);
+                AdvancedOptionSettings.Children.Add(p);
+                return p;
+            });
+            if (!init)
+            {
+                advancedPanel.IsVisible = true;
+            }
+        }
+        if (!init)
+        {
+            var newIntroduction = IntroductionsCache.GetOrAdd(cacheKey, key =>
+            {
+                var input = string.Empty;
 
-        SetMarkDown(newIntroduction);
-        if (newPanel.Children.Count == 0)
-            CommonPanelCache.Remove(cacheKey, out _);
-        newPanel.IsVisible = true;
+                // 原始带标记的文本
+                if (dragItem.InterfaceItem?.Document?.Count > 0)
+                {
+                    input = Regex.Unescape(string.Join("\\n", dragItem.InterfaceItem.Document));
+                }
+                input = LanguageHelper.GetLocalizedString(input);
+                return ConvertCustomMarkup(input);
+            });
+
+            SetMarkDown(newIntroduction);
+        }
     }
 
 
     private void GeneratePanelContent(StackPanel panel, DragItemViewModel dragItem)
+    {
+
+        AddRepeatOption(panel, dragItem);
+
+        if (dragItem.InterfaceItem?.Option != null)
+        {
+            foreach (var option in dragItem.InterfaceItem.Option)
+            {
+                AddOption(panel, option, dragItem);
+            }
+        }
+
+        if (dragItem.InterfaceItem?.Advanced != null)
+        {
+            foreach (var option in dragItem.InterfaceItem.Advanced)
+            {
+                AddAdvancedOption(panel, option);
+            }
+        }
+
+    }
+
+    private void GenerateCommonPanelContent(StackPanel panel, DragItemViewModel dragItem)
     {
         AddRepeatOption(panel, dragItem);
 
@@ -405,6 +471,10 @@ public partial class TaskQueueView : UserControl
                 AddOption(panel, option, dragItem);
             }
         }
+    }
+
+    private void GenerateAdvancedPanelContent(StackPanel panel, DragItemViewModel dragItem)
+    {
         if (dragItem.InterfaceItem?.Advanced != null)
         {
             foreach (var option in dragItem.InterfaceItem.Advanced)
@@ -419,6 +489,10 @@ public partial class TaskQueueView : UserControl
         if (CommonPanelCache.TryGetValue(key, out var oldPanel))
         {
             oldPanel.IsVisible = false;
+        }
+        if (AdvancedPanelCache.TryGetValue(key, out var oldaPanel))
+        {
+            oldaPanel.IsVisible = false;
         }
 
         Introduction.Markdown = "";
@@ -537,14 +611,88 @@ public partial class TaskQueueView : UserControl
         panel.Children.Add(grid);
     }
 
+
+    private bool IsValidIntegerInput(string text)
+    {
+        // 空字符串或仅包含负号是允许的
+        if (string.IsNullOrEmpty(text) || text == "-")
+            return true;
+
+        // 检查是否以负号开头，且负号只出现一次
+        if (text.StartsWith("-") && (text.Length == 1 || (!char.IsDigit(text[1]) || text.LastIndexOf("-") != 0)))
+            return false;
+
+        // 检查是否只包含数字和可能的负号
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (i == 0 && text[i] == '-')
+                continue; // 允许第一个字符是负号
+
+            if (!char.IsDigit(text[i]))
+                return false; // 其他字符必须是数字
+        }
+
+        return true;
+    }
+    private string FilterToInteger(string text)
+    {
+        // 1. 去除所有非数字和非负号字符
+        string filtered = new string(text.Where(c => c == '-' || char.IsDigit(c)).ToArray());
+
+        // 2. 处理负号位置和数量
+        if (filtered.Contains('-'))
+        {
+            // 确保负号只出现在开头且只有一个
+            if (filtered[0] != '-' || filtered.Count(c => c == '-') > 1)
+            {
+                filtered = filtered.Replace("-", "");
+            }
+        }
+
+        // 3. 处理空字符串或仅负号的情况
+        if (string.IsNullOrEmpty(filtered) || filtered == "-")
+        {
+            return filtered;
+        }
+
+        // 4. 去除前导零
+        if (filtered.Length > 1 && filtered[0] == '0')
+        {
+            filtered = filtered.TrimStart('0');
+        }
+
+        return filtered;
+    }
+
     private void AddAdvancedOption(Panel panel, MaaInterface.MaaInterfaceSelectAdvanced option)
     {
         if (MaaProcessor.Interface?.Advanced?.TryGetValue(option.Name, out var interfaceOption) != true) return;
 
-        for (int i = 0; i < (interfaceOption.Field?.Count ?? 0); i++)
+        for (int i = 0; interfaceOption.Field != null && i < interfaceOption.Field.Count; i++)
         {
             var field = interfaceOption.Field[i];
-            var defaultValue = option.Data.TryGetValue(field, out var value) ? value : ((interfaceOption.Default?.Count ?? 0) > i ? interfaceOption.Default[i] : string.Empty);
+            var type = i < (interfaceOption.Type?.Count ?? 0) ? (interfaceOption.Type?[i] ?? "string") : (interfaceOption.Type?.Count > 0 ? interfaceOption.Type[0] : "string");
+
+            // 获取默认值（支持单值或列表）
+            string defaultValue = string.Empty;
+            if (option.Data.TryGetValue(field, out var value))
+            {
+                defaultValue = value;
+            }
+            else if (interfaceOption.Default != null && interfaceOption.Default.Count > i)
+            {
+                // 处理Default为单值或列表的情况
+                var defaultToken = interfaceOption.Default[i];
+                if (defaultToken is JArray arr)
+                {
+                    defaultValue = arr.Count > 0 ? arr[0].ToString() : string.Empty;
+                }
+                else
+                {
+                    defaultValue = defaultToken.ToString();
+                }
+            }
+
             var grid = new Grid
             {
                 ColumnDefinitions =
@@ -561,52 +709,152 @@ public partial class TaskQueueView : UserControl
                 Margin = new Thickness(8, 0, 5, 5)
             };
 
-            var combo = new TextBox()
+            // 创建AutoCompleteBox
+            var autoCompleteBox = new AutoCompleteBox
             {
                 MinWidth = 150,
                 Margin = new Thickness(0, 5, 5, 5),
-                Text = defaultValue
+                Text = defaultValue,
+                IsTextCompletionEnabled = true,
+                FilterMode = AutoCompleteFilterMode.Custom,
+                ItemFilter = (search, item) =>
+                {
+                    // 处理搜索文本为空的情况
+                    if (string.IsNullOrEmpty(search))
+                        return true;
+
+                    // 处理项为空的情况
+                    if (item == null)
+                        return false;
+
+                    // 确保项可以转换为字符串
+                    var itemText = item.ToString();
+                    if (string.IsNullOrEmpty(itemText))
+                        return false;
+
+                    // 执行包含匹配（不区分大小写）
+                    return itemText.IndexOf(search, StringComparison.InvariantCultureIgnoreCase) >= 0;
+                },
             };
+      
 
-
-            combo.Bind(IsEnabledProperty, new Binding("Idle")
+// 绑定启用状态
+            autoCompleteBox.Bind(IsEnabledProperty, new Binding("Idle")
             {
                 Source = Instances.RootViewModel
             });
-
-            combo.TextChanged += (_, _) =>
+            var completionItems = new List<string>();
+// 生成补全列表（从Default获取）
+            if (interfaceOption.Default != null && interfaceOption.Default.Count > i)
             {
-                option.Data[field] = combo.Text;
+                var defaultToken = interfaceOption.Default[i];
+               
+
+                if (defaultToken is JArray arr)
+                {
+                    completionItems = arr.Select(item => item.ToString()).ToList();
+                }
+                else
+                {
+                    completionItems.Add(defaultToken.ToString());
+                    completionItems.Add(string.Empty);
+                }
+
+                autoCompleteBox.ItemsSource = completionItems;
+            }
+            if (completionItems.Count > 0 && !string.IsNullOrEmpty(completionItems[0]))
+            {
+                var behavior = new AutoCompleteBehavior();
+                Interaction.GetBehaviors(autoCompleteBox).Add(behavior);
+            }
+// 文本变化事件 - 修改此处以确保文本清空时下拉框保持打开
+            autoCompleteBox.TextChanged += (_, _) =>
+            {
+                if (type.ToLower() == "int")
+                {
+                    if (!IsValidIntegerInput(autoCompleteBox.Text))
+                    {
+                        autoCompleteBox.Text = FilterToInteger(autoCompleteBox.Text);
+                        // 保持光标位置
+                        if (autoCompleteBox.CaretIndex > autoCompleteBox.Text.Length)
+                        {
+                            autoCompleteBox.CaretIndex = autoCompleteBox.Text.Length;
+                        }
+                    }
+                }
+
+                option.Data[field] = autoCompleteBox.Text;
                 option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
                 SaveConfiguration();
             };
+            option.Data[field] = autoCompleteBox.Text;
+            option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
+            SaveConfiguration();
+// 选择项变化事件
+            autoCompleteBox.SelectionChanged += (_, _) =>
+            {
+                if (autoCompleteBox.SelectedItem is string selectedText)
+                {
+                    autoCompleteBox.Text = selectedText;
+                    option.Data[field] = selectedText;
+                    option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
+                    SaveConfiguration();
+                }
+            };
 
-            Grid.SetColumn(combo, 1);
+            Grid.SetColumn(autoCompleteBox, 1);
+
+            // 标签部分（保持不变）
             var textBlock = new TextBlock
             {
                 FontSize = 14,
-                MinWidth = 180,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Text = LanguageHelper.GetLocalizedString(field),
             };
-
             textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
-            Grid.SetColumn(textBlock, 0);
-            grid.Children.Add(combo);
-            grid.Children.Add(textBlock);
+
+            var stackPanel = new StackPanel
+            {
+                MinWidth = 180,
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left,
+            };
+            Grid.SetColumn(stackPanel, 0);
+            stackPanel.Children.Add(textBlock);
+
+            // 文档提示部分（保持不变）
+            if (interfaceOption.Document is { Count: > 0 } && i < interfaceOption.Document.Count)
+            {
+                var doc = interfaceOption.Document[i];
+                var input = doc;
+                try
+                {
+                    input = Regex.Unescape(doc);
+                }
+                catch (Exception)
+                {
+                }
+                var docBlock = new TooltipBlock
+                {
+                    TooltipText = input
+                };
+                stackPanel.Children.Add(docBlock);
+            }
+
+            // 布局逻辑（保持不变）
+            grid.Children.Add(autoCompleteBox);
+            grid.Children.Add(stackPanel);
             grid.SizeChanged += (sender, e) =>
             {
                 var currentGrid = sender as Grid;
-
                 if (currentGrid == null) return;
 
-                // 计算所有列的 MinWidth 总和
                 var totalMinWidth = currentGrid.Children.Sum(c => c.MinWidth);
                 var availableWidth = currentGrid.Bounds.Width;
                 if (availableWidth < totalMinWidth)
                 {
-                    // 切换为上下结构（两行）
                     currentGrid.ColumnDefinitions.Clear();
                     currentGrid.RowDefinitions.Clear();
                     currentGrid.RowDefinitions.Add(new RowDefinition
@@ -617,15 +865,13 @@ public partial class TaskQueueView : UserControl
                     {
                         Height = GridLength.Auto
                     });
-
-                    Grid.SetRow(textBlock, 0);
-                    Grid.SetRow(combo, 1);
-                    Grid.SetColumn(textBlock, 0);
-                    Grid.SetColumn(combo, 0);
+                    Grid.SetRow(stackPanel, 0);
+                    Grid.SetRow(autoCompleteBox, 1);
+                    Grid.SetColumn(stackPanel, 0);
+                    Grid.SetColumn(autoCompleteBox, 0);
                 }
                 else
                 {
-                    // 恢复左右结构（两列）
                     currentGrid.RowDefinitions.Clear();
                     currentGrid.ColumnDefinitions.Clear();
                     currentGrid.ColumnDefinitions.Add(new ColumnDefinition
@@ -636,13 +882,13 @@ public partial class TaskQueueView : UserControl
                     {
                         Width = new GridLength(4, GridUnitType.Star)
                     });
-
-                    Grid.SetRow(textBlock, 0);
-                    Grid.SetRow(combo, 0);
-                    Grid.SetColumn(textBlock, 0);
-                    Grid.SetColumn(combo, 1);
+                    Grid.SetRow(stackPanel, 0);
+                    Grid.SetRow(autoCompleteBox, 0);
+                    Grid.SetColumn(stackPanel, 0);
+                    Grid.SetColumn(autoCompleteBox, 1);
                 }
             };
+
             panel.Children.Add(grid);
         }
     }
@@ -650,7 +896,7 @@ public partial class TaskQueueView : UserControl
     {
         if (MaaProcessor.Interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var interfaceOption) != true) return;
         Control control = interfaceOption.Cases.ShouldSwitchButton(out var yes, out var no)
-            ? CreateToggleControl(option, yes, no, source)
+            ? CreateToggleControl(option, yes, no, interfaceOption, source)
             : CreateComboBoxControl(option, interfaceOption, source);
 
         panel.Children.Add(control);
@@ -660,6 +906,7 @@ public partial class TaskQueueView : UserControl
         MaaInterface.MaaInterfaceSelectOption option,
         int yesValue,
         int noValue,
+        MaaInterface.MaaInterfaceOption interfaceOption,
         DragItemViewModel source
     )
     {
@@ -717,10 +964,26 @@ public partial class TaskQueueView : UserControl
             },
             Margin = new Thickness(0, 0, 0, 5)
         };
+        var stackPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        stackPanel.Children.Add(textBlock);
+        if (interfaceOption.Document is { Count: > 0 })
+        {
+            var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
 
-        Grid.SetColumn(textBlock, 0);
+            var docBlock = new TooltipBlock
+            {
+                TooltipText = input
+            };
+            stackPanel.Children.Add(docBlock);
+        }
+        Grid.SetColumn(stackPanel, 0);
         Grid.SetColumn(button, 2);
-        grid.Children.Add(textBlock);
+        grid.Children.Add(stackPanel);
         grid.Children.Add(button);
 
         return grid;
@@ -815,12 +1078,32 @@ public partial class TaskQueueView : UserControl
             MinWidth = 150,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left,
+
             Text = LanguageHelper.GetLocalizedString(option.Name),
         };
         textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
-        Grid.SetColumn(textBlock, 0);
+
+        var stackPanel = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            MinWidth = 180,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Left,
+        };
+        Grid.SetColumn(stackPanel, 0);
+        stackPanel.Children.Add(textBlock);
+        if (interfaceOption.Document is { Count: > 0 })
+        {
+            var input = Regex.Unescape(string.Join("\\n", interfaceOption.Document));
+
+            var docBlock = new TooltipBlock
+            {
+                TooltipText = input
+            };
+            stackPanel.Children.Add(docBlock);
+        }
         grid.Children.Add(combo);
-        grid.Children.Add(textBlock);
+        grid.Children.Add(stackPanel);
         grid.SizeChanged += (sender, e) =>
         {
             var currentGrid = sender as Grid;
@@ -844,9 +1127,9 @@ public partial class TaskQueueView : UserControl
                     Height = GridLength.Auto
                 });
 
-                Grid.SetRow(textBlock, 0);
+                Grid.SetRow(stackPanel, 0);
                 Grid.SetRow(combo, 1);
-                Grid.SetColumn(textBlock, 0);
+                Grid.SetColumn(stackPanel, 0);
                 Grid.SetColumn(combo, 0);
             }
             else
@@ -863,9 +1146,9 @@ public partial class TaskQueueView : UserControl
                     Width = new GridLength(4, GridUnitType.Star)
                 });
 
-                Grid.SetRow(textBlock, 0);
+                Grid.SetRow(stackPanel, 0);
                 Grid.SetRow(combo, 0);
-                Grid.SetColumn(textBlock, 0);
+                Grid.SetColumn(stackPanel, 0);
                 Grid.SetColumn(combo, 1);
             }
         };

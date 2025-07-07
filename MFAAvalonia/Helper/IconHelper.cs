@@ -22,7 +22,7 @@ public static class IconHelper
         {
             // 尝试从执行目录加载
             var exeDirectory = AppContext.BaseDirectory;
-            var iconPath = Path.Combine(exeDirectory, "logo.ico");
+            var iconPath = Path.Combine(exeDirectory, "Assets", "logo.ico");
 
             if (File.Exists(iconPath))
             {

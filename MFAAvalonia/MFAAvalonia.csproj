@@ -36,15 +36,15 @@
         <ApplicationRevision>0</ApplicationRevision>
         <ApplicationVersion>1.1.0</ApplicationVersion>
         <Version>1.1</Version>
-        <FileVersion>1.3.0</FileVersion>
-        <AssemblyVersion>1.3.0</AssemblyVersion>
+        <FileVersion>1.5.2</FileVersion>
+        <AssemblyVersion>1.5.2</AssemblyVersion>
         <InformationalVersion>0.0.1</InformationalVersion>
     </PropertyGroup>
 
     <!-- Build and Publish -->
     <PropertyGroup>
 		<DebianPackageDependencies>dotnet-runtime-8.0;libc6;libgtk-3-0</DebianPackageDependencies>
-        <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers> 
+        <RuntimeIdentifiers>win-x64;linux-x64;osx-x64;win-arm64;linux-arm64;osx-arm64</RuntimeIdentifiers> 
 		<OutputPath>..\bin\$(Platform)\$(Configuration)\</OutputPath>
 		<IntermediateOutputPath>obj\$(Platform)\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
         <PublishReadyToRun>false</PublishReadyToRun>
@@ -60,30 +60,31 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Desktop" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.0" />
-        <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.0" />
+        <PackageReference Include="Avalonia" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
+        <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.2" />
         <PackageReference Include="AvaloniaEdit.TextMate" Version="11.3.0" />
-        <PackageReference Include="AvaloniaExtensions.Axaml" Version="1.0.3" />
+        <PackageReference Include="AvaloniaExtensions.Axaml" Version="1.0.4.1" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-		<PackageReference Include="Avalonia.Xaml.Interactions" Version="11.3.0.2" />
-		<PackageReference Include="Avalonia.Xaml.Interactivity" Version="11.3.0.2" />
+		<PackageReference Include="Avalonia.Xaml.Interactions" Version="11.3.0.6" />
+		<PackageReference Include="Avalonia.Xaml.Interactivity" Version="11.3.0.6" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
 		<PackageReference Include="DesktopNotifications.Windows" Version="1.3.1" />
-        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.0" />
+        <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.2" />
         <PackageReference Include="CalcBindingAva" Version="2.5.3" />
 		<PackageReference Include="DesktopNotifications.Apple" Version="1.3.1" />
         <PackageReference Include="DesktopNotifications.Avalonia" Version="1.3.1" />
-        <PackageReference Include="FluentIcons.Avalonia.Fluent" Version="1.1.300" />
-        <PackageReference Include="Maa.Framework" Version="4.0.0" />
-        <PackageReference Include="Maa.Framework.Binding.Extensions" Version="4.0.0" />
-        <PackageReference Include="Maa.Framework.Binding.Native" Version="4.0.0" />
-        <PackageReference Include="Maa.Framework.Native" Version="4.0.0" />
-        <PackageReference Include="Maa.Framework.Runtimes" Version="4.2.2" />
-        <PackageReference Include="MailKit" Version="4.12.1" />
+        <PackageReference Include="FluentIcons.Avalonia.Fluent" Version="1.1.303" />
+        <PackageReference Include="Maa.AgentBinary" Version="1.1.0" />
+        <PackageReference Include="Maa.Framework" Version="4.4.0-preview.1" />
+        <PackageReference Include="Maa.Framework.Binding.Extensions" Version="4.4.0-preview.1" />
+        <PackageReference Include="Maa.Framework.Binding.Native" Version="4.4.0-preview.1" />
+        <PackageReference Include="Maa.Framework.Native" Version="4.4.0-preview.1" />
+        <PackageReference Include="Maa.Framework.Runtimes" Version="4.4.0" />
+        <PackageReference Include="MailKit" Version="4.13.0" />
         <PackageReference Include="Markdown.Avalonia" Version="11.0.3-a1" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.13.0" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0">
@@ -99,9 +100,10 @@
         <PackageReference Include="Semver" Version="3.0.0" />
         <PackageReference Include="Serilog" Version="4.3.0" />
         <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
-        <PackageReference Include="SharpHook" Version="6.0.0" />
+        <PackageReference Include="SharpCompress" Version="0.40.0" />
+        <PackageReference Include="SharpHook" Version="6.1.2" />
 		<PackageReference Include="SkiaSharp" Version="3.119.0" />
-        <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.4" />
+        <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.6" />
         <PackageReference Include="System.Management" Version="10.0.0-preview.2.25163.2" />
 
 		<ProjectReference Include="../LazyStaticGenerator/LazyStaticGenerator.csproj" OutputItemType="Analyzer" ExcludeAssets="runtime;build;native;contentfiles" ReferenceOutputAssembly="false" />
@@ -179,6 +181,7 @@
 	  <PropertyGroup>
 		<!-- 标准化路径分隔符 -->
 		<UpdaterOutputDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)\..\MFAUpdater\bin\$(Configuration)\net8.0\$(RuntimeIdentifier)'))</UpdaterOutputDir>
+	    <UpdaterPublishOutputDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)\..\MFAUpdater\bin\$(Configuration)\net8.0\$(RuntimeIdentifier)\publish'))</UpdaterPublishOutputDir>
 		<MainPublishDir>$([MSBuild]::NormalizeDirectory('$(OutputPath)\$(RuntimeIdentifier)\publish'))</MainPublishDir>
 	  </PropertyGroup>
 
@@ -186,16 +189,15 @@
 	  <!-- 平台智能匹配 -->
 	  <ItemGroup>
 		<!-- Windows 匹配 .exe -->
-		<WinUpdaterFiles Include="$(UpdaterOutputDir)MFAUpdater.exe" Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-arm64'" />
+		<WinUpdaterFiles Include="$(UpdaterPublishOutputDir)MFAUpdater.exe" Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-arm64'" />
 		
 		<!-- Linux/macOS 匹配无扩展名文件 -->
-		<UnixUpdaterFiles Include="$(UpdaterOutputDir)MFAUpdater" Condition="'$(RuntimeIdentifier)' == 'linux-x64' OR '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'linux-arm64' OR '$(RuntimeIdentifier)' == 'osx-arm64'" />
+		<UnixUpdaterFiles Include="$(UpdaterPublishOutputDir)MFAUpdater" Condition="'$(RuntimeIdentifier)' == 'linux-x64' OR '$(RuntimeIdentifier)' == 'osx-x64' OR '$(RuntimeIdentifier)' == 'linux-arm64' OR '$(RuntimeIdentifier)' == 'osx-arm64'" />
 	  </ItemGroup>
 
 	  <!-- 执行复制操作 -->
 	  <Copy SourceFiles="@(WinUpdaterFiles);@(UnixUpdaterFiles)" DestinationFolder="$(MainPublishDir)" OverwriteReadOnlyFiles="true" />
-	  <Copy SourceFiles="@(WinUpdaterFiles);$(UpdaterOutputDir)MFAUpdater.dll" DestinationFolder="$(MainPublishDir)" Condition="'$(RuntimeIdentifier)' == 'win-x64' OR '$(RuntimeIdentifier)' == 'win-arm64'" OverwriteReadOnlyFiles="true" />
-
+	  
 	  <Exec Condition="'$(OS)' != 'Windows_NT' AND '$(RuntimeIdentifier)' != 'win-x64'" Command="chmod +x '$(MainPublishDir)/MFAUpdater'" />
 	</Target>
 </Project>

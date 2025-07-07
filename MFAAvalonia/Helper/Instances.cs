@@ -65,7 +65,7 @@ public static partial class Instances
     /// <summary>
     /// 重启当前应用程序
     /// </summary>
-    public static void RestartApplication(bool noAutoStart = false, bool forgeStop = false)
+    public static void RestartApplication(bool noAutoStart = false,bool forgeStop = false)
     {
         if (noAutoStart)
             GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.TrueString);
@@ -213,8 +213,6 @@ public static partial class Instances
     private static SettingsViewModel _settingsViewModel;
     private static ResourcesView _resourcesView;
     private static ResourcesViewModel _resourcesViewModel;
-
-    private static AnnouncementViewModel _announcementViewModel;
 
     private static ConnectSettingsUserControl _connectSettingsUserControl;
     private static ConnectSettingsUserControlModel _connectSettingsUserControlModel;

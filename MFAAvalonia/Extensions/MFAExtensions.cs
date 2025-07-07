@@ -1,24 +1,14 @@
-﻿using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.Notifications;
-using Avalonia.Markup.Xaml.MarkupExtensions;
-using Avalonia.Threading;
-using AvaloniaExtensions.Axaml.Markup;
+﻿using AvaloniaExtensions.Axaml.Markup;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
-using Microsoft.Extensions.DependencyInjection;
-using SukiUI.Controls;
-using SukiUI.Dialogs;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace MFAAvalonia.Extensions;
 
@@ -30,7 +20,7 @@ public static class MFAExtensions
             ? "cmd.exe"
             : "/bin/bash";
     }
-    
+
     public static Dictionary<TKey, MaaNode> MergeMaaNodes<TKey>(
         this IEnumerable<KeyValuePair<TKey, MaaNode>>? taskModels,
         IEnumerable<KeyValuePair<TKey, MaaNode>>? additionalModels) where TKey : notnull
@@ -61,7 +51,7 @@ public static class MFAExtensions
         return string.Format(format, args);
     }
 
-    public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> newItems)
+    public static void AddRange<T>(this ICollection<T>? collection, IEnumerable<T> newItems)
     {
         if (collection == null)
             return;
@@ -162,9 +152,9 @@ public static class MFAExtensions
         if (sourceIndex == targetIndex) return;
 
         var item = list[sourceIndex];
-        
+
         list.RemoveAt(sourceIndex);
-        
+
         list.Insert(targetIndex > sourceIndex ? targetIndex - 1 : targetIndex, item);
     }
 
@@ -182,7 +172,7 @@ public static class MFAExtensions
 
         list.Insert(targetIndex > sourceIndex ? targetIndex - 1 : targetIndex, item);
     }
-    
+
     // 扩展方法：范围判断
     public static bool Between(this double value, double min, double max)
         => value >= min && value <= max;
@@ -199,5 +189,26 @@ public static class MFAExtensions
             throw new ArgumentOutOfRangeException(nameof(source), "源索引越界");
         if (target < 0 || target > list.Count)
             throw new ArgumentOutOfRangeException(nameof(target), "目标索引越界");
+    }
+
+    public static string GetName(this VersionChecker.VersionType type)
+    {
+        return type.ToString().ToLower();
+    }
+
+    public static VersionChecker.VersionType ToVersionType(this string version)
+    {
+        if (version.Contains("alpha", StringComparison.OrdinalIgnoreCase))
+            return VersionChecker.VersionType.Alpha;
+        if (version.Contains("beta", StringComparison.OrdinalIgnoreCase)) return VersionChecker.VersionType.Beta;
+        return VersionChecker.VersionType.Stable;
+    }
+    
+    public static VersionChecker.VersionType ToVersionType(this int version)
+    {
+        if (version == 0)
+            return VersionChecker.VersionType.Alpha;
+        if (version == 1) return VersionChecker.VersionType.Beta;
+        return VersionChecker.VersionType.Stable;
     }
 }

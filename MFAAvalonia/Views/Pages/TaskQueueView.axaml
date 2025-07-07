@@ -15,6 +15,7 @@
     xmlns:helper="clr-namespace:MFAAvalonia.Helper"
     xmlns:maa="clr-namespace:MFAAvalonia.Extensions.MaaFW"
     xmlns:markup="https://codewf.com"
+    xmlns:controls="clr-namespace:MFAAvalonia.Views.UserControls"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
     xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
@@ -309,22 +310,56 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,0,5" x:Name="Row1">
-                <suki:GroupBox>
+                <suki:GlassCard.Resources>
+                    <suki:IfConditionConverter x:Key="IfConditionConverter">
+                        <suki:IfConditionConverter.True>
+                            <Thickness>0,1,0,10</Thickness>
+                        </suki:IfConditionConverter.True>
+                        <suki:IfConditionConverter.False>
+                            <Thickness>0,10,0,10</Thickness>
+                        </suki:IfConditionConverter.False>
+                    </suki:IfConditionConverter>
+                </suki:GlassCard.Resources>
+                <suki:GroupBox SeparatorMargin="{Binding ShowSettings,Converter={StaticResource IfConditionConverter}}">
                     <suki:GroupBox.Header>
-                        <TextBlock
-                            FontSize="11"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource SukiLowText}"
-                            HorizontalAlignment="Left"
-                            Margin="2,0,0,0"
-                            Text="{markup:I18n {x:Static helper:LangKeys.TaskSettings}}"
-                            VerticalAlignment="Center" />
+
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource SukiLowText}"
+                                       HorizontalAlignment="Left"
+                                       Margin="2,0,0,0"
+                                       Text="{markup:I18n {x:Static helper:LangKeys.TaskSettings}}"
+                                       VerticalAlignment="Top" />
+                            <StackPanel Margin="2 0 0 5" Orientation="Horizontal" HorizontalAlignment="Right"
+                                        DockPanel.Dock="Right" IsVisible="{Binding ShowSettings}"
+                                        Spacing="8">
+                                <RadioButton FontSize="11" FontWeight="Bold" Classes="Inner"
+                                             IsChecked="{Binding IsCommon}" GroupName="SettingA">
+                                    <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.CommonSetting}}"></TextBlock>
+                                </RadioButton>
+                                <RadioButton FontSize="11" FontWeight="Bold" Classes="Inner" GroupName="SettingA"
+                                             IsChecked="{calcBinding:Binding '!IsCommon'}">
+                                    <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.AdvancedSetting}}"></TextBlock>
+                                </RadioButton>
+                            </StackPanel>
+                        </DockPanel>
+
                     </suki:GroupBox.Header>
                     <ScrollViewer
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
                         VerticalScrollBarVisibility="Auto">
-                        <Grid x:Name="CommonOptionSettings" />
+                        <Grid>
+
+                            <StackPanel IsVisible="{calcBinding:Binding 'IsCommon'}"
+                                        x:Name="CommonOptionSettings" Orientation="Vertical">
+                            </StackPanel>
+                            <StackPanel IsVisible="{calcBinding:Binding '!IsCommon'}"
+                                        x:Name="AdvancedOptionSettings" Orientation="Vertical">
+                            </StackPanel>
+                        </Grid>
                     </ScrollViewer>
                 </suki:GroupBox>
             </suki:GlassCard>
@@ -356,7 +391,7 @@
                             Focusable="True" x:Name="Introduction"
                             Margin="10,0,10,0">
                             <mdxaml:MarkdownScrollViewer.Styles>
-                                <StaticResource ResourceKey="MdXamlDocStyle" />
+                                <StyleInclude Source="avares://MFAAvalonia/Assets/Style/MdXamlDocStyle.axaml" />
                             </mdxaml:MarkdownScrollViewer.Styles>
                             <mdxaml:MarkdownScrollViewer.Plugins>
                                 <StaticResource ResourceKey="MdXamlPlugin" />
@@ -548,6 +583,7 @@
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <Grid>
+
                             <TextBlock
                                 FontSize="11"
                                 FontWeight="Bold"
@@ -556,23 +592,42 @@
                                 Margin="2,0,0,0"
                                 Text="{markup:I18n {x:Static helper:LangKeys.LogRecord}}"
                                 VerticalAlignment="Center" />
-                            <Button
-                                Classes="Basic Round"
-                                Command="{Binding ClearCommand}"
-                                Height="17"
-                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                Margin="3,0,3,0"
-                                Padding="0"
-                                HorizontalAlignment="Right"
-                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ButtonClear}}"
-                                VerticalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button
+                                    Classes="Basic Round"
+                                    Command="{Binding ExportCommand}"
+                                    Height="17"
+                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                    Margin="3,0,3,0"
+                                    Padding="0"
 
-                                <fluent:FluentIcon
-                                    Height="18"
-                                    Icon="ArrowSync"
-                                    IconSize="Size16"
-                                    IconVariant="Regular" />
-                            </Button>
+                                    ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ExportLog}}"
+                                    VerticalAlignment="Center">
+
+                                    <fluent:FluentIcon
+                                        Height="18"
+                                        Icon="ArrowExport"
+                                        IconSize="Size16"
+                                        IconVariant="Regular" />
+                                </Button>
+                                <Button
+                                    Classes="Basic Round"
+                                    Command="{Binding ClearCommand}"
+                                    Height="17"
+                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                    Margin="3,0,3,0"
+                                    Padding="0"
+
+                                    ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ButtonClear}}"
+                                    VerticalAlignment="Center">
+
+                                    <fluent:FluentIcon
+                                        Height="18"
+                                        Icon="ArrowSync"
+                                        IconSize="Size16"
+                                        IconVariant="Regular" />
+                                </Button>
+                            </StackPanel>
                         </Grid>
 
                     </suki:GroupBox.Header>
@@ -604,11 +659,11 @@
                                             TextWrapping="Wrap"
                                             VerticalAlignment="Stretch" />
                                         <TextBlock
-                                            FontSize="12" 
+                                            FontSize="12"
                                             FontWeight="{Binding Weight}"
                                             Foreground="{Binding Color}"
                                             Grid.Column="1"
-                                            HorizontalAlignment="Stretch" 
+                                            HorizontalAlignment="Stretch"
                                             Margin="0,5" TextWrapping="WrapWithOverflow"
                                             Text="{Binding Content}"
                                             VerticalAlignment="Stretch" />

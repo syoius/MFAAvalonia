@@ -146,7 +146,7 @@ public static class ExternalNotificationHelper
             try
             {
                 var apiUrl = string.IsNullOrWhiteSpace(secret) ? $"https://oapi.dingtalk.com/robot/send?access_token={accessToken}" : $"https://oapi.dingtalk.com/robot/send?access_token={accessToken}&timestamp={timestamp}&sign={sign}";
-                using var client = new HttpClient();
+                using var client = VersionChecker.CreateHttpClientWithProxy();
                 var content = new StringContent(JsonConvert.SerializeObject(message), Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(apiUrl, content, cancellationToken);
 
@@ -292,7 +292,7 @@ public static class ExternalNotificationHelper
 
             try
             {
-                using var client = new HttpClient();
+                using var client = VersionChecker.CreateHttpClientWithProxy();
                 var response = await client.PostAsync(
                     $"https://open.feishu.cn/open-apis/bot/v2/hook/{appId}?timestamp={timestamp}&sign={sign}",
                     new StringContent(JsonConvert.SerializeObject(message), Encoding.UTF8, "application/json"),
@@ -337,7 +337,7 @@ public static class ExternalNotificationHelper
 
             try
             {
-                using var client = new HttpClient();
+                using var client = VersionChecker.CreateHttpClientWithProxy();
                 var response = await client.PostAsync(
                     apiUrl,
                     new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json"),
@@ -366,7 +366,7 @@ public static class ExternalNotificationHelper
 
             try
             {
-                using var client = new HttpClient();
+                using var client = VersionChecker.CreateHttpClientWithProxy();
                 var response = await client.GetAsync(apiUrl, cancellationToken);
                 return response.IsSuccessStatusCode;
             }
@@ -478,7 +478,7 @@ public static class ExternalNotificationHelper
 
             try
             {
-                using var client = new HttpClient();
+                using var client = VersionChecker.CreateHttpClientWithProxy();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bot", botToken);
 
                 var payload = new
@@ -536,7 +536,7 @@ public static class ExternalNotificationHelper
         {
             try
             {
-                using var client = new HttpClient();
+                using var client = VersionChecker.CreateHttpClientWithProxy();
 
                 var payload = new
                 {
@@ -611,7 +611,7 @@ public static class ExternalNotificationHelper
 
                 request.Headers.Add("Authorization", $"Bearer {apiKey}");
 
-                using var client = new HttpClient();
+                using var client = VersionChecker.CreateHttpClientWithProxy();
                 var response = await client.SendAsync(request, cancellationToken);
                 var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 
@@ -655,7 +655,7 @@ public static class ExternalNotificationHelper
 
             try
             {
-                using var client = new HttpClient();
+                using var client = VersionChecker.CreateHttpClientWithProxy();
                 var parameters = new Dictionary<string, string>
                 {
                     ["msg"] = info,

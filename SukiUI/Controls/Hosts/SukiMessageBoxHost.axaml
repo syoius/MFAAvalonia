@@ -69,7 +69,7 @@
     <ControlTheme x:Key="{x:Type suki:SukiMessageBoxHost}" TargetType="suki:SukiMessageBoxHost">
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Padding" Value="20" />
-                <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
         <Setter Property="Template">
             <ControlTemplate>

@@ -7,7 +7,8 @@ public static class ConfigurationKeys
     public const string DefaultConfig = "DefaultConfig";
     public const string ShowGui = "ShowGui";
     public const string LinkStart = "LinkStart";
-    public const string DoNotShowAgain = "AnnouncementInfo.DoNotShowAgain";
+    public const string DoNotShowAnnouncementAgain = "AnnouncementInfo.DoNotShowAgain";
+    public const string DoNotShowChangelogAgain = "Changelog.DoNotShowAgain";
     public const string ForceScheduledStart = "ForceScheduledStart";
     public const string CustomConfig = "CustomConfig";
     public const string NoAutoStart = "NoAutoStart";
@@ -119,12 +120,17 @@ public static class ConfigurationKeys
 
     #region 更新
 
+    public const string UIUpdateChannelIndex = "UIUpdateChannelIndex";
+    public const string ResourceUpdateChannelIndex = "ResourceUpdateChannelIndex";
     public const string DownloadSourceIndex = "DownloadSourceIndex";
     public const string EnableAutoUpdateResource = "EnableAutoUpdateResource";
     public const string EnableAutoUpdateMFA = "EnableAutoUpdateMFA";
     public const string EnableCheckVersion = "EnableCheckVersion";
     public const string DownloadCDK = "DownloadCDK";
     public const string GitHubToken = "GitHubToken";
+    public const string ProxyAddress  = "ProxyAddress";   
+    public const string ProxyType = "ProxyType";
+    public const string CurrentTasks = "CurrentTasks";
     
     #endregion
 
@@ -137,4 +143,5 @@ public static class ConfigurationKeys
     public const string MainWindowHeight = "UI.MainWindow.Height";
     
     #endregion
+    
 }

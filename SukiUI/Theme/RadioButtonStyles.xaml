@@ -8,20 +8,47 @@
                 <RadioButton Margin="5" Classes="Chips">
                     <TextBlock>test 2</TextBlock>
                 </RadioButton>
-                <RadioButton Margin="5" Classes="GigaChips">
+                <RadioButton Margin="5" Classes="Inner" IsChecked="True">
                     <TextBlock>test 2</TextBlock>
                 </RadioButton>
                 <RadioButton Margin="5" Classes="GigaChips">
                     <TextBlock>test 3</TextBlock>
                 </RadioButton>
-
+                <RadioButton Margin="5"  >
+                    <TextBlock>test 4</TextBlock>
+                </RadioButton>
             </StackPanel>
         </Border>
     </Design.PreviewWith>
+    <Style Selector="RadioButton.Inner">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" Margin="{TemplateBinding Margin}">
+                    <ContentPresenter
+                        Content="{TemplateBinding Content}"
+                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                        HorizontalAlignment="Center" Margin="{TemplateBinding Padding}"
+                        HorizontalContentAlignment="Center"
+                        Name="PART_ContentPresenter"
+                        RecognizesAccessKey="True"
+                        VerticalAlignment="Center" />
+                </Grid>
 
+            </ControlTemplate>
+        </Setter>
+
+        <Style Selector="^:checked">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource SukiPrimaryColor}" />
+        </Style>
+        
+    </Style>
     <Style Selector="RadioButton AccessText">
         <Setter Property="Foreground" Value="{DynamicResource SukiText}" />
     </Style>
+  
     <Style Selector="RadioButton.Icon">
         <Setter Property="Template">
             <ControlTemplate>

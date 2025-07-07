@@ -11,6 +11,7 @@ using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
+using MFAAvalonia.ViewModels.Windows;
 using MFAAvalonia.Views.UserControls;
 using Newtonsoft.Json;
 using SukiUI.Controls;
@@ -113,6 +114,7 @@ public partial class RootView : SukiWindow
         WindowState = WindowState.Normal;
         Activate();
     }
+
 #pragma warning disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法。请考虑将 "await" 运算符应用于调用结果。
     protected override void OnClosing(WindowClosingEventArgs e)
     {
@@ -121,7 +123,11 @@ public partial class RootView : SukiWindow
             e.Cancel = true;
             ConfirmExit(() => OnClosed(e));
         }
-        base.OnClosing(e);
+        else
+        {
+            OnClosed(e);
+            Environment.Exit(0);
+        }
     }
 
     protected override void OnClosed(EventArgs e)
@@ -129,12 +135,14 @@ public partial class RootView : SukiWindow
         if (!GlobalHotkeyService.IsStopped)
         {
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+
             // 确保窗口大小被保存
             SaveWindowSize();
+
             MaaProcessor.Instance.SetTasker();
+            LoggerHelper.DisposeLogger();
             GlobalHotkeyService.Shutdown();
         }
-
         base.OnClosed(e);
     }
 
@@ -244,15 +252,19 @@ public partial class RootView : SukiWindow
 
             Instances.RootViewModel.LockController = (MaaProcessor.Interface?.Controller?.Count ?? 0) < 2;
             ConfigurationManager.Current.SetValue(ConfigurationKeys.EnableEdit, ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableEdit, false));
-
+            DragItemViewModel tempTask = null;
             foreach (var task in Instances.TaskQueueViewModel.TaskItemViewModels)
             {
                 if (task.InterfaceItem?.Advanced is { Count: > 0 } || task.InterfaceItem?.Option is { Count: > 0 } || task.InterfaceItem?.Document != null || task.InterfaceItem?.Repeatable == true)
                 {
-                    task.EnableSetting = true;
-                    break;
+                    tempTask ??= task;
                 }
+                task.EnableSetting = true;
             }
+
+            if (tempTask != null)
+                tempTask.EnableSetting = true;
+
 
             if (!string.IsNullOrWhiteSpace(MaaProcessor.Interface?.Message))
             {
@@ -266,7 +278,8 @@ public partial class RootView : SukiWindow
             await Task.Delay(1000);
             DispatcherHelper.RunOnMainThread(() =>
             {
-                Instances.AnnouncementViewModel.CheckAnnouncement();
+                DispatcherHelper.RunOnMainThread(VersionChecker.CheckMinVersion);
+                AnnouncementViewModel.CheckAnnouncement();
                 if (ConfigurationManager.Current.GetValue(ConfigurationKeys.AutoMinimize, false))
                 {
                     WindowState = WindowState.Minimized;

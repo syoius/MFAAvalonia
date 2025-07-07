@@ -364,4 +364,21 @@ public static class LangKeys
 	public static readonly string Optional = "Optional";
 	public static readonly string ExternalNotificationEnableCustomNotificationMessage = "ExternalNotificationEnableCustomNotificationMessage";
 	public static readonly string ExternalNotificationCustomNotificationContent = "ExternalNotificationCustomNotificationContent";
+	public static readonly string ExternalNotificationTest = "ExternalNotificationTest";
+	public static readonly string GlobalHotkeyServiceError = "GlobalHotkeyServiceError";
+	public static readonly string UpcomingChanges = "UpcomingChanges";
+	public static readonly string TaskFailed = "TaskFailed";
+	public static readonly string ExternalNotificationCustomNotificationContentFailure = "ExternalNotificationCustomNotificationContentFailure";
+	public static readonly string ExternalNotificationCustomNotificationContentSuccess = "ExternalNotificationCustomNotificationContentSuccess";
+	public static readonly string BetaVersion = "BetaVersion";
+	public static readonly string StableVersion = "StableVersion";
+	public static readonly string ResourceUpdateChannel = "ResourceUpdateChannel";
+	public static readonly string UpdateLog = "UpdateLog";
+	public static readonly string ProxySettings = "ProxySettings";
+	public static readonly string UiVersionBelowResourceRequirement = "UiVersionBelowResourceRequirement";
+	public static readonly string AboutToken = "AboutToken";
+	public static readonly string Extracting = "Extracting";
+	public static readonly string AlphaVersion = "AlphaVersion";
+	public static readonly string UIUpdateChannel = "UIUpdateChannel";
+	public static readonly string ExportLog = "ExportLog";
 }

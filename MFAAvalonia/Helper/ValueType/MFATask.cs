@@ -1,7 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using MaaFramework.Binding;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Views.Windows;
 using MFAAvalonia.Helper;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -17,14 +19,22 @@ public partial class MFATask : ObservableObject
         MAAFW
     }
 
+    public enum MFATaskStatus
+    {
+        NOT_STARTED,
+        STOPPED,
+        SUCCEEDED,
+        FAILED,
+    }
+
     [ObservableProperty] private string? _name = string.Empty;
     [ObservableProperty] private MFATaskType _type = MFATaskType.MFA;
     [ObservableProperty] private int _count = 1;
     [ObservableProperty] private Func<Task> _action;
     [ObservableProperty] private Dictionary<string, MaaNode> _tasks = new();
+    [ObservableProperty] private bool _isUpdateRelated;
 
-
-    public async Task<bool> Run(CancellationToken token)
+    public async Task<MFATaskStatus> Run(CancellationToken token)
     {
         try
         {
@@ -32,19 +42,24 @@ public partial class MFATask : ObservableObject
             {
                 token.ThrowIfCancellationRequested();
                 if (Type == MFATaskType.MAAFW)
-                    RootView.AddLogByKey("TaskStart", null,true, Name ?? string.Empty);
+                    RootView.AddLogByKey("TaskStart", null, true, Name ?? string.Empty);
                 await Action();
             }
-            return true;
+            return MFATaskStatus.SUCCEEDED;
+        }
+        catch (MaaJobStatusException)
+        {
+            LoggerHelper.Error($"Task {Name} failed to run");
+            return MFATaskStatus.FAILED;
         }
         catch (OperationCanceledException)
         {
-            return false;
+            return MFATaskStatus.STOPPED;
         }
         catch (Exception ex)
         {
             LoggerHelper.Error(ex);
-            return false;
+            return MFATaskStatus.FAILED;
         }
     }
 }

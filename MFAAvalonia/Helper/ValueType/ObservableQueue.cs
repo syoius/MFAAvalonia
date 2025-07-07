@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MFAAvalonia.Helper.ValueType;
 
@@ -39,7 +40,16 @@ public partial class ObservableQueue<T> : ObservableObject
         _queue.Clear();
         Count = _queue.Count;
     }
-
+    public bool Any()
+    {
+        return _queue.Any();
+    }
+    
+    public bool Any(Func<T, bool> predicate)
+    {
+        return _queue.Any(predicate);
+    }
+    
     public class CountChangedEventArgs(int oldValue, int newValue) : EventArgs
     {
         public int OldValue => oldValue;

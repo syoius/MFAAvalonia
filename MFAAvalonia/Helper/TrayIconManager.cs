@@ -141,7 +141,9 @@ public class TrayIconManager
 
     private static void App_exit(object sender, EventArgs e)
     {
-        Instances.RootView.ConfirmExit();
+       if (Instances.RootView.ConfirmExit().Result != true)
+            return;
+         Instances.ApplicationLifetime.Shutdown();
     }
 
     private static void App_hide(object sender, EventArgs e) =>

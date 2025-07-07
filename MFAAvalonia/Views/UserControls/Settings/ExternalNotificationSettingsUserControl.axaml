@@ -59,8 +59,14 @@
                 <DockPanel IsVisible="{Binding EnabledCustom}">
                     <TextBox
                         DockPanel.Dock="Right" MaxHeight="40"
-                        Text="{Binding CustomText, UpdateSourceTrigger=PropertyChanged}"
-                        Watermark="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationCustomNotificationContent}}"
+                        Text="{Binding CustomFailureText, UpdateSourceTrigger=PropertyChanged}"
+                        Watermark="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationCustomNotificationContentFailure}}"
+                        Width="215">
+                    </TextBox>
+                    <TextBox
+                        DockPanel.Dock="Right" MaxHeight="40"
+                        Text="{Binding CustomSuccessText, UpdateSourceTrigger=PropertyChanged}"
+                        Watermark="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationCustomNotificationContentSuccess}}"
                         Width="215">
                     </TextBox>
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">

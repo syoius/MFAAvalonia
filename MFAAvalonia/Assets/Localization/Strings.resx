@@ -58,7 +58,7 @@
         <value>添加任务</value>
     </data>
     <data name="AdvancedSetting" xml:space="preserve">
-        <value>高级设置</value>
+        <value>高级</value>
     </data>
     <data name="AfterTaskOption" xml:space="preserve">
         <value>结束后操作</value>
@@ -178,7 +178,7 @@
         <value>颜色主题</value>
     </data>
     <data name="CommonSetting" xml:space="preserve">
-        <value> 常规设置 </value>
+        <value>常规</value>
     </data>
     <data name="ConfigAddedSuccessfully" xml:space="preserve">
         <value>配置 &lt;{0}&gt; 添加成功！</value>
@@ -1085,5 +1085,59 @@
     </data>
     <data name="QQChannel" xml:space="preserve">
         <value>交流反馈: QQ频道搜索Maa鸢</value>
+    </data>
+    <data name="UpcomingChanges" xml:space="preserve">
+        <value>即将更新</value>
+    </data>
+    <data name="TaskFailed" xml:space="preserve">
+        <value>任务运行失败！</value>
+    </data>
+    <data name="ExternalNotificationCustomNotificationContentFailure" xml:space="preserve">
+        <value>自定义失败通知内容</value>
+    </data>
+    <data name="ExternalNotificationCustomNotificationContentSuccess" xml:space="preserve">
+        <value>自定义成功通知内容</value>
+    </data>
+    <data name="BetaVersion" xml:space="preserve">
+        <value>公测版</value>
+    </data>
+    <data name="StableVersion" xml:space="preserve">
+        <value>正式版</value>
+    </data>
+    <data name="ResourceUpdateChannel" xml:space="preserve">
+        <value>资源更新渠道</value>
+    </data>
+    <data name="UpdateLog" xml:space="preserve">
+        <value>更新日志</value>
+    </data>
+    <data name="ProxySettings" xml:space="preserve">
+        <value>代理设置</value>
+    </data>
+    <data name="UiVersionBelowResourceRequirement" xml:space="preserve">
+        <value>当前界面版本 {0} 低于资源要求的最低版本 {1} ，部分功能将无法正常使用，建议更新软件。</value>
+    </data>
+    <data name="AboutToken" xml:space="preserve">
+        <value>关于Token</value>
+    </data>
+    <data name="Extracting" xml:space="preserve">
+        <value>正在解压</value>
+    </data>
+    <data name="AlphaVersion" xml:space="preserve">
+        <value>内测版</value>
+    </data>
+    <data name="UIUpdateChannel" xml:space="preserve">
+        <value>UI 更新渠道</value>
+    </data>
+    <data name="ExportLog" xml:space="preserve">
+        <value>导出日志</value>
+    </data>
+    <data name="Warning" xml:space="preserve">
+        <value>警告</value>
+    </data>
+    <data name="StopTaskBeforeExportLog" xml:space="preserve">
+        <value>导出日志前请停止任务</value>
+    </data>
+    <data name="MirrorCdkEmpty" xml:space="preserve">
+        <value>CDK为空，请到设置中的更新设置中填写CDK或切换更新源至GitHub</value>
     </data>
 </root>

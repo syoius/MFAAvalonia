@@ -26,7 +26,7 @@ public partial class TimerSettingsUserControlModel : ViewModelBase
     {
         GlobalConfiguration.SetValue(ConfigurationKeys.ForceScheduledStart, value.ToString());
     }
-    
+
     public IAvaloniaReadOnlyList<MFAConfiguration> ConfigurationList { get; set; } = ConfigurationManager.Configs;
 
     public partial class TimerModel

@@ -22,7 +22,7 @@
             <Setter Property="Template">
                 <ControlTemplate>
                     <Grid HorizontalAlignment="Left">
-                        <Border Width="250"
+                        <Border Width="220"
                                 Height="45"
                                 Margin="20,2,5,0"
                                 Padding="20,4,12,4"
@@ -122,7 +122,7 @@
                              <StackPanel  Name="StackSummary"  VerticalAlignment="Top"/>
                         </ScrollViewer>
                        
-                        <ScrollViewer Name="MyScroll" Classes="Stack">
+                        <ScrollViewer Name="MyScroll" Classes="Stack" >
                             <StackPanel Name="StackItems"
                                         Margin="20,0"
                                         theme:StackPanelExtensions.AnimatedScroll="True" />

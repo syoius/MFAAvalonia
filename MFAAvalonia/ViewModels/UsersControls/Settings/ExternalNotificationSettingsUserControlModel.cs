@@ -75,7 +75,8 @@ public partial class ExternalNotificationSettingsUserControlModel : ViewModelBas
 
     [ObservableProperty] private bool _enabledCustom;
 
-    [ObservableProperty] private string _customText = "TaskAllCompleted".ToLocalization();
+    [ObservableProperty] private string _customSuccessText = "TaskAllCompleted".ToLocalization();
+    [ObservableProperty] private string _customFailureText = "TaskFailed".ToLocalization();
 
     #endregion
 

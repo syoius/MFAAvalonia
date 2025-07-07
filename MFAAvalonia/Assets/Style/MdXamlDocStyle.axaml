@@ -1,0 +1,16 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia">
+    <Style>
+        <Style Selector=".Markdown_Avalonia_MarkdownViewer TextBlock.CodeBlock">
+            <Style.Setters>
+                <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+            </Style.Setters>
+        </Style>
+        <Style Selector=".Markdown_Avalonia_MarkdownViewer ctxt|CCode">
+            <Style.Setters>
+                <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+            </Style.Setters>
+        </Style>
+    </Style>
+</Styles>

@@ -1,8 +1,10 @@
 ﻿using Avalonia.Controls;
+using Avalonia.Controls.Notifications;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper.Converters;
+using MFAAvalonia.ViewModels.UsersControls.Settings;
 using MFAAvalonia.ViewModels.Windows;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -20,10 +22,13 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Security;
+using System.Net.Sockets;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Security.Authentication;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -34,6 +39,13 @@ namespace MFAAvalonia.Helper;
 #pragma warning  disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法。
 public static class VersionChecker
 {
+    public enum VersionType
+    {
+        Alpha,
+        Beta,
+        Stable
+    }
+
     private static readonly ConcurrentQueue<ValueType.MFATask> Queue = new();
     public static void Check()
     {
@@ -65,6 +77,7 @@ public static class VersionChecker
         TaskManager.RunTaskAsync(async () => await ExecuteTasksAsync(),
             () => ToastNotification.Show("自动更新时发生错误！"), "启动检测");
     }
+
     public static void CheckMFAVersionAsync() => TaskManager.RunTaskAsync(() => CheckForMFAUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
     public static void CheckResourceVersionAsync() => TaskManager.RunTaskAsync(() => CheckForResourceUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
     public static void UpdateResourceAsync() => TaskManager.RunTaskAsync(() => UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
@@ -105,9 +118,19 @@ public static class VersionChecker
     {
         Queue.Enqueue(new ValueType.MFATask
         {
+
             Action = async () => UpdateMFA(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0),
             Name = "更新软件"
         });
+    }
+
+    public static void CheckMinVersion()
+    {
+        if (IsNewVersionAvailable(GetMinVersion(), GetLocalVersion()))
+        {
+            Instances.DialogManager.CreateDialog().OfType(NotificationType.Warning).WithContent("UiVersionBelowResourceRequirement".ToLocalizationFormatted(false, GetLocalVersion(), GetMinVersion()))
+                .WithActionButton("Ok".ToLocalization(), dialog => { }, true).TryShow();
+        }
     }
 
     public static void CheckForResourceUpdates(bool isGithub = true)
@@ -137,9 +160,9 @@ public static class VersionChecker
 
             string latestVersion = string.Empty;
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, strings[0], strings[1]);
+                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, strings[0], strings[1], true, currentVersion: resourceVersion);
             else
-                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, onlyCheck: true);
+                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, onlyCheck: true, currentVersion: resourceVersion);
 
             if (string.IsNullOrWhiteSpace(latestVersion))
             {
@@ -156,9 +179,11 @@ public static class VersionChecker
                         .WithActionButton("Later".ToLocalization(), _ => { }, true, SukiButtonStyles.Basic)
                         .WithActionButton("Update".ToLocalization(), _ => UpdateResourceAsync(), true).Queue();
                 });
+                DispatcherHelper.RunOnMainThread(ChangelogViewModel.CheckReleaseNote);
             }
             else
             {
+                DispatcherHelper.RunOnMainThread(ChangelogViewModel.CheckChangelog);
                 ToastHelper.Info("ResourcesAreLatestVersion".ToLocalization());
             }
             Instances.RootViewModel.SetUpdating(false);
@@ -186,6 +211,8 @@ public static class VersionChecker
             else
                 GetDownloadUrlFromMirror(localVersion, "YuanMFA", CDK(), out _, out latestVersion, isUI: true, onlyCheck: true);
 
+            if (IsNewVersionAvailable(latestVersion, GetMaxVersion()))
+                latestVersion = GetMaxVersion();
             if (IsNewVersionAvailable(latestVersion, localVersion))
             {
                 DispatcherHelper.RunOnMainThread(() =>
@@ -228,7 +255,7 @@ public static class VersionChecker
                 ShowProgressText = true
             };
             StackPanel stackPanel = new();
-            var textBlock = new TextBlock()
+            textBlock = new TextBlock
             {
                 Text = "GettingLatestResources".ToLocalization(),
             };
@@ -268,9 +295,9 @@ public static class VersionChecker
         try
         {
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, strings[0], strings[1]);
+                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, strings[0], strings[1], currentVersion: localVersion);
             else
-                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion);
+                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion, currentVersion: localVersion);
 
         }
         catch (Exception ex)
@@ -317,18 +344,26 @@ public static class VersionChecker
 
         var tempPath = Path.Combine(AppContext.BaseDirectory, "temp_res");
         Directory.CreateDirectory(tempPath);
+        string fileExtension = GetFileExtensionFromUrl(downloadUrl);
+        if (string.IsNullOrEmpty(fileExtension))
+        {
+            fileExtension = ".zip";
+        }
+        var tempZipFilePath = Path.Combine(tempPath, $"resource_{latestVersion}{fileExtension}");
 
-        var tempZipFilePath = Path.Combine(tempPath, $"resource_{latestVersion}.zip");
         SetText(textBlock, "Downloading".ToLocalization());
         SetProgress(progress, 0);
-        if (!await DownloadFileAsync(downloadUrl, tempZipFilePath, progress, "GameResourceUpdated"))
+        (var downloadStatus, tempZipFilePath) = await DownloadFileAsync(downloadUrl, tempZipFilePath, progress);
+        LoggerHelper.Info(tempZipFilePath);
+        if (!downloadStatus)
         {
             Dismiss(sukiToast);
             ToastHelper.Warn("DownloadFailed".ToLocalization());
+            Instances.RootViewModel.SetUpdating(false);
             return;
         }
 
-        SetText(textBlock, "ApplyingUpdate".ToLocalization());
+        SetText(textBlock, "Extracting".ToLocalization());
         SetProgress(progress, 0);
 
         var tempExtractDir = Path.Combine(tempPath, $"resource_{latestVersion}_extracted");
@@ -337,17 +372,19 @@ public static class VersionChecker
         {
             Dismiss(sukiToast);
             ToastHelper.Warn("DownloadFailed".ToLocalization());
+            Instances.RootViewModel.SetUpdating(false);
             return;
         }
 
-        ZipFile.ExtractToDirectory(tempZipFilePath, tempExtractDir);
-        SetProgress(progress, 50);
+        await UniversalExtractor.ExtractAsync(tempZipFilePath, tempExtractDir, progress);
+        SetText(textBlock, "ApplyingUpdate".ToLocalization());
         var originPath = tempExtractDir;
         var interfacePath = Path.Combine(tempExtractDir, "interface.json");
         var resourceDirPath = Path.Combine(tempExtractDir, "resource");
 
         var wpfDir = AppContext.BaseDirectory;
         var resourcePath = Path.Combine(wpfDir, "resource");
+
         if (!File.Exists(interfacePath))
         {
             originPath = Path.Combine(tempExtractDir, "assets");
@@ -362,17 +399,18 @@ public static class VersionChecker
                 foreach (var rfile in Directory.EnumerateFiles(resourcePath, "*", SearchOption.AllDirectories))
                 {
                     var fileName = Path.GetFileName(rfile);
-                    if (fileName.Equals(AnnouncementViewModel.AnnouncementFileName, StringComparison.OrdinalIgnoreCase))
+                    if (fileName.Equals(ChangelogViewModel.ChangelogFileName, StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     try
                     {
                         File.SetAttributes(rfile, FileAttributes.Normal);
+                        LoggerHelper.Info("Deleting file: " + rfile);
                         File.Delete(rfile);
                     }
                     catch (Exception ex)
                     {
-                        LoggerHelper.Warning($"文件删除失败: {rfile} - {ex.Message}");
+                        LoggerHelper.Error($"文件删除失败: {rfile}", ex);
                     }
                 }
             }
@@ -394,7 +432,45 @@ public static class VersionChecker
 
                         foreach (var delPath in delPaths)
                         {
-                            File.Delete(delPath);
+                            try
+                            {
+                                if (!Path.GetFileName(delPath).Contains("MFAUpdater")
+                                    && !Path.GetFileName(delPath).Contains("MFAAvalonia")
+                                    && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
+                                {
+                                    LoggerHelper.Info("Deleting file: " + delPath);
+                                    File.Delete(delPath);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                LoggerHelper.Error("Failed to delete the file: " + e);
+                            }
+                        }
+                    }
+                    if (changesJson?.Modified != null)
+                    {
+                        var delPaths = changesJson.Modified
+                            .Select(del => Path.Combine(AppContext.BaseDirectory, del))
+                            .Where(File.Exists);
+
+                        foreach (var delPath in delPaths)
+                        {
+                            try
+                            {
+                                if (!Path.GetFileName(delPath).Contains("MFAUpdater")
+                                    && !Path.GetFileName(delPath).Contains("MFAAvalonia")
+                                    && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
+                                {
+                                    LoggerHelper.Info("Deleting file: " + delPath);
+                                    File.Delete(delPath);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                LoggerHelper.Error("Failed to delete the file: " + e);
+                            }
+
                         }
                     }
                 }
@@ -414,10 +490,10 @@ public static class VersionChecker
 
         SetProgress(progress, 60);
 
-        var di = new DirectoryInfo(resourceDirPath);
+        var di = new DirectoryInfo(originPath);
         if (di.Exists)
         {
-            DirectoryMerge(originPath, wpfDir);
+            DirectoryMerge(originPath, wpfDir, false, true);
         }
 
         SetProgress(progress, 70);
@@ -560,7 +636,6 @@ rm $0
                     {
                         Process.Start(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
                         Instances.ShutdownApplication();
-                        Instances.ApplicationLifetime.Shutdown();
                     }, dismissOnClick: true, "Flat", "Accent")
                     .WithActionButton("No".ToLocalization(), _ =>
                     {
@@ -611,6 +686,7 @@ rm $0
             string downloadUrl, latestVersion;
             try
             {
+
                 if (isGithub)
                     GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion);
                 else
@@ -621,15 +697,24 @@ rm $0
                 Dismiss(sukiToast);
                 ToastHelper.Warn($"{"FailToGetLatestVersionInfo".ToLocalization()}", ex.Message);
                 LoggerHelper.Error(ex);
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
             // 版本验证
             SetProgress(progress, 50);
-            if (string.IsNullOrWhiteSpace(latestVersion) || !IsNewVersionAvailable(latestVersion, GetLocalVersion()))
+            if (IsNewVersionAvailable(latestVersion, GetMaxVersion()))
+            {
+                latestVersion = GetMaxVersion();
+                if (isGithub)
+                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out _, targetVersion: latestVersion);
+            }
+
+            if (!IsNewVersionAvailable(latestVersion, GetLocalVersion()))
             {
                 Dismiss(sukiToast);
                 ToastHelper.Info("MFAIsLatestVersion".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -641,10 +726,12 @@ rm $0
             SetText(textBlock, "Downloading".ToLocalization());
             SetProgress(progress, 0);
             var tempZip = Path.Combine(tempPath, $"mfa_{latestVersion}.zip");
-            if (!await DownloadWithRetry(downloadUrl, tempZip, progress, 3))
+            (var downloadStatus, tempZip) = await DownloadWithRetry(downloadUrl, tempZip, progress, 3);
+            if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("DownloadFailed");
+                ToastHelper.Warn("DownloadFailed".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -653,7 +740,8 @@ rm $0
             var extractDir = Path.Combine(tempPath, $"mfa_{latestVersion}_extracted");
             if (Directory.Exists(extractDir))
                 Directory.Delete(extractDir, true);
-            ZipFile.ExtractToDirectory(tempZip, extractDir);
+            SetText(textBlock, "Extracting".ToLocalization());
+            await UniversalExtractor.ExtractAsync(tempZip, extractDir, progress);
 
             SetText(textBlock, "ApplyingUpdate".ToLocalization());
             // 执行安全更新
@@ -670,12 +758,12 @@ rm $0
             // 构建完整路径
             string sourceUpdaterPath = Path.Combine(sourceDirectory, updaterName); // 源目录路径
             string targetUpdaterPath = Path.Combine(utf8BaseDirectory, updaterName); // 目标目录路径
-            bool update = false;
+            bool update = true;
             try
             {
                 if (File.Exists(targetUpdaterPath) && File.Exists(sourceUpdaterPath))
                 {
-                    update = true;
+
                     var targetVersionInfo = FileVersionInfo.GetVersionInfo(targetUpdaterPath);
                     var sourceVersionInfo = FileVersionInfo.GetVersionInfo(sourceUpdaterPath);
                     var targetVersion = targetVersionInfo.FileVersion; // 或 ProductVersion
@@ -701,15 +789,18 @@ rm $0
                 if (!File.Exists(sourceUpdaterPath))
                 {
                     LoggerHelper.Error($"更新器在源目录缺失: {sourceUpdaterPath}");
+                    update = false;
                 }
             }
             catch (IOException ex)
             {
+                update = false;
                 LoggerHelper.Error($"文件操作失败: {ex.Message} (错误代码: {ex.HResult})");
                 throw new InvalidOperationException("文件复制过程中发生I/O错误", ex);
             }
             catch (UnauthorizedAccessException ex)
             {
+                update = false;
                 LoggerHelper.Error($"权限不足: {ex.Message}");
                 throw new SecurityException("文件访问权限被拒绝", ex);
             }
@@ -730,18 +821,15 @@ rm $0
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e);
+                        LoggerHelper.Error(e);
                     }
                 }
                 LoggerHelper.Info($"成功复制更新器到目标目录: {targetUpdaterPath}");
             }
             SetProgress(progress, 100);
-            
-            string executableName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
-                ? "MaaYuan.exe" 
-                : "MaaYuan";
 
-            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, executableName, executableName);
+            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, $"{Assembly.GetEntryAssembly().GetName().Name}{(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "")}",
+                Process.GetCurrentProcess().MainModule.ModuleName);
 
             Thread.Sleep(500);
         }
@@ -754,13 +842,13 @@ rm $0
 
     #region 增强型更新核心方法
 
-    async private static Task<bool> DownloadWithRetry(string url, string savePath, ProgressBar progress, int retries)
+    async private static Task<(bool, string)> DownloadWithRetry(string url, string savePath, ProgressBar? progress, int retries)
     {
         for (int i = 0; i < retries; i++)
         {
             try
             {
-                return await DownloadFileAsync(url, savePath, progress, "GameResourceUpdated");
+                return await DownloadFileAsync(url, savePath, progress);
             }
             catch (WebException ex) when (i < retries - 1)
             {
@@ -768,7 +856,7 @@ rm $0
                 await Task.Delay(2000 * (i + 1));
             }
         }
-        return false;
+        return (false, savePath);
     }
     private static string BuildArguments(string source, string target, string oldName, string newName)
     {
@@ -780,10 +868,10 @@ rm $0
 
         if (!string.IsNullOrWhiteSpace(oldName))
             args.Add(EscapeArgument(oldName));
-        
+
         if (!string.IsNullOrWhiteSpace(newName))
             args.Add(EscapeArgument(newName));
-        
+
         return string.Join(" ", args);
     }
 
@@ -935,6 +1023,7 @@ rm $0
                 Dismiss(sukiToast);
                 ToastHelper.Warn($"{"FailToGetLatestVersionInfo".ToLocalization()}", ex.Message);
                 LoggerHelper.Error(ex);
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
             // 版本校验（保持原有逻辑）
@@ -943,6 +1032,7 @@ rm $0
             {
                 Dismiss(sukiToast);
                 ToastHelper.Info("MaaFwIsLatestVersion".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -951,10 +1041,12 @@ rm $0
             Directory.CreateDirectory(tempPath);
             var tempZip = Path.Combine(tempPath, $"maafw_{latestVersion}.zip");
             SetText(textBlock, "Downloading".ToLocalization());
-            if (!await DownloadWithRetry(downloadUrl, tempZip, progress, 3))
+            (var downloadStatus, tempZip) = await DownloadWithRetry(downloadUrl, tempZip, progress, 3);
+            if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("DownloadFailed");
+                ToastHelper.Warn("DownloadFailed".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
                 return;
             }
 
@@ -1003,8 +1095,17 @@ rm $0
     }
 
 
-    public static void GetLatestVersionAndDownloadUrlFromGithub(out string url, out string latestVersion, string owner = "syoius", string repo = "MFAAvalonia")
+    public static void GetLatestVersionAndDownloadUrlFromGithub(out string url,
+        out string latestVersion,
+        string owner = "syoius",
+        string repo = "MFAAvalonia",
+        bool onlyCheck = false,
+        string targetVersion = "",
+        string currentVersion = "v0.0.0")
     {
+        var versionType = repo.Equals("MFAAvalonia", StringComparison.OrdinalIgnoreCase)
+            ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType()
+            : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
         url = string.Empty;
         latestVersion = string.Empty;
 
@@ -1014,7 +1115,7 @@ rm $0
         var releaseUrl = $"https://api.github.com/repos/{owner}/{repo}/releases";
         int page = 1;
         const int perPage = 5;
-        using var httpClient = new HttpClient();
+        using var httpClient = CreateHttpClientWithProxy();
 
         if (!string.IsNullOrWhiteSpace(Instances.VersionUpdateSettingsUserControlModel.GitHubToken))
         {
@@ -1044,13 +1145,39 @@ rm $0
                     }
                     foreach (var tag in tags)
                     {
-                        if ((bool)tag["prerelease"])
+                        if ((bool)tag["prerelease"] && versionType == VersionType.Stable)
                         {
                             continue;
                         }
-                        latestVersion = tag["tag_name"]?.ToString();
-                        if (!string.IsNullOrEmpty(latestVersion))
+                        var isAlpha = latestVersion.Contains("alpha", StringComparison.OrdinalIgnoreCase);
+                        var isBeta = latestVersion.Contains("beta", StringComparison.OrdinalIgnoreCase);
+
+                        if (isAlpha && versionType != VersionType.Alpha || isBeta && versionType != VersionType.Beta && versionType != VersionType.Alpha)
                         {
+                            continue;
+                        }
+                        latestVersion = tag["tag_name"]?.ToString() ?? string.Empty;
+                        if (!string.IsNullOrEmpty(targetVersion) && latestVersion.Trim().Equals(targetVersion.Trim(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (IsNewVersionAvailable(latestVersion, currentVersion))
+                            {
+                                if (onlyCheck && repo != "MFAAvalonia")
+                                    SaveRelease(tag, "body");
+                                if (!onlyCheck && repo != "MFAAvalonia")
+                                    SaveChangelog(tag, "body");
+                            }
+                            url = GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo);
+                            return;
+                        }
+                        if (string.IsNullOrEmpty(targetVersion) && !string.IsNullOrEmpty(latestVersion))
+                        {
+                            if (IsNewVersionAvailable(latestVersion, currentVersion))
+                            {
+                                if (onlyCheck && repo != "MFAAvalonia")
+                                    SaveRelease(tag, "body");
+                                if (!onlyCheck && repo != "MFAAvalonia")
+                                    SaveChangelog(tag, "body");
+                            }
                             url = GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo);
                             return;
                         }
@@ -1083,7 +1210,7 @@ rm $0
         var cpuArch = GetNormalizedArchitecture();
 
         var releaseUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/tags/{version}";
-        using var httpClient = new HttpClient();
+        using var httpClient = CreateHttpClientWithProxy();
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("MFAComponentUpdater/1.0");
         httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
 
@@ -1198,16 +1325,18 @@ rm $0
         out string latestVersion,
         string userAgent = "YuanMFA",
         bool isUI = false,
-        bool onlyCheck = false)
+        bool onlyCheck = false,
+        string currentVersion = "v0.0.0"
+    )
     {
-
+        var versionType = isUI ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType() : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
         if (string.IsNullOrWhiteSpace(resId))
         {
             throw new Exception("CurrentResourcesNotSupportMirror".ToLocalization());
         }
         if (string.IsNullOrWhiteSpace(cdk) && !onlyCheck)
         {
-            throw new Exception("MirrorCdkInvalid".ToLocalization());
+            throw new Exception("MirrorCdkEmpty".ToLocalization());
         }
         var cdkD = onlyCheck ? string.Empty : $"cdk={cdk}&";
         var multiplatform = MaaProcessor.Interface?.Multiplatform == true;
@@ -1221,12 +1350,12 @@ rm $0
             Architecture.Arm64 => "arm64",
             _ => "unknown"
         };
-
+        var channel = versionType.GetName();
         var multiplatformString = multiplatform ? $"os={os}&arch={arch}&" : "";
         var releaseUrl = isUI
-            ? $"https://mirrorchyan.com/api/resources/{resId}/latest?current_version={version}&{cdkD}os={os}&arch={arch}"
-            : $"https://mirrorchyan.com/api/resources/{resId}/latest?current_version={version}&{cdkD}{multiplatformString}user_agent={userAgent}";
-        using var httpClient = new HttpClient();
+            ? $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}os={os}&arch={arch}"
+            : $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}{multiplatformString}user_agent={userAgent}";
+        using var httpClient = CreateHttpClientWithProxy();
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("request");
         httpClient.DefaultRequestHeaders.Accept.TryParseAdd("application/json");
 
@@ -1252,13 +1381,22 @@ rm $0
 
             // 成功处理
             var data = responseData["data"]!;
-            if (!onlyCheck && !isUI && data != null)
-            {
-                SaveAnnouncement(data, "release_note");
-            }
+
 
             url = data["url"]?.ToString() ?? string.Empty;
             latestVersion = data["version_name"]?.ToString() ?? string.Empty;
+
+            if (IsNewVersionAvailable(latestVersion, currentVersion))
+            {
+                if (onlyCheck && !isUI && data != null)
+                {
+                    SaveRelease(data, "release_note");
+                }
+                if (!onlyCheck && !isUI && data != null)
+                {
+                    SaveChangelog(data, "release_note");
+                }
+            }
             if (exception != null)
                 throw exception;
         }
@@ -1352,8 +1490,19 @@ rm $0
         return MaaProcessor.Interface?.RID ?? string.Empty;
     }
 
+    private static string GetMaxVersion()
+    {
+        return MaaProcessor.Interface?.MFAMaxVersion ?? string.Empty;
+    }
+    private static string GetMinVersion()
+    {
+        return MaaProcessor.Interface?.MFAMinVersion ?? string.Empty;
+    }
+
     private static bool IsNewVersionAvailable(string latestVersion, string localVersion)
     {
+        if (string.IsNullOrEmpty(latestVersion) || string.IsNullOrEmpty(localVersion))
+            return false;
         try
         {
             var normalizedLatest = ParseAndNormalizeVersion(latestVersion);
@@ -1388,13 +1537,30 @@ rm $0
         return new SemVersion(new BigInteger(major), new BigInteger(minor), new BigInteger(patch), prerelease, build);
     }
 
-    async private static Task<bool> DownloadFileAsync(string url, string filePath, ProgressBar? progressBar, string key)
+    async private static Task<(bool, string)> DownloadFileAsync(string url, string filePath, ProgressBar? progressBar)
     {
         try
         {
-            using var httpClient = new HttpClient();
+            using var httpClient = CreateHttpClientWithProxy();
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("request");
             httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+
+            using var headResponse = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
+            headResponse.EnsureSuccessStatusCode();
+
+            string? suggestedFileName = null;
+            if (headResponse.Content.Headers.ContentDisposition != null)
+            {
+                suggestedFileName = ParseFileNameFromContentDisposition(
+                    headResponse.Content.Headers.ContentDisposition.ToString());
+            }
+
+            if (!string.IsNullOrEmpty(suggestedFileName))
+            {
+                string dir = Path.GetDirectoryName(filePath)!;
+                string newFileName = Path.GetFileNameWithoutExtension(filePath) + Path.GetExtension(suggestedFileName);
+                filePath = Path.Combine(dir, newFileName);
+            }
 
             using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
@@ -1472,22 +1638,22 @@ rm $0
                     (DateTime.Now - startTime).TotalSeconds
                 ));
 
-            return true;
+            return (true, filePath);
         }
         catch (HttpRequestException httpEx)
         {
             LoggerHelper.Error($"HTTP请求失败: {httpEx.Message}");
-            return false;
+            return (false, filePath);
         }
         catch (IOException ioEx)
         {
             LoggerHelper.Error($"文件操作失败: {ioEx.Message}");
-            return false;
+            return (false, filePath);
         }
         catch (Exception ex)
         {
             LoggerHelper.Error($"未知错误: {ex.Message}");
-            return false;
+            return (false, filePath);
         }
     }
 
@@ -1565,10 +1731,10 @@ rm $0
         }
     }
 // 修改 DirectoryMerge 方法中的文件复制逻辑
-    private static void DirectoryMerge(string sourceDirName, string destDirName)
+    private static void DirectoryMerge(string sourceDirName, string destDirName, bool overwriteMFA = true, bool saveAnnouncement = false)
     {
-        DirectoryInfo dir = new DirectoryInfo(sourceDirName);
-        DirectoryInfo[] dirs = dir.GetDirectories();
+        var dir = new DirectoryInfo(sourceDirName);
+        var dirs = dir.GetDirectories();
 
         if (!dir.Exists)
         {
@@ -1579,24 +1745,39 @@ rm $0
         {
             Directory.CreateDirectory(destDirName);
         }
-        foreach (FileInfo file in dir.GetFiles())
+
+        foreach (var file in dir.GetFiles())
         {
-            string tempPath = Path.Combine(destDirName, file.Name);
+            var tempPath = Path.Combine(destDirName, file.Name);
             try
             {
-                file.CopyTo(tempPath, true);
+                if (overwriteMFA
+                    || !Path.GetFileName(tempPath).Contains("MFAUpdater") && !Path.GetFileName(tempPath).Contains("MFAAvalonia") && !Path.GetFileName(tempPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
+                {
+                    if (saveAnnouncement && tempPath.Contains(AnnouncementViewModel.AnnouncementFolder))
+                    {
+                        GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                    }
+                    LoggerHelper.Info("Copying file: " + tempPath);
+                    file.CopyTo(tempPath, true);
+                }
             }
-            catch (IOException)
+            catch (IOException exception)
             {
+                LoggerHelper.Error(exception);
+            }
+            catch (Exception exception)
+            {
+                LoggerHelper.Error(exception);
             }
         }
-        foreach (DirectoryInfo subDir in dirs)
+        foreach (var subDir in dirs)
         {
             string tempPath = Path.Combine(destDirName, subDir.Name);
             DirectoryMerge(subDir.FullName, tempPath);
         }
     }
-    private static void SaveAnnouncement(JToken? releaseData, string from)
+    private static void SaveRelease(JToken? releaseData, string from)
     {
         try
         {
@@ -1605,15 +1786,214 @@ rm $0
             {
                 var resourceDirectory = Path.Combine(AppContext.BaseDirectory, "resource");
                 Directory.CreateDirectory(resourceDirectory);
-                var filePath = Path.Combine(resourceDirectory, AnnouncementViewModel.AnnouncementFileName);
+                var filePath = Path.Combine(resourceDirectory, ChangelogViewModel.ReleaseFileName);
                 File.WriteAllText(filePath, bodyContent);
-                LoggerHelper.Info($"{AnnouncementViewModel.AnnouncementFileName} saved successfully.");
-                GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAgain, bool.FalseString);
+                LoggerHelper.Info($"{ChangelogViewModel.ReleaseFileName} saved successfully.");
             }
         }
         catch (Exception ex)
         {
-            LoggerHelper.Error($"Error saving {AnnouncementViewModel.AnnouncementFileName}: {ex.Message}");
+            LoggerHelper.Error($"Error saving {ChangelogViewModel.ReleaseFileName}: {ex.Message}");
         }
+    }
+
+    private static void SaveChangelog(JToken? releaseData, string from)
+    {
+        try
+        {
+            var bodyContent = releaseData?[from]?.ToString();
+            if (!string.IsNullOrWhiteSpace(bodyContent) && bodyContent != "placeholder")
+            {
+                var resourceDirectory = Path.Combine(AppContext.BaseDirectory, "resource");
+                Directory.CreateDirectory(resourceDirectory);
+                var announcementDir = Path.Combine(resourceDirectory, "Announcement");
+                Directory.CreateDirectory(announcementDir);
+                var filePath = Path.Combine(announcementDir, ChangelogViewModel.ChangelogFileName);
+                File.WriteAllText(filePath, bodyContent);
+                LoggerHelper.Info($"{ChangelogViewModel.ChangelogFileName} saved successfully.");
+                GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowChangelogAgain, bool.FalseString);
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"Error saving {ChangelogViewModel.ChangelogFileName}: {ex.Message}");
+        }
+    }
+
+
+    public static HttpClient CreateHttpClientWithProxy()
+    {
+        // 检查是否禁用SSL
+        bool disableSSL = File.Exists(Path.Combine(AppContext.BaseDirectory, "NO_SSL"));
+        LoggerHelper.Info($"SSL验证状态: {(disableSSL ? "已禁用" : "已启用")}");
+
+        // 获取应用内代理设置
+        var appProxyAddress = Instances.VersionUpdateSettingsUserControlModel.ProxyAddress;
+        var appProxyType = Instances.VersionUpdateSettingsUserControlModel.ProxyType;
+        NetworkCredential? credentials = null;
+
+        // 检测系统代理 (新增)
+        WebProxy systemProxy = null;
+        try
+        {
+            // 获取系统默认代理
+            systemProxy = (WebProxy)WebRequest.GetSystemWebProxy();
+            if (systemProxy != null && !string.IsNullOrWhiteSpace(systemProxy.Address?.AbsoluteUri))
+            {
+                LoggerHelper.Info($"检测到系统代理: {systemProxy.Address}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"系统代理检测失败: {ex.Message}");
+        }
+
+        // 优先使用应用内代理，若无则检查系统代理
+        string effectiveProxyAddress = string.IsNullOrWhiteSpace(appProxyAddress)
+            ? (systemProxy?.Address?.AbsoluteUri ?? "")
+            : appProxyAddress;
+
+        // 判断是否需要使用代理
+        var useProxy = !string.IsNullOrWhiteSpace(effectiveProxyAddress);
+
+        var handler = new HttpClientHandler
+        {
+            // 优化SSL验证逻辑，启用时进行基本证书检查
+            ServerCertificateCustomValidationCallback = disableSSL
+                ? (_, _, _, _) => 
+                {
+                    LoggerHelper.Info("SSL验证已禁用");
+                    return true;
+                }
+                : (sender, cert, chain, errors) =>
+                {
+                    // 简单证书验证，可根据需求扩展
+                    bool isValid = errors == SslPolicyErrors.None;
+                    if (!isValid)
+                    {
+                        LoggerHelper.Warning($"SSL证书验证失败: {errors}");
+                        // 这里可以添加特定证书信任逻辑
+                    }
+                    return isValid;
+                },
+            UseCookies = false,
+            // 增加连接超时设置
+            SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls // 明确支持的SSL协议
+        };
+
+        if (useProxy)
+        {
+            try
+            {
+                // 解析代理地址 (支持应用内代理和系统代理)
+                string proxyToUse = appProxyAddress;
+                VersionUpdateSettingsUserControlModel.UpdateProxyType proxyTypeToUse = appProxyType;
+
+                // 如果使用系统代理，设置为HTTP代理
+                if (string.IsNullOrWhiteSpace(appProxyAddress) && systemProxy?.Address != null)
+                {
+                    proxyToUse = systemProxy.Address.AbsoluteUri;
+                    proxyTypeToUse = VersionUpdateSettingsUserControlModel.UpdateProxyType.Http;
+
+                    // 尝试获取系统代理认证信息 (新增)
+                    if (systemProxy.Credentials != null && systemProxy.Credentials is NetworkCredential sysCreds)
+                    {
+                        credentials = sysCreds;
+                        LoggerHelper.Info("使用系统代理认证信息");
+                    }
+                }
+
+                // 解析代理地址和认证信息
+                var userHostParts = proxyToUse.Split('@');
+                string endpointPart;
+
+                if (userHostParts.Length == 2)
+                {
+                    var credentialsPart = userHostParts[0];
+                    endpointPart = userHostParts[1];
+                    var creds = credentialsPart.Split(':');
+                    if (creds.Length == 2)
+                    {
+                        credentials = new NetworkCredential(creds[0], creds[1]);
+                    }
+                    else
+                    {
+                        throw new FormatException("认证信息格式错误，应为 '<username>:<password>'");
+                    }
+                }
+                else
+                {
+                    endpointPart = userHostParts[0];
+                }
+
+                var hostParts = endpointPart.Split(':');
+                if (hostParts.Length != 2)
+                    throw new FormatException("主机部分格式错误，应为 '<host>:<port>'");
+
+                // 配置代理
+                switch (proxyTypeToUse)
+                {
+                    case VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5:
+                        handler.Proxy = new WebProxy($"socks5://{proxyToUse}", false, null, credentials);
+                        break;
+                    default:
+                        handler.Proxy = new WebProxy($"http://{proxyToUse}", false, null, credentials);
+                        break;
+                }
+                handler.UseProxy = true;
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.Error($"代理配置失败: {ex.Message}");
+                handler.UseProxy = false;
+            }
+        }
+
+        return new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(30),
+            DefaultRequestVersion = HttpVersion.Version11
+        };
+    }
+    /// <summary>
+    /// 从URL中提取文件扩展名
+    /// </summary>
+    private static string GetFileExtensionFromUrl(string url)
+    {
+        try
+        {
+            // 解析URL路径部分
+            Uri uri = new Uri(url);
+            string path = Uri.UnescapeDataString(uri.LocalPath);
+
+            // 提取扩展名（自动处理带查询参数的情况）
+            return Path.GetExtension(path);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"解析URL扩展名失败: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// 从Content-Disposition头解析文件名（可选增强）
+    /// </summary>
+    private static string? ParseFileNameFromContentDisposition(string contentDisposition)
+    {
+        // 示例格式: "attachment; filename=resource.tar.gz"
+        const string filenamePrefix = "filename=";
+        int index = contentDisposition.IndexOf(filenamePrefix, StringComparison.OrdinalIgnoreCase);
+        if (index >= 0)
+        {
+            string filename = contentDisposition.Substring(index + filenamePrefix.Length);
+            // 移除引号
+            if (filename.StartsWith("\"") && filename.EndsWith("\""))
+            {
+                filename = filename[1..^1];
+            }
+            return filename;
+        }
+        return null;
     }
 }

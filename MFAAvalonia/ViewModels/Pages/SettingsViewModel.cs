@@ -103,8 +103,7 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     #endregion HotKey
-
-
+    
     #region 资源
 
     [ObservableProperty] private bool _showResourceIssues = false;

@@ -9,6 +9,7 @@
                 Padding="20"
                 Background="{DynamicResource SukiBackground}">
             <StackPanel>
+
                 <ComboBox Width="200"
                           Margin="5">
                     <ComboBoxItem>1</ComboBoxItem>
@@ -130,7 +131,6 @@
     <Style Selector="TextBox.FlatTextBox">
         <Setter Property="Background" Value="{DynamicResource SukiLightBorderBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource SukiLightBorderBrush}" />
-
     </Style>
 
 
@@ -146,6 +146,7 @@
         <Setter Property="MinHeight" Value="24" />
         <Setter Property="Padding" Value="6,8,5,6" />
         <Setter Property="ContextFlyout" Value="{StaticResource DefaultTextBoxContextFlyout}" />
+
         <Setter Property="Template">
 
             <ControlTemplate>
@@ -173,6 +174,7 @@
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="{TemplateBinding CornerRadius}">
+                    
                         <suki:GlassCard.Transitions>
                             <Transitions>
                                 <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
@@ -242,6 +244,7 @@
 
                         </Grid>
                     </DataValidationErrors>
+                
                 </Panel>
 
             </ControlTemplate>
@@ -263,36 +266,39 @@
 
     <Style Selector="TextBox:pointerover /template/ Border#borderbottom">
         <Setter Property="BorderBrush" Value="{DynamicResource SukiBorderBrush}" />
-
     </Style>
 
 
     <Style Selector="TextBox.BottomBar /template/ Border#borderbottom">
         <Setter Property="BorderThickness" Value="0,0,0,1.5" />
-
     </Style>
 
 
     <Style Selector="TextBox:focus /template/ Border#borderbottom">
         <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
-
     </Style>
+
     <Style Selector="TextBox:focus /template/ suki|GlassCard#border">
         <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor}" />
         <Setter Property="BorderThickness" Value="1.2" />
     </Style>
+    
     <Style Selector="TextBox:error /template/ suki|GlassCard#border">
         <Setter Property="BorderBrush" Value="{DynamicResource ErrorBrush}" />
     </Style>
+    
     <Style Selector="TextBox /template/ TextPresenter">
         <Setter Property="Cursor" Value="IBeam" />
     </Style>
+    
     <Style Selector="TextBox /template/ DockPanel">
         <Setter Property="Cursor" Value="IBeam" />
     </Style>
+    
     <Style Selector="TextBox:disabled /template/ suki|GlassCard#border">
         <Setter Property="Opacity" Value="{DynamicResource ThemeDisabledOpacity}" />
     </Style>
+    
     <Style Selector="TextBox:disabled">
         <Setter Property="Foreground" Value="{DynamicResource SukiDisabledText}" />
     </Style>

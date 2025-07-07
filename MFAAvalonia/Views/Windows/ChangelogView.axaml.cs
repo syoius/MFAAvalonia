@@ -2,13 +2,15 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using MFAAvalonia.Helper;
+using MFAAvalonia.ViewModels.Windows;
 using SukiUI.Controls;
 
 namespace MFAAvalonia.Views.Windows;
 
-public partial class AnnouncementView : SukiWindow
+public partial class ChangelogView : SukiWindow
 {
-    public AnnouncementView()
+    public ChangelogView()
     {
         InitializeComponent();
     }

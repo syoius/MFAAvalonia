@@ -171,7 +171,7 @@
         <value>Color Theme</value>
     </data>
     <data name="CommonSetting" xml:space="preserve">
-        <value> Common </value>
+        <value>Common</value>
     </data>
     <data name="ConfigAddedSuccessfully" xml:space="preserve">
         <value>Configuration &lt;{0}&gt; added successfully!</value>
@@ -1079,4 +1079,58 @@
     <data name="QQChannel" xml:space="preserve">
         <value>QQChannel: Maa鸢</value>
    </data>
+    <data name="UpcomingChanges" xml:space="preserve">
+        <value>Upcoming Changes</value>
+    </data>
+    <data name="TaskFailed" xml:space="preserve">
+        <value>Task execution failed!</value>
+    </data>
+    <data name="ExternalNotificationCustomNotificationContentSuccess" xml:space="preserve">
+        <value>Customize success notification content</value>
+    </data>
+    <data name="ExternalNotificationCustomNotificationContentFailure" xml:space="preserve">
+        <value>Customize failure notification content</value>
+    </data>
+    <data name="BetaVersion" xml:space="preserve">
+        <value>Beta</value>
+    </data>
+    <data name="StableVersion" xml:space="preserve">
+        <value>Stable</value>
+    </data>
+    <data name="ResourceUpdateChannel" xml:space="preserve">
+        <value>Resource Update Channel</value>
+    </data>
+    <data name="UpdateLog" xml:space="preserve">
+        <value>Update Log</value>
+    </data>
+    <data name="ProxySettings" xml:space="preserve">
+        <value>Proxy Settings</value>
+    </data>
+    <data name="UiVersionBelowResourceRequirement" xml:space="preserve">
+        <value>The current UI version {0} is lower than the minimum required version {1} for the resource. Some functions may not work properly. Please update the software.</value>
+    </data>
+    <data name="AboutToken" xml:space="preserve">
+        <value>AboutToken</value>
+    </data>
+    <data name="Extracting" xml:space="preserve">
+        <value>Extracting</value>
+    </data>
+    <data name="AlphaVersion" xml:space="preserve">
+        <value>Alpha</value>
+    </data>
+    <data name="UIUpdateChannel" xml:space="preserve">
+        <value>UI Update Channel</value>
+    </data>
+    <data name="ExportLog" xml:space="preserve">
+        <value>Export Log</value>
+    </data>
+    <data name="Warning" xml:space="preserve">
+        <value>Warning</value>
+    </data>
+    <data name="StopTaskBeforeExportLog" xml:space="preserve">
+        <value>Please stop the task before exporting logs</value>
+    </data>
+    <data name="MirrorCdkEmpty" xml:space="preserve">
+        <value>CDK is empty. Please fill in the CDK in the update settings of the configuration or switch the update source to GitHub.</value>
+    </data>
 </root>

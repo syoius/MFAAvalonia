@@ -30,7 +30,7 @@ public class Program
     private static void Log(object message)
     {
         Console.WriteLine(message);
-        LogBuilder.Append(message);
+        LogBuilder.Append($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}");
         LogBuilder.AppendLine();
     }
 

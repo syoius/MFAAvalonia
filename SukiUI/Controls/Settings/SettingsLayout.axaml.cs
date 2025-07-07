@@ -127,17 +127,17 @@ public partial class SettingsLayout : ItemsControl, ISukiStackPageTitleProvider
     private void UpdateItems()
     {
         if (Items is null || !Items.Any()) return;
-        
+
         var stackSummaryScroll = this.GetTemplateChildren().First(n => n.Name == "StackSummaryScroll") as ScrollViewer;
         if (stackSummaryScroll is not ScrollViewer)
             return;
-        var stackSummary = stackSummaryScroll?.Content as StackPanel ;
+        var stackSummary = stackSummaryScroll?.Content as StackPanel;
         var myScroll = this.GetTemplateChildren().First(n => n.Name == "MyScroll") as ScrollViewer;
 
         if (myScroll?.Content is not StackPanel stackItems)
             return;
 
-        if (stackSummary is not StackPanel )
+        if (stackSummary is not StackPanel)
             return;
 
         var radios = new List<RadioButton>();
@@ -204,7 +204,7 @@ public partial class SettingsLayout : ItemsControl, ISukiStackPageTitleProvider
             radios.Add(summaryButton);
             stackSummary.Children.Add(summaryButton);
         }
-        
+
         myScroll.ScrollChanged += (sender, args) =>
         {
             if (isAnimatingScroll)
@@ -240,8 +240,12 @@ public partial class SettingsLayout : ItemsControl, ISukiStackPageTitleProvider
     private void DockPanel_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         var stack = this.GetTemplateChildren().First(n => n.Name == "StackSummaryScroll");
+        // var scroll = this.GetTemplateChildren().First(n => n.Name == "MyScroll");
         var desiredSize = e.NewSize.Width > MinWidthWhetherStackSummaryShow ? StackSummaryWidth : 0;
-
+        // Console.WriteLine(stack.GetType());
+        // if (scroll is ScrollViewer scrollViewer)
+        //     scrollViewer.VerticalScrollBarVisibility = desiredSize != 0 ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Visible;
+        //
         if (LastDesiredSize == desiredSize)
             return;
 

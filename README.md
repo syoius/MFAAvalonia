@@ -17,7 +17,7 @@ _✨ 基于 **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** 的 **[MAAFra
   <img alt="platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blueviolet">
   <img alt="commit" src="https://img.shields.io/github/commit-activity/m/SweetSmellFox/MFAAvalonia">
   <img alt="stars" src="https://img.shields.io/github/stars/SweetSmellFox/MFAAvalonia?style=social">
-  <a href="https://mirrorchyan.com/zh/projects" target="_blank"><img alt="mirrorc" src="https://img.shields.io/badge/Mirror%E9%85%B1-%239af3f6?logo=countingworkspro&logoColor=4f46e5"></a>
+  <a href="https://mirrorchyan.com/zh/projects?rid=MFAAvalonia&source=mfaagh-badge" target="_blank"><img alt="mirrorc" src="https://img.shields.io/badge/Mirror%E9%85%B1-%239af3f6?logo=countingworkspro&logoColor=4f46e5"></a>
 </div>
 <div align="center">
 
@@ -49,7 +49,7 @@ _✨ 基于 **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** 的 **[MAAFra
 #### 手动安装
 
 - 下载最新发行版并解压
-- 将maafw项目中assets/resource中所有内容复制到MFAAvalonia/Resource中
+- 将maafw项目中assets/resource中所有内容复制到MFAAvalonia/resource中
 - 将maafw项目中assets/interface.json文件复制到MFAAvalonia/中
 - ***修改***刚刚复制的interface.json文件
 - 下面是一个例子
@@ -85,7 +85,7 @@ _✨ 基于 **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** 的 **[MAAFra
   "name": "项目名称", //默认为null
   "version":  "项目版本", //默认为null
   "mirrorchyan_rid":  "项目ID(从Mirror酱下载的必要字段)", //默认为null , 比如 M9A
-  "mirrorchyan_multiplatform":  "项目多平台字段(从Mirror酱下载的字段)", //默认为false
+  "mirrorchyan_multiplatform":  false, //项目多平台字段(从Mirror酱下载的字段)默认为false
   "url":  "项目链接(目前应该只支持Github)", //默认为null , 比如 https://github.com/{Github账户}/{Github项目}
   "custom_title": "自定义标题", //默认为null, 使用该字段后，标题栏将只显示custom_title和version
   "resource": [
@@ -185,7 +185,7 @@ _✨ 基于 **[Avalonia](https://github.com/AvaloniaUI/Avalonia)** 的 **[MAAFra
 
 - 欢迎各位大佬贡献代码
 - `MFAAvalonia` 有interface多语言支持,在`interface.json`同目录下新建`lang`文件夹,里面内含`zh-cn.json`,`zh-tw.json`和`en-us.json`后，doc和任务的name和选项的name可以使用key来指代。MFAAvalonia会自动根据语言来读取文件的key对应的value。如果没有则默认为key
-- `MFAAvalonia` 会读取`Resource`文件夹的`Announcement.md`作为公告，更新资源时会自动下载一份Changelog作为公告
+- `MFAAvalonia` 会读取`resource`文件夹(不区分大小写)的`Announcement.md`作为公告，更新资源时会自动下载一份Changelog作为公告
 - `MFAAvalonia` 可以通过启动参数`-c 配置名称`来指定以特定配置文件启动，无须后缀名`.json`
 
 **注：在MFA的v1.1.6版本中，移除了focus系列字段，改为any focus，原先的不再可用！**

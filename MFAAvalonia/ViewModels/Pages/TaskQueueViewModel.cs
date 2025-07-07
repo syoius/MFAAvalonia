@@ -84,6 +84,10 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     #region 任务
 
+    [ObservableProperty] private bool _isCommon = true;
+    [ObservableProperty] private bool _showSettings;
+
+
     [ObservableProperty] private ObservableCollection<DragItemViewModel> _taskItemViewModels = [];
 
     partial void OnTaskItemViewModelsChanged(ObservableCollection<DragItemViewModel> value)
@@ -113,7 +117,7 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     public void StopTask(Action? action = null)
     {
-        MaaProcessor.Instance.Stop(action: action);
+        MaaProcessor.Instance.Stop(MFATask.MFATaskStatus.STOPPED, action: action);
     }
 
     [RelayCommand]
@@ -435,7 +439,12 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         LogItemViewModels.Clear();
     }
-
+    [RelayCommand]
+    private void Export()
+    {
+        FileLogExporter.CompressRecentLogs(Instances.RootView.StorageProvider);
+    }
+    
     public void AutoDetectDevice(CancellationToken token = default)
     {
         var isAdb = CurrentController == MaaControllerTypes.Adb;
