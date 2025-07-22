@@ -29,6 +29,8 @@
 
     <UserControl.Resources>
         <ContextMenu x:Key="TaskMenu">
+            <MenuItem IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}" Click="Run"
+                      Header="{markup:I18n {x:Static helper:LangKeys.Execute}}" />
             <MenuItem Click="Delete" Header="{markup:I18n {x:Static helper:LangKeys.Delete}}" />
         </ContextMenu>
     </UserControl.Resources>

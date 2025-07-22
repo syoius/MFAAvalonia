@@ -823,7 +823,7 @@
         <value>下次不再提示</value>
     </data>
     <data name="ShowHitDraw" xml:space="preserve">
-        <value>显示节点命中弹窗 (用于调试)</value>
+        <value>显示节点命中截图 (用于调试)</value>
     </data>
     <data name="ShutDown" xml:space="preserve">
         <value>关机</value>
@@ -1139,5 +1139,54 @@
     </data>
     <data name="MirrorCdkEmpty" xml:space="preserve">
         <value>CDK为空，请到设置中的更新设置中填写CDK或切换更新源至GitHub</value>
+    </data>
+    <data name="ContinueRunningWhenError" xml:space="preserve">
+        <value>任务运行失败后是否继续运行其它任务</value>
+    </data>
+    <data name="CurrentOtherUpdatingTask" xml:space="preserve">
+        <value>当前存在其他正在执行的更新任务</value>
+    </data>
+    <data name="RedownloadResourceFullPackage" xml:space="preserve">
+        <value>重新下载资源全量包</value>
+    </data>
+    <data name="RedownloadUiFullPackage" xml:space="preserve">
+        <value>重新下载UI全量包</value>
+    </data>
+    <data name="MirrorCDKBanned" xml:space="preserve">
+        <value>CDK 已被封禁</value>
+    </data>
+    <data name="ScreenshotTest" xml:space="preserve">
+        <value>截图测试</value>
+    </data>
+    <data name="ScreenshotPage" xml:space="preserve">
+        <value>截图</value>
+    </data>
+    <data name="ScreenshotFailed" xml:space="preserve">
+        <value>截图失败</value>
+    </data>
+    <data name="DisplayAnnouncement" xml:space="preserve">
+        <value>显示公告</value>
+    </data>
+    <data name="ScreenshotEmpty" xml:space="preserve">
+        <value>当前截图为空! 请点击【截图测试】获取截图
+</value>
+    </data>
+    <data name="SaveScreenshot" xml:space="preserve">
+        <value>保存截图</value>
+    </data>
+    <data name="AnnouncementEmpty" xml:space="preserve">
+        <value>当前公告为空</value>
+    </data>
+    <data name="Execute" xml:space="preserve">
+        <value>执行</value>
+    </data>
+    <data name="StoppingInternalTask" xml:space="preserve">
+        <value>正在停止内部任务...</value>
+    </data>
+    <data name="Verifying" xml:space="preserve">
+        <value>检验中</value>
+    </data>
+    <data name="HashVerificationFailed" xml:space="preserve">
+        <value>哈希验证失败！资源可能损坏，可能是网络波动导致的，请尝试重新下载资源</value>
     </data>
 </root>

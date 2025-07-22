@@ -3,10 +3,12 @@
                     xmlns:html="clr-namespace:Markdown.Avalonia.Html;assembly=Markdown.Avalonia.Html"
                     xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
                     xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
-                    xmlns:mdsvg="https://github.com/whistyun/Markdown.Avalonia.Svg">
+                    xmlns:mdsvg="https://github.com/whistyun/Markdown.Avalonia.Svg"
+                    xmlns:avalonia="https://github.com/whistyun/Markdown.Avalonia.Tight">
     <mdxaml:MdAvPlugins x:Key="MdXamlPlugin">
         <html:HtmlPlugin />
         <mdsvg:SvgFormat />
+        <avalonia:ChatAISetup/>
     </mdxaml:MdAvPlugins>
 
 </ResourceDictionary>

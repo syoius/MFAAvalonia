@@ -9,7 +9,6 @@
     Width="800"
     x:DataType="windows:AnnouncementViewModel"
     xmlns:helper="clr-namespace:MFAAvalonia.Helper"
-    xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia.Tight"
     xmlns:full="https://github.com/whistyun/Markdown.Avalonia"
     xmlns:windows="clr-namespace:MFAAvalonia.ViewModels.Windows"
     xmlns:converters="clr-namespace:MFAAvalonia.Helper.Converters"
@@ -72,8 +71,10 @@
                             <StaticResource ResourceKey="MdXamlPlugin" />
                         </full:MarkdownScrollViewer.Plugins>
                         <full:MarkdownScrollViewer.Styles>
+                            <StyleInclude Source="avares://MFAAvalonia/Assets/Style/MdXamlDocStyle.axaml" />
                             <StyleInclude Source="avares://MFAAvalonia/Assets/Style/MdXamlStyles.axaml" />
                         </full:MarkdownScrollViewer.Styles>
+
                     </full:MarkdownScrollViewer>
                 </ScrollViewer>
                 

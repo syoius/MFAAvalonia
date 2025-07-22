@@ -3,7 +3,8 @@
     x:Class="MFAAvalonia.App"
     xmlns="https://github.com/avaloniaui"
     xmlns:sukiUi="clr-namespace:SukiUI;assembly=SukiUI"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:styling="clr-namespace:FluentAvalonia.Styling;assembly=FluentAvalonia">
 
     <Application.Resources>
         <ResourceDictionary>
@@ -20,6 +21,7 @@
     </Application.Resources>
     <Application.Styles>
         <FluentTheme />
+        <styling:FluentAvaloniaTheme />
         <sukiUi:SukiTheme  ThemeColor="Blue" />
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
         <StyleInclude Source="avares://MFAAvalonia/Views/UserControls/HotKeyEditor.axaml" />

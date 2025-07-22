@@ -123,27 +123,34 @@ public partial class RootView : SukiWindow
             e.Cancel = true;
             ConfirmExit(() => OnClosed(e));
         }
-        else
-        {
-            OnClosed(e);
-            Environment.Exit(0);
-        }
+        base.OnClosing(e);
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        BeforeClosed();
+        base.OnClosed(e);
+    }
+
+    public void BeforeClosed()
+    {
         if (!GlobalHotkeyService.IsStopped)
         {
+            if (Instances.RootViewModel.IsRunning)
+            {
+                MaaProcessor.Instance.Stop(MFATask.MFATaskStatus.STOPPED);
+            }
             ConfigurationManager.Current.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
 
             // 确保窗口大小被保存
             SaveWindowSize();
 
+            LoggerHelper.Info("MFA Closed!");
+
             MaaProcessor.Instance.SetTasker();
             LoggerHelper.DisposeLogger();
             GlobalHotkeyService.Shutdown();
         }
-        base.OnClosed(e);
     }
 
     public async Task<bool> ConfirmExit(Action? action = null)
@@ -171,7 +178,7 @@ public partial class RootView : SukiWindow
             {
                 LoggerHelper.Error(e);
             }
-            finally { Environment.Exit(0); }
+            finally { Instances.ShutdownApplication(); }
 
             return true;
         }
@@ -230,24 +237,7 @@ public partial class RootView : SukiWindow
                 });
                 MaaProcessor.Instance.Start(true, checkUpdate: true);
             }
-            try
-            {
-                var tempMFADir = Path.Combine(AppContext.BaseDirectory, "temp_mfa");
-                if (Directory.Exists(tempMFADir))
-                    Directory.Delete(tempMFADir, true);
 
-                var tempMaaDir = Path.Combine(AppContext.BaseDirectory, "temp_maafw");
-                if (Directory.Exists(tempMaaDir))
-                    Directory.Delete(tempMaaDir, true);
-
-                var tempResDir = Path.Combine(AppContext.BaseDirectory, "temp_res");
-                if (Directory.Exists(tempResDir))
-                    Directory.Delete(tempResDir, true);
-            }
-            catch (Exception e)
-            {
-                LoggerHelper.Error(e);
-            }
             GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.FalseString);
 
             Instances.RootViewModel.LockController = (MaaProcessor.Interface?.Controller?.Count ?? 0) < 2;
@@ -347,7 +337,7 @@ public partial class RootView : SukiWindow
         }
     }
 
-    private void SaveWindowSize()
+    public void SaveWindowSize()
     {
         // 初始化过程中不保存窗口大小
         if (_isInitializing)

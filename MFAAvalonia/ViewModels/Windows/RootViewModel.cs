@@ -14,6 +14,11 @@ namespace MFAAvalonia.ViewModels.Windows;
 
 public partial class RootViewModel : ViewModelBase
 {
+    protected override void Initialize()
+    {
+        CheckDebug();
+    }
+
     [ObservableProperty] private bool _idle = true;
     [ObservableProperty] private bool _isWindowVisible = true;
 
@@ -23,6 +28,7 @@ public partial class RootViewModel : ViewModelBase
     {
         Idle = !value;
     }
+
     public static string Version
     {
         get
@@ -32,10 +38,10 @@ public partial class RootViewModel : ViewModelBase
             // var minor = version.Minor >= 0 ? version.Minor : 0;
             // var patch = version.Build >= 0 ? version.Build : 0;
             // return $"v{SemVersion.Parse($"{major}.{minor}.{patch}")}";
-            return "v1.5.2-beta.4"; // Hardcoded version for now, replace with dynamic versioning later
+            return "v1.6.1"; // Hardcoded version for now, replace with dynamic versioning later
         }
     }
-    
+
     [ObservableProperty] private string? _resourceName;
 
     [ObservableProperty] private bool _isResourceNameVisible;
@@ -61,18 +67,23 @@ public partial class RootViewModel : ViewModelBase
         _currentConfiguration = ConfigurationManager.GetCurrentConfiguration();
     }
 
+    public void CheckDebug()
+    {
+        if (IsDebugMode && _shouldTip)
+        {
+            Instances.DialogManager.CreateDialog().OfType(NotificationType.Warning).WithContent("DebugModeWarning".ToLocalization()).WithActionButton("Ok".ToLocalization(), dialog => { }, true).TryShow();
+            _shouldTip = false;
+        }
+    }
+    
     public void SetUpdating(bool isUpdating)
     {
         IsUpdating = isUpdating;
     }
 
-    partial void OnIsDebugModeChanged(bool value)
+    partial void OnIsDebugModeChanged(bool _)
     {
-        if (value && _shouldTip)
-        {
-            Instances.DialogManager.CreateDialog().OfType(NotificationType.Warning).WithContent("DebugModeWarning".ToLocalization()).WithActionButton("Ok".ToLocalization(), dialog => { }, true).TryShow();
-            _shouldTip = false;
-        }
+        CheckDebug();
     }
 
     public void ShowResourceName(string name)
@@ -92,7 +103,7 @@ public partial class RootViewModel : ViewModelBase
         IsCustomTitleVisible = true;
         IsResourceNameVisible = false;
     }
-    
+
     [RelayCommand]
     public void ToggleVisible()
     {

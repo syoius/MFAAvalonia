@@ -1,14 +1,21 @@
-﻿using AvaloniaExtensions.Axaml.Markup;
+﻿using Avalonia.Media.Imaging;
+using AvaloniaExtensions.Axaml.Markup;
+using MaaFramework.Binding.Buffers;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Bitmap = Avalonia.Media.Imaging.Bitmap;
 
 namespace MFAAvalonia.Extensions;
 
@@ -44,6 +51,123 @@ public static class MFAExtensions
                     }
                 )
             ?? new Dictionary<TKey, MaaNode>();
+    }
+
+    public static Dictionary<TKey, JToken> MergeJTokens<TKey>(
+        this IEnumerable<KeyValuePair<TKey, JToken>>? taskModels,
+        IEnumerable<KeyValuePair<TKey, JToken>>? additionalModels) where TKey : notnull
+    {
+
+        if (additionalModels == null)
+            return taskModels?.ToDictionary() ?? new Dictionary<TKey, JToken>();
+        return taskModels?
+                .Concat(additionalModels)
+                .GroupBy(pair => pair.Key)
+                .ToDictionary(
+                    group => group.Key,
+                    group =>
+                    {
+                        var mergedModel = group.First().Value;
+                        foreach (var taskModel in group.Skip(1))
+                        {
+                            mergedModel.Merge(taskModel.Value);
+                        }
+                        return mergedModel;
+                    }
+                )
+            ?? new Dictionary<TKey, JToken>();
+    }
+
+    public static JToken Merge(this JToken? target, JToken? source)
+    {
+        if (target == null) return source;
+        if (source == null) return target;
+
+        // 确保目标和源都是 JObject 类型
+        if (target.Type != JTokenType.Object || source.Type != JTokenType.Object)
+            return target;
+
+        var targetObj = (JObject)target;
+        var sourceObj = (JObject)source;
+
+        // 遍历源对象的所有属性
+        foreach (var property in sourceObj.Properties())
+        {
+            string propName = property.Name;
+            JToken? targetProp = targetObj.Property(propName)?.Value;
+            JToken sourceProp = property.Value;
+
+            // 处理 recognition 相关合并逻辑
+            if (propName == "recognition")
+            {
+                if (targetProp != null && targetProp.Type == JTokenType.Object && sourceProp.Type == JTokenType.Object)
+                {
+                    JObject targetRecognition = (JObject)targetProp;
+                    JObject sourceRecognition = (JObject)sourceProp;
+
+                    // 覆盖 type 属性
+                    if (sourceRecognition.ContainsKey("type"))
+                    {
+                        targetRecognition["type"] = sourceRecognition["type"]?.DeepClone() ?? new JValue((string)null);
+                    }
+
+                    // 处理 recognition 内部的 param 属性，递归合并
+                    if (sourceRecognition.ContainsKey("param") && targetRecognition.ContainsKey("param") && targetRecognition["param"]?.Type == JTokenType.Object && sourceRecognition["param"]?.Type == JTokenType.Object)
+                    {
+                        targetRecognition["param"] = Merge(targetRecognition["param"], sourceRecognition["param"]);
+                    }
+                    else if (sourceRecognition.ContainsKey("param") && targetRecognition["param"] == null)
+                    {
+                        targetRecognition["param"] = sourceRecognition["param"]?.DeepClone();
+                    }
+
+                    targetObj[propName] = targetRecognition;
+                }
+                else if (targetProp == null)
+                {
+                    targetObj[propName] = sourceProp.DeepClone();
+                }
+                continue;
+            }
+
+            // 处理 action 相关合并逻辑
+            if (propName == "action")
+            {
+                if (targetProp != null && targetProp.Type == JTokenType.Object && sourceProp.Type == JTokenType.Object)
+                {
+                    JObject targetAction = (JObject)targetProp;
+                    JObject sourceAction = (JObject)sourceProp;
+
+                    // 覆盖 type 属性
+                    if (sourceAction.ContainsKey("type"))
+                    {
+                        targetAction["type"] = sourceAction["type"]?.DeepClone() ?? new JValue((string)null);
+                    }
+
+                    // 处理 action 内部的 param 属性，递归合并
+                    if (sourceAction.ContainsKey("param") && targetAction.ContainsKey("param") && targetAction["param"]?.Type == JTokenType.Object && sourceAction["param"]?.Type == JTokenType.Object)
+                    {
+                        targetAction["param"] = Merge(targetAction["param"], sourceAction["param"]);
+                    }
+                    else if (sourceAction.ContainsKey("param") && targetAction["param"] == null)
+                    {
+                        targetAction["param"] = sourceAction["param"]?.DeepClone();
+                    }
+
+                    targetObj[propName] = targetAction;
+                }
+                else if (targetProp == null)
+                {
+                    targetObj[propName] = sourceProp.DeepClone();
+                }
+                continue;
+            }
+
+            // 其他普通属性直接替换或添加
+            targetObj[propName] = sourceProp.DeepClone();
+        }
+
+        return target;
     }
 
     public static string FormatWith(this string format, params object[] args)
@@ -203,12 +327,56 @@ public static class MFAExtensions
         if (version.Contains("beta", StringComparison.OrdinalIgnoreCase)) return VersionChecker.VersionType.Beta;
         return VersionChecker.VersionType.Stable;
     }
-    
+
     public static VersionChecker.VersionType ToVersionType(this int version)
     {
         if (version == 0)
             return VersionChecker.VersionType.Alpha;
         if (version == 1) return VersionChecker.VersionType.Beta;
         return VersionChecker.VersionType.Stable;
+    }
+
+    public static Bitmap? ToBitmap(this MaaImageBuffer buffer)
+    {
+        if (!buffer.TryGetEncodedData(out Stream EncodedDataStream)) return null;
+
+        try
+        {
+            EncodedDataStream.Seek(0, SeekOrigin.Begin);
+            return new Bitmap(EncodedDataStream);
+        }
+        catch (ArgumentException ex)
+        {
+            LoggerHelper.Error($"解码失败: {ex.Message}");
+            return null;
+        }
+    }
+    public static System.Drawing.Bitmap? ToDrawingBitmap(this Bitmap? bitmap)
+    {
+        if (bitmap == null)
+            return null;
+
+        using var memory = new MemoryStream();
+
+        bitmap.Save(memory);
+        memory.Position = 0;
+        
+        return new System.Drawing.Bitmap(memory);
+    }
+    
+    public static Bitmap? ToAvaloniaBitmap(this System.Drawing.Bitmap? bitmap)
+    {
+        if (bitmap == null)
+            return null;
+        var bitmapTmp = new System.Drawing.Bitmap(bitmap);
+        var bd = bitmapTmp.LockBits(new Rectangle(0, 0, bitmapTmp.Width, bitmapTmp.Height), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+        var bitmap1 = new Bitmap(Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Premul,
+            bd.Scan0,
+            new Avalonia.PixelSize(bd.Width, bd.Height),
+            new Avalonia.Vector(96, 96),
+            bd.Stride);
+        bitmapTmp.UnlockBits(bd);
+        bitmapTmp.Dispose();
+        return bitmap1;
     }
 }

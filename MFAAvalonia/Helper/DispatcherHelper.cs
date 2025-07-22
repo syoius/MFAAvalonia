@@ -11,6 +11,7 @@ public static class DispatcherHelper
         if (Dispatcher.UIThread.CheckAccess())
         {
             action();
+            return;
         }
 
         Dispatcher.UIThread.Invoke(action);
@@ -30,11 +31,6 @@ public static class DispatcherHelper
 
     public static void PostOnMainThread(Action func)
     {
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            func();
-        }
-
         Dispatcher.UIThread.Post(func);
     }
 }

@@ -60,10 +60,11 @@ public static class ConfigurationKeys
     public const string Resource = "Resource";
     public const string Recording = "recording";
     public const string SaveDraw = "save_draw";
-    public const string ShowHitDraw = "show_hit_draw";
+    public const string ShowHitDraw = "show_hit_box";
     public const string Prescript = "Prescript";
     public const string Postscript = "Post-script";
-
+    public const string ContinueRunningWhenError = "ContinueRunningWhenError";
+    
     #endregion
 
     #region 界面设置

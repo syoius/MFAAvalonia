@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace MFAAvalonia.Helper;
@@ -13,6 +14,7 @@ namespace MFAAvalonia.Helper;
 public static class FileLogExporter
 {
     public const int MAX_LINES = 42000;
+
     public async static Task CompressRecentLogs(IStorageProvider storageProvider)
     {
         if (Instances.RootViewModel.IsRunning)
@@ -23,7 +25,6 @@ public static class FileLogExporter
             return;
         }
         MaaProcessor.Instance.SetTasker();
-
 
         if (storageProvider == null)
             throw new ArgumentNullException(nameof(storageProvider));
@@ -59,12 +60,23 @@ public static class FileLogExporter
 
             try
             {
-                // 复制文件到临时目录（保持原目录结构）
+                // 处理每个日志文件
                 foreach (var file in logFiles)
                 {
                     var destDir = Path.Combine(tempDir, file.RelativePath ?? string.Empty);
                     Directory.CreateDirectory(destDir);
-                    File.Copy(file.FullName ?? string.Empty, Path.Combine(destDir, Path.GetFileName(file.FullName ?? string.Empty)));
+                    var destPath = Path.Combine(destDir, Path.GetFileName(file.FullName ?? string.Empty));
+
+                    // 如果文件行数超过限制，提取最近的MAX_LINES行
+                    if (file.LineCount > MAX_LINES)
+                    {
+                        ExtractLastLines(file.FullName, destPath, MAX_LINES);
+                    }
+                    else
+                    {
+                        // 行数未超过限制，直接复制
+                        File.Copy(file.FullName ?? string.Empty, destPath);
+                    }
                 }
 
                 await using (var stream = await saveFile.OpenWriteAsync())
@@ -98,14 +110,15 @@ public static class FileLogExporter
             LoggerHelper.Error($"发生错误：\n{ex}");
         }
     }
-    
+
     // 获取符合条件的日志文件
     private static List<LogFileInfo> GetEligibleLogFiles(string baseDirectory)
     {
         var eligibleFiles = new List<LogFileInfo>();
 
-        var logFiles = Directory.Exists(Path.Combine(baseDirectory, "debug")) ? Directory.GetFiles(Path.Combine(baseDirectory, "debug"), "*.log", SearchOption.AllDirectories) : [];
-        var txtFiles = Directory.Exists(Path.Combine(baseDirectory, "logs")) ? Directory.GetFiles(Path.Combine(baseDirectory, "logs"), "*.txt", SearchOption.AllDirectories) : [];
+        var logFiles = Directory.Exists(Path.Combine(baseDirectory, "debug")) ? Directory.GetFiles(Path.Combine(baseDirectory, "debug"), "*.log", SearchOption.AllDirectories) : Array.Empty<string>();
+        var txtFiles = Directory.Exists(Path.Combine(baseDirectory, "logs")) ? Directory.GetFiles(Path.Combine(baseDirectory, "logs"), "*.txt", SearchOption.AllDirectories) : Array.Empty<string>();
+
         // 计算两天前的日期
         var twoDaysAgo = DateTime.Now.AddDays(-2);
 
@@ -122,11 +135,9 @@ public static class FileLogExporter
                 {
                     continue;
                 }
-                // 检查文件行数
-                if (CountLines(file) > MAX_LINES)
-                {
-                    continue;
-                }
+
+                // 计算文件行数
+                var lineCount = CountLines(file);
 
                 // 计算相对路径
                 var relativePath = (Path.GetDirectoryName(file) ?? string.Empty)
@@ -136,7 +147,8 @@ public static class FileLogExporter
                 eligibleFiles.Add(new LogFileInfo
                 {
                     FullName = file,
-                    RelativePath = relativePath
+                    RelativePath = relativePath,
+                    LineCount = lineCount
                 });
             }
             catch (Exception ex)
@@ -145,7 +157,6 @@ public static class FileLogExporter
                 // 继续处理其他文件
             }
         }
-
 
         return eligibleFiles;
     }
@@ -161,16 +172,16 @@ public static class FileLogExporter
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete);
-            
+
             using var reader = new StreamReader(stream);
             int count = 0;
-        
+
             // 逐行读取但限制最大行数，避免超大文件导致内存溢出
-            while (reader.ReadLine() != null && count <= MAX_LINES + 1) 
+            while (reader.ReadLine() != null && count <= MAX_LINES + 1)
             {
                 count++;
             }
-        
+
             return count;
         }
         catch (FileNotFoundException)
@@ -189,11 +200,62 @@ public static class FileLogExporter
             return int.MaxValue;
         }
     }
+
+    // 从文件末尾提取指定行数
+    private static void ExtractLastLines(string sourcePath, string destPath, int lineCount)
+    {
+        try
+        {
+            var lines = new List<string>(lineCount);
+
+            using (var stream = new FileStream(
+                       sourcePath,
+                       FileMode.Open,
+                       FileAccess.Read,
+                       FileShare.ReadWrite | FileShare.Delete))
+            {
+                using var reader = new StreamReader(stream);
+
+                // 使用固定大小的队列保存最后N行
+                var queue = new Queue<string>(lineCount);
+
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (queue.Count >= lineCount)
+                    {
+                        queue.Dequeue(); // 移除最旧的行
+                    }
+                    queue.Enqueue(line);
+                }
+
+                lines.AddRange(queue);
+            }
+
+            // 将提取的行写入新文件
+            using var writer = new StreamWriter(destPath, false, Encoding.UTF8);
+            foreach (var line in lines)
+            {
+                writer.WriteLine(line);
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"提取文件 {sourcePath} 的最后 {lineCount} 行时出错: {ex}");
+            // 如果提取失败，复制原始文件
+            try { File.Copy(sourcePath, destPath); }
+            catch (Exception e)
+            {
+                LoggerHelper.Error(e);
+            }
+        }
+    }
 }
 
-// 日志文件信息类
+// 日志文件信息类（增加LineCount属性）
 public class LogFileInfo
 {
     public string? FullName { get; set; }
     public string? RelativePath { get; set; }
+    public int LineCount { get; set; } = 0;
 }

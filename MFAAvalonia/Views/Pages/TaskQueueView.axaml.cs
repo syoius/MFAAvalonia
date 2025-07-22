@@ -347,7 +347,16 @@ public partial class TaskQueueView : UserControl
             vm.ShowSettings = false;
         }
     }
-
+    
+    private void Run(object? sender, RoutedEventArgs e)
+    {
+        var menuItem = sender as MenuItem;
+        if (menuItem.DataContext is DragItemViewModel taskItemViewModel && DataContext is TaskQueueViewModel vm)
+        {
+            MaaProcessor.Instance.Start([taskItemViewModel]);
+        }
+    }
+    
     #region 任务选项
 
     private static readonly ConcurrentDictionary<string, Control> CommonPanelCache = new();

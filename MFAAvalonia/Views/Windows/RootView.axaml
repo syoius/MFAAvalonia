@@ -126,6 +126,11 @@
                                                        IconVariant=Regular}"
                                        PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:TaskQueueView}}" />
                 <suki:SukiSideMenuItem IsContentMovable="False"
+                                       Header="{markup:I18n {x:Static helper:LangKeys.ScreenshotPage}}"
+                                       Icon="{markupExtensions:FluentIcon Icon=Screenshot,
+                                                       IconVariant=Regular}"
+                                       PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ScreenshotView}}" />
+                <suki:SukiSideMenuItem IsContentMovable="False"
                                        Header="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
                                        Icon="{markupExtensions:FluentIcon Icon=Apps,
                                                        IconVariant=Regular}"

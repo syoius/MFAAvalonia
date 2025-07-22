@@ -122,6 +122,13 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
     {
         VersionChecker.UpdateResourceAsync();
     }
+    
+    [RelayCommand]
+    private void RedownloadResource()
+    {
+        VersionChecker.UpdateResourceAsync("v0.0.0");
+    }
+    
     [RelayCommand]
     private void CheckResourceUpdate()
     {

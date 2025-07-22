@@ -9,6 +9,7 @@ using Avalonia.Threading;
 using AvaloniaExtensions.Axaml.Markup;
 using FluentAvalonia.UI.Controls;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.ViewModels.Windows;
 using MFAAvalonia.Views.Windows;
 using SukiUI.Content;
@@ -141,9 +142,10 @@ public class TrayIconManager
 
     private static void App_exit(object sender, EventArgs e)
     {
-       if (Instances.RootView.ConfirmExit().Result != true)
+        if (Instances.RootView.ConfirmExit(() => Instances.RootView.BeforeClosed()).Result != true)
             return;
-         Instances.ApplicationLifetime.Shutdown();
+        Instances.RootView.BeforeClosed();
+        Instances.ShutdownApplication();
     }
 
     private static void App_hide(object sender, EventArgs e) =>

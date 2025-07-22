@@ -16,12 +16,13 @@ public static class LoggerHelper
     {
         if (_logger != null) return;
         _logger = new LoggerConfiguration()
-           .WriteTo.File(
-                $"logs/log-{DateTime.Now.ToString("yyyy-MM-dd")}.txt",
+            .WriteTo.Console()
+            .WriteTo.File(
+                $"logs/log-.txt",
+                rollingInterval: RollingInterval.Day,
                 shared: true,
                 outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff}][{Level:u3}] {Message:lj}{NewLine}{Exception}")
-           .CreateLogger();
-
+            .CreateLogger();
         FlushCache();
     }
 
@@ -52,17 +53,15 @@ public static class LoggerHelper
         _logCache.Clear();
     }
 
-    public static void Info(object message)
+    public static void Info(object? message)
     {
         if (_logger == null)
         {
-            _logCache.Add((LogLevel.Info, message.ToString() ?? string.Empty));
-            Console.WriteLine("[INFO]" + message);
+            _logCache.Add((LogLevel.Info, message?.ToString() ?? string.Empty));
         }
         else
         {
-            _logger.Information(message.ToString() ?? string.Empty);
-            Console.WriteLine("[INFO]" + message);
+            _logger.Information(message?.ToString() ?? string.Empty);
         }
     }
 
@@ -71,12 +70,10 @@ public static class LoggerHelper
         if (_logger == null)
         {
             _logCache.Add((LogLevel.Error, message.ToString() ?? string.Empty));
-            Console.WriteLine("[ERROR]" + message);
         }
         else
         {
             _logger.Error(message.ToString() ?? string.Empty);
-            Console.WriteLine("[ERROR]" + message);
         }
     }
 
@@ -86,12 +83,10 @@ public static class LoggerHelper
         if (_logger == null)
         {
             _logCache.Add((LogLevel.Error, errorMsg));
-            Console.WriteLine("[ERROR]" + errorMsg);
         }
         else
         {
             _logger.Error(errorMsg);
-            Console.WriteLine("[ERROR]" + errorMsg);
         }
     }
 
@@ -100,12 +95,10 @@ public static class LoggerHelper
         if (_logger == null)
         {
             _logCache.Add((LogLevel.Warn, message.ToString() ?? string.Empty));
-            Console.WriteLine("[WARN]" + message);
         }
         else
         {
             _logger.Warning(message.ToString() ?? string.Empty);
-            Console.WriteLine("[WARN]" + message);
         }
     }
 }

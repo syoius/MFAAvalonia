@@ -12,28 +12,28 @@ namespace MFAAvalonia.Helper;
 
 public static class ToastNotification
 {
-    private static INotificationManager GetNotificationManager()
+    private static INotificationManager? GetNotificationManager()
     {
-        
+
         if (OperatingSystem.IsWindows())
         {
             return new WindowsNotificationManager();
-        } 
-        if (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
-        {
-            return new AppleNotificationManager();
         }
+        // if (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
+        // {
+        //     return new AppleNotificationManager();
+        // }
         if (OperatingSystem.IsLinux() || OperatingSystem.IsFreeBSD())
         {
             return new FreeDesktopNotificationManager();
         }
-    
-        throw new PlatformNotSupportedException("Current system does not support any available notification manager");
+
+        return null;
     }
-    
+
     public static void Show(string title = "", string message = "")
     {
-        
+
         try
         {
             var notificationManager = GetNotificationManager();
@@ -44,12 +44,11 @@ public static class ToastNotification
                 Body = message
             };
 
-            notificationManager.ShowNotification(notification);
+            notificationManager?.ShowNotification(notification);
         }
         catch (Exception e)
         {
             LoggerHelper.Error(e);
         }
     }
-    
 }

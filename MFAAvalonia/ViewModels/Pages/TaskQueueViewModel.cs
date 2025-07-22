@@ -334,7 +334,6 @@ public partial class TaskQueueViewModel : ViewModelBase
     private DateTime? _lastExecutionTime;
     partial void OnCurrentDeviceChanged(object? value)
     {
-
         if (value != null)
         {
             var now = DateTime.Now;
@@ -349,6 +348,11 @@ public partial class TaskQueueViewModel : ViewModelBase
                 _lastExecutionTime = now;
             }
         }
+        ChangedDevice(value);
+    }
+
+    public void ChangedDevice(object? value)
+    {
         if (value is DesktopWindowInfo window)
         {
             ToastHelper.Info("WindowSelectionMessage".ToLocalizationFormatted(false, ""), window.Name);
@@ -367,7 +371,7 @@ public partial class TaskQueueViewModel : ViewModelBase
             ConfigurationManager.Current.SetValue(ConfigurationKeys.AdbDevice, device);
         }
     }
-
+    
     [ObservableProperty] private MaaControllerTypes _currentController =
         ConfigurationManager.Current.GetValue(ConfigurationKeys.CurrentController, MaaControllerTypes.Adb, MaaControllerTypes.None, new UniversalEnumConverter<MaaControllerTypes>());
 
@@ -638,12 +642,12 @@ public partial class TaskQueueViewModel : ViewModelBase
                 AutoDetectDevice(_refreshCancellationTokenSource.Token);
             return;
         }
-
         DispatcherHelper.PostOnMainThread(() =>
         {
             Devices = [device];
             CurrentDevice = device;
         });
+        ChangedDevice(device);
     }
 
     #endregion

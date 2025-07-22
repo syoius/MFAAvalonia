@@ -20,6 +20,7 @@ public partial class GameSettingsUserControlModel : ViewModelBase
 
     [ObservableProperty] private string _postScript = ConfigurationManager.Current.GetValue(ConfigurationKeys.Postscript, string.Empty);
 
+    [ObservableProperty] private bool _continueRunningWhenError = ConfigurationManager.Current.GetValue(ConfigurationKeys.ContinueRunningWhenError, true);
 
     partial void OnEnableRecordingChanged(bool value)
     {
@@ -40,7 +41,7 @@ public partial class GameSettingsUserControlModel : ViewModelBase
     partial void OnShowHitDrawChanged(bool value)
     {
         ConfigurationManager.Maa.SetValue(ConfigurationKeys.ShowHitDraw, value);
-        MaaProcessor.Utility.SetOption_ShowHitDraw(value);
+        MaaProcessor.Utility.SetOption_DebugMode(value);
         Instances.RootViewModel.IsDebugMode = EnableSaveDraw || EnableRecording || ShowHitDraw;
         MaaProcessor.Instance.SetTasker();
     }
@@ -54,7 +55,9 @@ public partial class GameSettingsUserControlModel : ViewModelBase
     {
         ConfigurationManager.Current.SetValue(ConfigurationKeys.Postscript, value);
     }
-    //
+    
+    partial void OnContinueRunningWhenErrorChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.ContinueRunningWhenError, value);
+    
     // [ObservableProperty] private ObservableCollection<MaaInterface.MaaCustomResource> _currentResources = [];
     //
     // [ObservableProperty] private string _currentResource = ConfigurationHelper.GetValue(ConfigurationKeys.Resource, string.Empty);

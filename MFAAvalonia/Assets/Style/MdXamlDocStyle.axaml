@@ -4,13 +4,20 @@
     <Style>
         <Style Selector=".Markdown_Avalonia_MarkdownViewer TextBlock.CodeBlock">
             <Style.Setters>
+               
+                <Setter Property="FontFamily" Value="Consolas, Microsoft YaHei, Global Monospace" />
                 <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+                <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor5}" />
             </Style.Setters>
         </Style>
         <Style Selector=".Markdown_Avalonia_MarkdownViewer ctxt|CCode">
             <Style.Setters>
+                <Setter Property="Padding" Value="5,3" />
+                <Setter Property="FontFamily" Value="Consolas, Microsoft YaHei, Global Monospace" />
                 <Setter Property="Foreground" Value="{DynamicResource SukiLowText}" />
+                <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor5}" />
             </Style.Setters>
         </Style>
+        
     </Style>
 </Styles>

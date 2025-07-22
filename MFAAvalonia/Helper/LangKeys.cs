@@ -381,4 +381,20 @@ public static class LangKeys
 	public static readonly string AlphaVersion = "AlphaVersion";
 	public static readonly string UIUpdateChannel = "UIUpdateChannel";
 	public static readonly string ExportLog = "ExportLog";
+	public static readonly string Warning = "Warning";
+	public static readonly string StopTaskBeforeExportLog = "StopTaskBeforeExportLog";
+	public static readonly string MirrorCdkEmpty = "MirrorCdkEmpty";
+	public static readonly string ContinueRunningWhenError = "ContinueRunningWhenError";
+	public static readonly string CurrentOtherUpdatingTask = "CurrentOtherUpdatingTask";
+	public static readonly string RedownloadResourceFullPackage = "RedownloadResourceFullPackage";
+	public static readonly string RedownloadUiFullPackage = "RedownloadUiFullPackage";
+	public static readonly string MirrorCDKBanned = "MirrorCDKBanned";
+	public static readonly string ScreenshotTest = "ScreenshotTest";
+	public static readonly string ScreenshotPage = "ScreenshotPage";
+	public static readonly string ScreenshotFailed = "ScreenshotFailed";
+	public static readonly string DisplayAnnouncement = "DisplayAnnouncement";
+	public static readonly string ScreenshotEmpty = "ScreenshotEmpty";
+	public static readonly string SaveScreenshot = "SaveScreenshot";
+	public static readonly string AnnouncementEmpty = "AnnouncementEmpty";
+	public static readonly string Execute = "Execute";
 }

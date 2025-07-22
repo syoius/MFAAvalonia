@@ -31,7 +31,7 @@ public partial class MFATask : ObservableObject
     [ObservableProperty] private MFATaskType _type = MFATaskType.MFA;
     [ObservableProperty] private int _count = 1;
     [ObservableProperty] private Func<Task> _action;
-    [ObservableProperty] private Dictionary<string, MaaNode> _tasks = new();
+    // [ObservableProperty] private Dictionary<string, MaaNode> _tasks = new();
     [ObservableProperty] private bool _isUpdateRelated;
 
     public async Task<MFATaskStatus> Run(CancellationToken token)

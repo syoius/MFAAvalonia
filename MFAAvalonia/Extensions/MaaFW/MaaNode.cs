@@ -130,7 +130,7 @@ public partial class MaaNode : ViewModelBase
         };
         var taskModels = new Dictionary<string, MaaNode>
         {
-            [Name] = this
+            [Name ?? "测试"] = this
         };
         return JsonConvert.SerializeObject(taskModels, settings);
     }

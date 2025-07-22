@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Extensions;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.Views.Windows;
@@ -59,7 +60,7 @@ public partial class AnnouncementViewModel : ViewModelBase
 
             // 获取所有md文件，按最后修改时间排序（最新的在前）
             var mdFiles = Directory.GetFiles(announcementDir, "*.md")
-                .OrderByDescending(File.GetLastWriteTime)
+                .OrderBy(f => Path.GetFileName(f)[0])  // 按文件名的首字母升序排列
                 .ToList();
 
             foreach (var mdFile in mdFiles)
@@ -79,7 +80,6 @@ public partial class AnnouncementViewModel : ViewModelBase
                             FilePath = mdFile,
                             LastModified = File.GetLastWriteTime(mdFile)
                         };
-
                         AnnouncementItems.Add(item);
                     }
                 }
@@ -101,10 +101,15 @@ public partial class AnnouncementViewModel : ViewModelBase
         }
     }
 
-    public static void CheckAnnouncement()
+    public static void CheckAnnouncement(bool forceShow = false)
     {
         var viewModel = new AnnouncementViewModel();
-        if (viewModel.DoNotRemindThisAnnouncementAgain || !viewModel.AnnouncementItems.Any())
+        if (forceShow)
+        {
+            if (!viewModel.AnnouncementItems.Any()) 
+                ToastHelper.Warn("Warning".ToLocalization(),"AnnouncementEmpty".ToLocalization());
+        }
+        else if (viewModel.DoNotRemindThisAnnouncementAgain || !viewModel.AnnouncementItems.Any())
             return;
 
         try

@@ -816,7 +816,7 @@
         <value>Don't show again</value>
     </data>
     <data name="ShowHitDraw" xml:space="preserve">
-        <value>Show node hit information in pop-up window (for debugging)</value>
+        <value>Display node hit screenshot (for debugging)</value>
     </data>
     <data name="ShutDown" xml:space="preserve">
         <value>Shut Down</value>
@@ -1132,5 +1132,53 @@
     </data>
     <data name="MirrorCdkEmpty" xml:space="preserve">
         <value>CDK is empty. Please fill in the CDK in the update settings of the configuration or switch the update source to GitHub.</value>
+    </data>
+    <data name="ContinueRunningWhenError" xml:space="preserve">
+        <value>Whether to continue running other tasks after a task fails</value>
+    </data>
+    <data name="CurrentOtherUpdatingTask" xml:space="preserve">
+        <value>There are other ongoing update tasks currently</value>
+    </data>
+    <data name="RedownloadUiFullPackage" xml:space="preserve">
+        <value>Redownload the full UI package</value>
+    </data>
+    <data name="RedownloadResourceFullPackage" xml:space="preserve">
+        <value>Redownload the full resource package</value>
+    </data>
+    <data name="MirrorCDKBanned" xml:space="preserve">
+        <value>CDK has been banned</value>
+    </data>
+    <data name="ScreenshotTest" xml:space="preserve">
+        <value>Screenshot Test</value>
+    </data>
+    <data name="ScreenshotPage" xml:space="preserve">
+        <value>Screenshot</value>
+    </data>
+    <data name="ScreenshotFailed" xml:space="preserve">
+        <value>Screenshot Failed</value>
+    </data>
+    <data name="DisplayAnnouncement" xml:space="preserve">
+        <value>Display Announcement</value>
+    </data>
+    <data name="ScreenshotEmpty" xml:space="preserve">
+        <value>The current screenshot is empty! Please click [Screenshot Test] to get a screenshot</value>
+    </data>
+    <data name="SaveScreenshot" xml:space="preserve">
+        <value>Save Screenshot</value>
+    </data>
+    <data name="AnnouncementEmpty" xml:space="preserve">
+        <value>The current announcement is empty</value>
+    </data>
+    <data name="Execute" xml:space="preserve">
+        <value>Execute</value>
+    </data>
+    <data name="StoppingInternalTask" xml:space="preserve">
+        <value>正在停止內部任務...</value>
+    </data>
+    <data name="Verifying" xml:space="preserve">
+        <value>Verifying</value>
+    </data>
+    <data name="HashVerificationFailed" xml:space="preserve">
+        <value>Hash verification failed! The resource may be corrupted, possibly due to network fluctuations. Please try re-downloading the resource.</value>
     </data>
 </root>

@@ -29,6 +29,8 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.Authentication;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -80,7 +82,8 @@ public static class VersionChecker
 
     public static void CheckMFAVersionAsync() => TaskManager.RunTaskAsync(() => CheckForMFAUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
     public static void CheckResourceVersionAsync() => TaskManager.RunTaskAsync(() => CheckForResourceUpdates(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
-    public static void UpdateResourceAsync() => TaskManager.RunTaskAsync(() => UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
+    public static void UpdateResourceAsync(string
+        currentVersion = "") => TaskManager.RunTaskAsync(() => UpdateResource(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0, currentVersion: currentVersion));
     public static void UpdateMFAAsync() => TaskManager.RunTaskAsync(() => UpdateMFA(Instances.VersionUpdateSettingsUserControlModel.DownloadSourceIndex == 0));
 
     public static void UpdateMaaFwAsync() => TaskManager.RunTaskAsync(() => UpdateMaaFw());
@@ -159,10 +162,11 @@ public static class VersionChecker
             }
 
             string latestVersion = string.Empty;
+            string sha256 = string.Empty;
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, strings[0], strings[1], true, currentVersion: resourceVersion);
+                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, out sha256, strings[0], strings[1], true, currentVersion: resourceVersion);
             else
-                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, onlyCheck: true, currentVersion: resourceVersion);
+                GetDownloadUrlFromMirror(resourceVersion, GetResourceID(), CDK(), out _, out latestVersion, out sha256, onlyCheck: true, currentVersion: resourceVersion);
 
             if (string.IsNullOrWhiteSpace(latestVersion))
             {
@@ -177,7 +181,13 @@ public static class VersionChecker
                     Instances.ToastManager.CreateToast().WithTitle("UpdateResource".ToLocalization())
                         .WithContent("ResourceOption".ToLocalization() + "NewVersionAvailableLatestVersion".ToLocalization() + latestVersion).Dismiss().After(TimeSpan.FromSeconds(6))
                         .WithActionButton("Later".ToLocalization(), _ => { }, true, SukiButtonStyles.Basic)
-                        .WithActionButton("Update".ToLocalization(), _ => UpdateResourceAsync(), true).Queue();
+                        .WithActionButton("Update".ToLocalization(), _ =>
+                        {
+                            if (!Instances.RootViewModel.IsUpdating)
+                                UpdateResourceAsync();
+                            else
+                                ToastHelper.Warn("Warning".ToLocalization(), "CurrentOtherUpdatingTask".ToLocalization());
+                        }, true).Queue();
                 });
                 DispatcherHelper.RunOnMainThread(ChangelogViewModel.CheckReleaseNote);
             }
@@ -206,10 +216,11 @@ public static class VersionChecker
             Instances.RootViewModel.SetUpdating(true);
             var localVersion = GetLocalVersion();
             string latestVersion = string.Empty;
+            string sha256 = string.Empty;
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion);
+                GetLatestVersionAndDownloadUrlFromGithub(out var downloadUrl, out latestVersion, out sha256);
             else
-                GetDownloadUrlFromMirror(localVersion, "YuanMFA", CDK(), out _, out latestVersion, isUI: true, onlyCheck: true);
+                GetDownloadUrlFromMirror(localVersion, "YuanMFA", CDK(), out _, out latestVersion, out sha256, isUI: true, onlyCheck: true);
 
             if (IsNewVersionAvailable(latestVersion, GetMaxVersion()))
                 latestVersion = GetMaxVersion();
@@ -220,7 +231,13 @@ public static class VersionChecker
                     Instances.ToastManager.CreateToast().WithTitle("SoftwareUpdate".ToLocalization())
                         .WithContent("MFA" + "NewVersionAvailableLatestVersion".ToLocalization() + latestVersion).Dismiss().After(TimeSpan.FromSeconds(6))
                         .WithActionButton("Later".ToLocalization(), _ => { }, true, SukiButtonStyles.Basic)
-                        .WithActionButton("Update".ToLocalization(), _ => UpdateMFAAsync(), true).Queue();
+                        .WithActionButton("Update".ToLocalization(), _ =>
+                        {
+                            if (!Instances.RootViewModel.IsUpdating)
+                                UpdateMFAAsync();
+                            else
+                                ToastHelper.Warn("Warning".ToLocalization(), "CurrentOtherUpdatingTask".ToLocalization());
+                        }, true).Queue();
                 });
             }
             else
@@ -241,7 +258,7 @@ public static class VersionChecker
         }
     }
 
-    public async static Task UpdateResource(bool isGithub = true, bool closeDialog = false, bool noDialog = false, Action action = null)
+    public async static Task UpdateResource(bool isGithub = true, bool closeDialog = false, bool noDialog = false, Action action = null, string currentVersion = "")
     {
         Instances.RootViewModel.SetUpdating(true);
         ProgressBar? progress = null;
@@ -267,7 +284,7 @@ public static class VersionChecker
         });
 
 
-        var localVersion = MaaProcessor.Interface?.Version ?? string.Empty;
+        var localVersion = string.IsNullOrWhiteSpace(currentVersion) ? MaaProcessor.Interface?.Version ?? string.Empty : currentVersion;
 
         if (string.IsNullOrWhiteSpace(localVersion))
         {
@@ -292,13 +309,13 @@ public static class VersionChecker
         }
         string latestVersion = string.Empty;
         string downloadUrl = string.Empty;
+        string sha256 = string.Empty;
         try
         {
             if (isGithub)
-                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, strings[0], strings[1], currentVersion: localVersion);
+                GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, out sha256, strings[0], strings[1], currentVersion: localVersion);
             else
-                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion, currentVersion: localVersion);
-
+                GetDownloadUrlFromMirror(localVersion, GetResourceID(), CDK(), out downloadUrl, out latestVersion, out sha256, currentVersion: localVersion);
         }
         catch (Exception ex)
         {
@@ -353,12 +370,12 @@ public static class VersionChecker
 
         SetText(textBlock, "Downloading".ToLocalization());
         SetProgress(progress, 0);
-        (var downloadStatus, tempZipFilePath) = await DownloadFileAsync(downloadUrl, tempZipFilePath, progress);
+        (var downloadStatus, tempZipFilePath) = await DownloadWithRetry(downloadUrl, tempZipFilePath, progress, 3);
         LoggerHelper.Info(tempZipFilePath);
         if (!downloadStatus)
         {
             Dismiss(sukiToast);
-            ToastHelper.Warn("DownloadFailed".ToLocalization());
+            ToastHelper.Warn("Warning".ToLocalization(), "DownloadFailed".ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
             return;
         }
@@ -371,12 +388,30 @@ public static class VersionChecker
         if (!File.Exists(tempZipFilePath))
         {
             Dismiss(sukiToast);
-            ToastHelper.Warn("DownloadFailed".ToLocalization());
+            ToastHelper.Warn("Warning".ToLocalization(), "DownloadFailed".ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
             return;
         }
-
-        await UniversalExtractor.ExtractAsync(tempZipFilePath, tempExtractDir, progress);
+        SetText(textBlock, "Verifying".ToLocalization());
+        var sha256Verified = true;
+        if (string.IsNullOrWhiteSpace(sha256))
+        {
+            LoggerHelper.Warning("SHA256 is empty, skipping verification.");
+        }
+        else
+        {
+            sha256Verified = await VerifyFileSha256Async(tempZipFilePath, sha256);
+            LoggerHelper.Info("SHA256 verification result: " + sha256Verified);
+        }
+        if (!string.IsNullOrWhiteSpace(sha256) && !sha256Verified)
+        {
+            Dismiss(sukiToast);
+            ToastHelper.Warn("Warning".ToLocalization(), "HashVerificationFailed".ToLocalization());
+            Instances.RootViewModel.SetUpdating(false);
+            return;
+        }
+        SetText(textBlock, "Extracting".ToLocalization());
+        UniversalExtractor.Extract(tempZipFilePath, tempExtractDir);
         SetText(textBlock, "ApplyingUpdate".ToLocalization());
         var originPath = tempExtractDir;
         var interfacePath = Path.Combine(tempExtractDir, "interface.json");
@@ -392,7 +427,7 @@ public static class VersionChecker
             resourceDirPath = Path.Combine(tempExtractDir, "assets", "resource");
         }
 
-        if (isGithub)
+        if (isGithub || currentVersion.Equals("v0.0.0", StringComparison.OrdinalIgnoreCase))
         {
             if (Directory.Exists(resourcePath))
             {
@@ -418,9 +453,20 @@ public static class VersionChecker
         else
         {
             var changesPath = Path.Combine(tempExtractDir, "changes.json");
+
             if (File.Exists(changesPath))
             {
                 var changes = await File.ReadAllTextAsync(changesPath);
+                if (string.IsNullOrWhiteSpace(changes))
+                {
+                    LoggerHelper.Warning("Empty changes.json found");
+                }
+                else
+                {
+                    var stringBuilder = new StringBuilder(DateTime.Now.ToString("yyyy-MM-dd"));
+                    stringBuilder.AppendLine(changes);
+                    await File.WriteAllTextAsync(Path.Combine(AppContext.BaseDirectory, "changes.json"), stringBuilder.ToString());
+                }
                 try
                 {
                     var changesJson = JsonConvert.DeserializeObject<MirrorChangesJson>(changes);
@@ -438,6 +484,17 @@ public static class VersionChecker
                                     && !Path.GetFileName(delPath).Contains("MFAAvalonia")
                                     && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
+                                    if (Path.GetExtension(delPath).Equals(".md", StringComparison.OrdinalIgnoreCase) && delPath.Contains(AnnouncementViewModel.AnnouncementFolder))
+                                    {
+                                        GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                                    }
+                                    if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
+                                        || !Path.GetFileName(tempPath).Contains("minicap.so", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                                        || Path.GetExtension(delPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
+                                    {
+                                        LoggerHelper.Info("Skip file: " + delPath);
+                                        continue;
+                                    }
                                     LoggerHelper.Info("Deleting file: " + delPath);
                                     File.Delete(delPath);
                                 }
@@ -462,6 +519,13 @@ public static class VersionChecker
                                     && !Path.GetFileName(delPath).Contains("MFAAvalonia")
                                     && !Path.GetFileName(delPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                                 {
+                                    if (Path.GetExtension(delPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
+                                        || !Path.GetFileName(tempPath).Contains("minicap.so", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(delPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                                        || Path.GetExtension(delPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
+                                    {
+                                        LoggerHelper.Info("Skip file: " + delPath);
+                                        continue;
+                                    }
                                     LoggerHelper.Info("Deleting file: " + delPath);
                                     File.Delete(delPath);
                                 }
@@ -479,7 +543,10 @@ public static class VersionChecker
                     LoggerHelper.Error(e);
                 }
             }
-
+            else
+            {
+                LoggerHelper.Error("No changes.json found");
+            }
         }
         var file = new FileInfo(interfacePath);
         if (file.Exists)
@@ -592,33 +659,23 @@ rm $0
             }
         }
 
-        File.Delete(tempZipFilePath);
-        Directory.Delete(tempExtractDir, true);
+        // File.Delete(tempZipFilePath);
+        // Directory.Delete(tempExtractDir, true);
         SetProgress(progress, 80);
 
         var newInterfacePath = Path.Combine(wpfDir, "interface.json");
         if (File.Exists(newInterfacePath))
         {
             var jsonContent = await File.ReadAllTextAsync(newInterfacePath);
-            var settings = new JsonSerializerSettings
-            {
-                Formatting = Formatting.Indented,
-                NullValueHandling = NullValueHandling.Ignore,
-                DefaultValueHandling = DefaultValueHandling.Ignore
-            };
 
-            settings.Converters.Add(new MaaInterfaceSelectOptionConverter(true));
-            settings.Converters.Add(new MaaInterfaceSelectAdvancedConverter(true));
-
-            var @interface = JsonConvert.DeserializeObject<MaaInterface>(jsonContent, settings);
+            var @interface = JObject.Parse(jsonContent);
             if (@interface != null)
             {
-                @interface.Url = MaaProcessor.Interface?.Url;
-                @interface.Version = latestVersion;
+                @interface["url"] = MaaProcessor.Interface?.Url;
+                @interface["version"] = latestVersion;
             }
-            var updatedJsonContent = JsonConvert.SerializeObject(@interface, settings);
 
-            await File.WriteAllTextAsync(newInterfacePath, updatedJsonContent);
+            await File.WriteAllTextAsync(newInterfacePath, @interface.ToString(Formatting.Indented));
         }
 
         SetProgress(progress, 100);
@@ -683,14 +740,14 @@ rm $0
             SetProgress(progress, 10);
 
             // 获取版本信息
-            string downloadUrl, latestVersion;
+            string downloadUrl, latestVersion, sha256;
             try
             {
 
                 if (isGithub)
-                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion);
+                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, out sha256);
                 else
-                    GetDownloadUrlFromMirror(GetLocalVersion(), "YuanMFA", CDK(), out downloadUrl, out latestVersion, isUI: true);
+                    GetDownloadUrlFromMirror(GetLocalVersion(), "YuanMFA", CDK(), out downloadUrl, out latestVersion, out sha256, isUI: true);
             }
             catch (Exception ex)
             {
@@ -707,7 +764,7 @@ rm $0
             {
                 latestVersion = GetMaxVersion();
                 if (isGithub)
-                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out _, targetVersion: latestVersion);
+                    GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out _, out sha256, targetVersion: latestVersion);
             }
 
             if (!IsNewVersionAvailable(latestVersion, GetLocalVersion()))
@@ -730,7 +787,7 @@ rm $0
             if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("DownloadFailed".ToLocalization());
+                ToastHelper.Warn("Warning".ToLocalization(), "DownloadFailed".ToLocalization());
                 Instances.RootViewModel.SetUpdating(false);
                 return;
             }
@@ -740,8 +797,26 @@ rm $0
             var extractDir = Path.Combine(tempPath, $"mfa_{latestVersion}_extracted");
             if (Directory.Exists(extractDir))
                 Directory.Delete(extractDir, true);
+            SetText(textBlock, "Verifying".ToLocalization());
+            var sha256Verified = true;
+            if (string.IsNullOrWhiteSpace(sha256))
+            {
+                LoggerHelper.Warning("SHA256 is empty, skipping verification.");
+            }
+            else
+            {
+                sha256Verified = await VerifyFileSha256Async(tempZip, sha256);
+                LoggerHelper.Info("SHA256 verification result: " + sha256Verified);
+            }
+            if (!string.IsNullOrWhiteSpace(sha256) && !sha256Verified)
+            {
+                Dismiss(sukiToast);
+                ToastHelper.Warn("Warning".ToLocalization(), "HashVerificationFailed".ToLocalization());
+                Instances.RootViewModel.SetUpdating(false);
+                return;
+            }
             SetText(textBlock, "Extracting".ToLocalization());
-            await UniversalExtractor.ExtractAsync(tempZip, extractDir, progress);
+            UniversalExtractor.Extract(tempZip, extractDir);
 
             SetText(textBlock, "ApplyingUpdate".ToLocalization());
             // 执行安全更新
@@ -858,6 +933,7 @@ rm $0
         }
         return (false, savePath);
     }
+
     private static string BuildArguments(string source, string target, string oldName, string newName)
     {
         var args = new List<string>
@@ -1013,10 +1089,10 @@ rm $0
             SetProgress(progress, 10);
             var resId = "MaaFramework";
             var currentVersion = MaaProcessor.Utility.Version;
-            string downloadUrl = string.Empty, latestVersion = string.Empty;
+            string downloadUrl = string.Empty, latestVersion = string.Empty, sha256 = string.Empty;
             try
             {
-                GetDownloadUrlFromMirror(currentVersion, resId, CDK(), out downloadUrl, out latestVersion, "MFA", true);
+                GetDownloadUrlFromMirror(currentVersion, resId, CDK(), out downloadUrl, out latestVersion, out sha256, "MFA", true);
             }
             catch (Exception ex)
             {
@@ -1045,7 +1121,7 @@ rm $0
             if (!downloadStatus)
             {
                 Dismiss(sukiToast);
-                ToastHelper.Warn("DownloadFailed".ToLocalization());
+                ToastHelper.Warn("Warning".ToLocalization(), "DownloadFailed".ToLocalization());
                 Instances.RootViewModel.SetUpdating(false);
                 return;
             }
@@ -1097,6 +1173,7 @@ rm $0
 
     public static void GetLatestVersionAndDownloadUrlFromGithub(out string url,
         out string latestVersion,
+        out string sha256,
         string owner = "syoius",
         string repo = "MFAAvalonia",
         bool onlyCheck = false,
@@ -1108,7 +1185,7 @@ rm $0
             : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
         url = string.Empty;
         latestVersion = string.Empty;
-
+        sha256 = string.Empty;
         if (string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(repo))
             return;
 
@@ -1166,7 +1243,7 @@ rm $0
                                 if (!onlyCheck && repo != "MFAAvalonia")
                                     SaveChangelog(tag, "body");
                             }
-                            url = GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo);
+                            GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo, out url, out sha256);
                             return;
                         }
                         if (string.IsNullOrEmpty(targetVersion) && !string.IsNullOrEmpty(latestVersion))
@@ -1178,7 +1255,7 @@ rm $0
                                 if (!onlyCheck && repo != "MFAAvalonia")
                                     SaveChangelog(tag, "body");
                             }
-                            url = GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo);
+                            GetDownloadUrlFromGitHubRelease(latestVersion, owner, repo, out url, out sha256);
                             return;
                         }
                     }
@@ -1202,13 +1279,26 @@ rm $0
             page++;
         }
     }
+    private static string ExtractSha256FromDigest(string? digest)
+    {
+        if (string.IsNullOrEmpty(digest))
+            return string.Empty;
 
-    private static string GetDownloadUrlFromGitHubRelease(string version, string owner, string repo)
+        if (digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+        {
+            // 提取冒号后的部分
+            return digest.Substring(7);
+        }
+
+        return digest;
+    }
+    private static void GetDownloadUrlFromGitHubRelease(string version, string owner, string repo, out string downloadUrl, out string sha256)
     {
         // 获取当前运行环境信息
         var osPlatform = GetNormalizedOSPlatform();
         var cpuArch = GetNormalizedArchitecture();
-
+        downloadUrl = string.Empty;
+        sha256 = string.Empty;
         var releaseUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/tags/{version}";
         using var httpClient = CreateHttpClientWithProxy();
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("MFAComponentUpdater/1.0");
@@ -1235,12 +1325,14 @@ rm $0
                         .Select(asset => new
                         {
                             Url = asset["browser_download_url"]?.ToString(),
-                            Name = asset["name"]?.ToString().ToLower()
+                            Name = asset["name"]?.ToString().ToLower(),
+                            Sha256 = ExtractSha256FromDigest(asset["digest"]?.ToString())
                         })
                         .OrderByDescending(a => GetAssetPriority(a.Name, osPlatform, cpuArch))
                         .ToList();
-
-                    return orderedAssets.FirstOrDefault()?.Url ?? string.Empty;
+                    var orderAsset = orderedAssets.FirstOrDefault();
+                    downloadUrl = orderAsset?.Url ?? string.Empty;
+                    sha256 = orderAsset?.Sha256 ?? string.Empty;
                 }
             }
             else if (response.StatusCode == HttpStatusCode.Forbidden && response.ReasonPhrase.Contains("403"))
@@ -1259,7 +1351,6 @@ rm $0
             LoggerHelper.Error($"处理GitHub响应时发生错误: {e.Message}");
             throw new Exception($"{e.Message}");
         }
-        return string.Empty;
     }
 
 // 标准化操作系统标识
@@ -1267,7 +1358,7 @@ rm $0
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return "win";
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || OperatingSystem.IsMacOS() || OperatingSystem.IsIOS())
             return "macos";
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             return "linux";
@@ -1323,6 +1414,7 @@ rm $0
         string cdk,
         out string url,
         out string latestVersion,
+        out string sha256,
         string userAgent = "YuanMFA",
         bool isUI = false,
         bool onlyCheck = false,
@@ -1353,7 +1445,7 @@ rm $0
         var channel = versionType.GetName();
         var multiplatformString = multiplatform ? $"os={os}&arch={arch}&" : "";
         var releaseUrl = isUI
-            ? $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}os={os}&arch={arch}"
+            ? $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}os={os}&arch={arch}&user_agent={userAgent}"
             : $"https://mirrorchyan.com/api/resources/{resId}/latest?channel={channel}&current_version={version}&{cdkD}{multiplatformString}user_agent={userAgent}";
         using var httpClient = CreateHttpClientWithProxy();
         httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("request");
@@ -1385,7 +1477,7 @@ rm $0
 
             url = data["url"]?.ToString() ?? string.Empty;
             latestVersion = data["version_name"]?.ToString() ?? string.Empty;
-
+            sha256 = data["sha256"]?.ToString() ?? string.Empty;
             if (IsNewVersionAvailable(latestVersion, currentVersion))
             {
                 if (onlyCheck && !isUI && data != null)
@@ -1451,7 +1543,8 @@ rm $0
                 throw new Exception("MirrorUseLimitReached".ToLocalization());
             case 7004:
                 throw new Exception("MirrorCdkMismatch".ToLocalization());
-
+            case 7005:
+                throw new Exception("MirrorCDKBanned".ToLocalization());
             // 资源相关错误 (404)
             case 8001:
                 throw new Exception("CurrentResourcesNotSupportMirror".ToLocalization());
@@ -1657,6 +1750,30 @@ rm $0
         }
     }
 
+    async private static Task<bool> VerifyFileSha256Async(string filePath, string expectedSha256)
+    {
+        if (string.IsNullOrEmpty(expectedSha256) || !File.Exists(filePath))
+            return false;
+
+        try
+        {
+            using var fileStream = File.OpenRead(filePath);
+            using var sha256Algorithm = SHA256.Create();
+
+            // 计算文件的SHA256哈希
+            byte[] hashBytes = await sha256Algorithm.ComputeHashAsync(fileStream);
+            string actualSha256 = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+            // 比较计算结果与预期值
+            return actualSha256.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"SHA256校验失败: {ex.Message}");
+            return false;
+        }
+    }
+
     public class MirrorChangesJson
     {
         [JsonProperty("modified")] public List<string>? Modified;
@@ -1754,9 +1871,29 @@ rm $0
                 if (overwriteMFA
                     || !Path.GetFileName(tempPath).Contains("MFAUpdater") && !Path.GetFileName(tempPath).Contains("MFAAvalonia") && !Path.GetFileName(tempPath).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                 {
-                    if (saveAnnouncement && tempPath.Contains(AnnouncementViewModel.AnnouncementFolder))
+                    if (saveAnnouncement && tempPath.Contains(AnnouncementViewModel.AnnouncementFolder) && Path.GetExtension(file.Name).Equals(".md", StringComparison.OrdinalIgnoreCase))
                     {
-                        GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                        if (File.Exists(tempPath))
+                        {
+                            var sourceContent = File.ReadAllText(file.FullName);
+                            var destContent = File.ReadAllText(tempPath);
+
+                            if (!string.Equals(sourceContent, destContent, StringComparison.Ordinal))
+                            {
+                                GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                            }
+                        }
+                        else
+                        {
+                            GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowAnnouncementAgain, bool.FalseString);
+                        }
+                    }
+                    if (Path.GetExtension(tempPath).Equals(".dll", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsWindows()
+                        || !Path.GetFileName(tempPath).Contains("minicap.so", StringComparison.OrdinalIgnoreCase) && Path.GetExtension(tempPath).Equals(".so", StringComparison.OrdinalIgnoreCase) && OperatingSystem.IsLinux()
+                        || Path.GetExtension(tempPath).Equals(".dylib", StringComparison.OrdinalIgnoreCase) && (OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()))
+                    {
+                        LoggerHelper.Info("Skip file: " + tempPath);
+                        continue;
                     }
                     LoggerHelper.Info("Copying file: " + tempPath);
                     file.CopyTo(tempPath, true);
@@ -1774,9 +1911,10 @@ rm $0
         foreach (var subDir in dirs)
         {
             string tempPath = Path.Combine(destDirName, subDir.Name);
-            DirectoryMerge(subDir.FullName, tempPath);
+            DirectoryMerge(subDir.FullName, tempPath, overwriteMFA, saveAnnouncement);
         }
     }
+
     private static void SaveRelease(JToken? releaseData, string from)
     {
         try
@@ -1823,137 +1961,99 @@ rm $0
 
     public static HttpClient CreateHttpClientWithProxy()
     {
-        // 检查是否禁用SSL
         bool disableSSL = File.Exists(Path.Combine(AppContext.BaseDirectory, "NO_SSL"));
         LoggerHelper.Info($"SSL验证状态: {(disableSSL ? "已禁用" : "已启用")}");
 
-        // 获取应用内代理设置
-        var appProxyAddress = Instances.VersionUpdateSettingsUserControlModel.ProxyAddress;
-        var appProxyType = Instances.VersionUpdateSettingsUserControlModel.ProxyType;
+        var _proxyAddress = Instances.VersionUpdateSettingsUserControlModel.ProxyAddress;
         NetworkCredential? credentials = null;
 
-        // 检测系统代理 (新增)
-        WebProxy systemProxy = null;
+        if (string.IsNullOrWhiteSpace(_proxyAddress))
+            return new HttpClient();
+
         try
         {
-            // 获取系统默认代理
-            systemProxy = (WebProxy)WebRequest.GetSystemWebProxy();
-            if (systemProxy != null && !string.IsNullOrWhiteSpace(systemProxy.Address?.AbsoluteUri))
+            var userHostParts = _proxyAddress.Split('@');
+            string endpointPart;
+            if (userHostParts.Length == 2)
             {
-                LoggerHelper.Info($"检测到系统代理: {systemProxy.Address}");
+
+                var credentialsPart = userHostParts[0];
+                endpointPart = userHostParts[1];
+                var creds = credentialsPart.Split(':');
+                if (creds.Length != 2)
+                    throw new FormatException("认证信息格式错误，应为 '<username>:<password>'");
+                credentials = new NetworkCredential(creds[0], creds[1]);
+            }
+            else if (userHostParts.Length == 1)
+            {
+                endpointPart = userHostParts[0];
+            }
+            else
+            {
+                throw new FormatException("代理地址格式错误，应为 '[<username>:<password>@]<host>:<port>'");
+            }
+            var hostParts = endpointPart.Split(':');
+            if (hostParts.Length != 2)
+                throw new FormatException("主机部分格式错误，应为 '<host>:<port>'");
+
+            var handler = new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (sender, cert, chain, errors) =>
+                {
+                    LoggerHelper.Info($"证书验证: {cert?.Subject ?? "null"}");
+                    LoggerHelper.Info($"证书错误类型: {errors}");
+
+                    if (chain != null)
+                    {
+                        foreach (var status in chain.ChainStatus)
+                        {
+                            LoggerHelper.Info($"证书链状态: {status.Status}, {status.StatusInformation}");
+                        }
+                    }
+
+                    if (errors == SslPolicyErrors.RemoteCertificateChainErrors)
+                    {
+                        bool onlyTimeError = (chain?.ChainStatus ?? []).All(s =>
+                            s.Status == X509ChainStatusFlags.NotTimeValid || s.Status == X509ChainStatusFlags.NoError);
+
+                        if (onlyTimeError)
+                        {
+                            LoggerHelper.Warning("证书时间无效，但已放行");
+                            return true;
+                        }
+                    }
+
+                    return errors == SslPolicyErrors.None;
+                },
+                UseCookies = false,
+                SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+            };
+
+            switch (Instances.VersionUpdateSettingsUserControlModel.ProxyType)
+            {
+                case VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5:
+                    handler.Proxy = new WebProxy($"socks5://{_proxyAddress}", false, null, credentials);
+                    handler.UseProxy = true;
+                    return new HttpClient(handler)
+                    {
+                        Timeout = TimeSpan.FromSeconds(30),
+                        DefaultRequestVersion = HttpVersion.Version11
+                    };
+                default:
+                    handler.Proxy = new WebProxy($"http://{_proxyAddress}", false, null, credentials);
+                    handler.UseProxy = true;
+                    return new HttpClient(handler)
+                    {
+                        Timeout = TimeSpan.FromSeconds(30),
+                        DefaultRequestVersion = HttpVersion.Version11
+                    };
             }
         }
         catch (Exception ex)
         {
-            LoggerHelper.Warning($"系统代理检测失败: {ex.Message}");
+            LoggerHelper.Error($"代理初始化失败: {ex.Message}");
+            return new HttpClient();
         }
-
-        // 优先使用应用内代理，若无则检查系统代理
-        string effectiveProxyAddress = string.IsNullOrWhiteSpace(appProxyAddress)
-            ? (systemProxy?.Address?.AbsoluteUri ?? "")
-            : appProxyAddress;
-
-        // 判断是否需要使用代理
-        var useProxy = !string.IsNullOrWhiteSpace(effectiveProxyAddress);
-
-        var handler = new HttpClientHandler
-        {
-            // 优化SSL验证逻辑，启用时进行基本证书检查
-            ServerCertificateCustomValidationCallback = disableSSL
-                ? (_, _, _, _) => 
-                {
-                    LoggerHelper.Info("SSL验证已禁用");
-                    return true;
-                }
-                : (sender, cert, chain, errors) =>
-                {
-                    // 简单证书验证，可根据需求扩展
-                    bool isValid = errors == SslPolicyErrors.None;
-                    if (!isValid)
-                    {
-                        LoggerHelper.Warning($"SSL证书验证失败: {errors}");
-                        // 这里可以添加特定证书信任逻辑
-                    }
-                    return isValid;
-                },
-            UseCookies = false,
-            // 增加连接超时设置
-            SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls11 | SslProtocols.Tls // 明确支持的SSL协议
-        };
-
-        if (useProxy)
-        {
-            try
-            {
-                // 解析代理地址 (支持应用内代理和系统代理)
-                string proxyToUse = appProxyAddress;
-                VersionUpdateSettingsUserControlModel.UpdateProxyType proxyTypeToUse = appProxyType;
-
-                // 如果使用系统代理，设置为HTTP代理
-                if (string.IsNullOrWhiteSpace(appProxyAddress) && systemProxy?.Address != null)
-                {
-                    proxyToUse = systemProxy.Address.AbsoluteUri;
-                    proxyTypeToUse = VersionUpdateSettingsUserControlModel.UpdateProxyType.Http;
-
-                    // 尝试获取系统代理认证信息 (新增)
-                    if (systemProxy.Credentials != null && systemProxy.Credentials is NetworkCredential sysCreds)
-                    {
-                        credentials = sysCreds;
-                        LoggerHelper.Info("使用系统代理认证信息");
-                    }
-                }
-
-                // 解析代理地址和认证信息
-                var userHostParts = proxyToUse.Split('@');
-                string endpointPart;
-
-                if (userHostParts.Length == 2)
-                {
-                    var credentialsPart = userHostParts[0];
-                    endpointPart = userHostParts[1];
-                    var creds = credentialsPart.Split(':');
-                    if (creds.Length == 2)
-                    {
-                        credentials = new NetworkCredential(creds[0], creds[1]);
-                    }
-                    else
-                    {
-                        throw new FormatException("认证信息格式错误，应为 '<username>:<password>'");
-                    }
-                }
-                else
-                {
-                    endpointPart = userHostParts[0];
-                }
-
-                var hostParts = endpointPart.Split(':');
-                if (hostParts.Length != 2)
-                    throw new FormatException("主机部分格式错误，应为 '<host>:<port>'");
-
-                // 配置代理
-                switch (proxyTypeToUse)
-                {
-                    case VersionUpdateSettingsUserControlModel.UpdateProxyType.Socks5:
-                        handler.Proxy = new WebProxy($"socks5://{proxyToUse}", false, null, credentials);
-                        break;
-                    default:
-                        handler.Proxy = new WebProxy($"http://{proxyToUse}", false, null, credentials);
-                        break;
-                }
-                handler.UseProxy = true;
-            }
-            catch (Exception ex)
-            {
-                LoggerHelper.Error($"代理配置失败: {ex.Message}");
-                handler.UseProxy = false;
-            }
-        }
-
-        return new HttpClient(handler)
-        {
-            Timeout = TimeSpan.FromSeconds(30),
-            DefaultRequestVersion = HttpVersion.Version11
-        };
     }
     /// <summary>
     /// 从URL中提取文件扩展名

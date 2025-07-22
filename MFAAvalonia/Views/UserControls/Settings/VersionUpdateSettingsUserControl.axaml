@@ -355,6 +355,31 @@
                             </StackPanel>
                         </DockPanel>
                     </Border>
+
+                    <Border Margin="20,5,0,5">
+                        <DockPanel>
+                            <Button
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding RedownloadResourceCommand}"
+                                Content="{markupExtensions:FluentIcon Icon=ArrowRepeatAll,
+                                                                IconSize=Size16}"
+                                IsEnabled="{calcBinding:Binding '!IsUpdating and Idle',
+                                                                Source={x:Static helper:Instances.RootViewModel}}"
+                                DockPanel.Dock="Right"
+                                Height="40"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,4,0"
+                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.RedownloadResourceFullPackage}}" />
+                            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <TextBlock
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Text="{markup:I18n {x:Static helper:LangKeys.RedownloadResourceFullPackage}}"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
                 </StackPanel>
             </Grid>
         </suki:GlassCard>

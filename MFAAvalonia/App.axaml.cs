@@ -21,6 +21,7 @@ using SukiUI.Toasts;
 using System;
 using System.Linq;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -95,7 +96,8 @@ public partial class App : Application
             .AddView<TaskQueueView, TaskQueueViewModel>(services)
             .AddView<ResourcesView, ResourcesViewModel>(services)
             .AddView<SettingsView, SettingsViewModel>(services)
-
+            .AddView<ScreenshotView, ScreenshotViewModel>(services)
+            
             // Add additional views
             .AddView<AddTaskDialogView, AddTaskDialogViewModel>(services)
             .AddView<AdbEditorDialogView, AdbEditorDialogViewModel>(services)
@@ -244,7 +246,13 @@ public partial class App : Application
             errorMessage = "macOS中的全局快捷键Hook异常，可能是由于权限不足或系统限制导致的";
             return true;
         }
-
+        
+        if (ex is AuthenticationException)
+        {
+            errorMessage = "SSL验证证书错误";
+            return true;
+        }
+        
         if (ex is SocketException)
         {
             errorMessage = "代理设置的SSL验证错误";

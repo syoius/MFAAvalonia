@@ -816,7 +816,7 @@
         <value>下次不再提示</value>
     </data>
     <data name="ShowHitDraw" xml:space="preserve">
-        <value>顯示節點命中彈窗 (用於除錯)</value>
+        <value>顯示節點命中截圖（用於除錯）</value>
     </data>
     <data name="ShutDown" xml:space="preserve">
         <value>關機</value>
@@ -1132,5 +1132,53 @@
     </data>
     <data name="MirrorCdkEmpty" xml:space="preserve">
         <value>CDK 為空，請到設定中的更新設定填寫 CDK 或切換更新源至 GitHub</value>
+    </data>
+    <data name="ContinueRunningWhenError" xml:space="preserve">
+        <value>任務執行失敗後是否繼續執行其他任務</value>
+    </data>
+    <data name="CurrentOtherUpdatingTask" xml:space="preserve">
+        <value>目前存在其他正在執行的更新任務</value>
+    </data>
+    <data name="RedownloadUiFullPackage" xml:space="preserve">
+        <value>重新下載 UI 全量包</value>
+    </data>
+    <data name="RedownloadResourceFullPackage" xml:space="preserve">
+        <value>重新下載資源全量包</value>
+    </data>
+    <data name="MirrorCDKBanned" xml:space="preserve">
+        <value>CDK 已被封禁</value>
+    </data>
+    <data name="ScreenshotTest" xml:space="preserve">
+        <value>截圖測試</value>
+    </data>
+    <data name="ScreenshotPage" xml:space="preserve">
+        <value>截圖</value>
+    </data>
+    <data name="ScreenshotFailed" xml:space="preserve">
+        <value>截圖失败</value>
+    </data>
+    <data name="DisplayAnnouncement" xml:space="preserve">
+        <value>顯示公告</value>
+    </data>
+    <data name="ScreenshotEmpty" xml:space="preserve">
+        <value>目前截圖為空! 請點擊【截圖測試】獲取截圖</value>
+    </data>
+    <data name="SaveScreenshot" xml:space="preserve">
+        <value>儲存截圖</value>
+    </data>
+    <data name="AnnouncementEmpty" xml:space="preserve">
+        <value>目前公告為空</value>
+    </data>
+    <data name="Execute" xml:space="preserve">
+        <value>執行</value>
+    </data>
+    <data name="StoppingInternalTask" xml:space="preserve">
+        <value>Stopping internal task...</value>
+    </data>
+    <data name="Verifying" xml:space="preserve">
+        <value>驗證中</value>
+    </data>
+    <data name="HashVerificationFailed" xml:space="preserve">
+        <value>雜湊驗證失敗！資源可能已損壞，可能是網路波動導致，請嘗試重新下載資源。</value>
     </data>
 </root>
