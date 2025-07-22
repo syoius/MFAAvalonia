@@ -1147,10 +1147,10 @@
         <value>当前存在其他正在执行的更新任务</value>
     </data>
     <data name="RedownloadResourceFullPackage" xml:space="preserve">
-        <value>重新下载资源全量包</value>
+        <value>重新安装资源</value>
     </data>
     <data name="RedownloadUiFullPackage" xml:space="preserve">
-        <value>重新下载UI全量包</value>
+        <value>重新安装GUI</value>
     </data>
     <data name="MirrorCDKBanned" xml:space="preserve">
         <value>CDK 已被封禁</value>

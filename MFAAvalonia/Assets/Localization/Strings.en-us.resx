@@ -1140,10 +1140,10 @@
         <value>There are other ongoing update tasks currently</value>
     </data>
     <data name="RedownloadUiFullPackage" xml:space="preserve">
-        <value>Redownload the full UI package</value>
+        <value>Redownload GUI</value>
     </data>
     <data name="RedownloadResourceFullPackage" xml:space="preserve">
-        <value>Redownload the full resource package</value>
+        <value>Redownload Resource</value>
     </data>
     <data name="MirrorCDKBanned" xml:space="preserve">
         <value>CDK has been banned</value>
