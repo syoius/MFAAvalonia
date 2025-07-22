@@ -3,7 +3,7 @@ name: Cross-Platform Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   pull_request:
     branches:
       - main
@@ -66,14 +66,14 @@ jobs:
             commit_short=$(git rev-parse --short HEAD)
             tag="${latest_tag}-${commit_short}-$(date +%Y%m%d)"
           fi
-          
+
           echo "tag=$tag" >> $GITHUB_OUTPUT
           echo "is_release=$is_release" >> $GITHUB_OUTPUT
 
   build:
     name: Build (${{ matrix.platform }}-${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
-    needs: [ changelog, meta ]
+    needs: [changelog, meta]
     strategy:
       matrix:
         include:
@@ -132,12 +132,22 @@ jobs:
       - name: Build Solution
         run: dotnet publish -c Release -r ${{ matrix.platform }}-${{ matrix.arch }}
 
+      - name: Rename Executable
+        shell: bash
+        run: |
+          BUILD_DIR="bin/AnyCPU/Release/${{ matrix.platform }}-${{ matrix.arch }}/publish"
+          if [[ "${{ matrix.platform }}" == "win" ]]; then
+            mv "$BUILD_DIR/MFAAvalonia.exe" "$BUILD_DIR/MaaYuan.exe"
+          else
+            mv "$BUILD_DIR/MFAAvalonia" "$BUILD_DIR/MaaYuan"
+          fi
+
       - name: Unified ZIP Packaging
         shell: bash
         run: |
           BUILD_DIR="bin/AnyCPU/Release/${{ matrix.platform }}-${{ matrix.arch }}/publish"
           OUTPUT_FILE="MFAAvalonia-${{ needs.meta.outputs.tag }}-${{ matrix.platform }}-${{ matrix.arch }}.zip"
-          
+
           # 直接压缩构建目录
           cd $BUILD_DIR
           ${{ matrix.compress_cmd }} ../$OUTPUT_FILE *
@@ -153,73 +163,26 @@ jobs:
     name: Create Release
     if: ${{ needs.meta.outputs.is_release == 'true' }}
     runs-on: ubuntu-latest
-    needs: [ changelog, meta, build ]
+    needs: [changelog, meta, build]
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-        
-      - name: Process and package artifacts
-        run: |
-          cd artifacts
-          for f in *; do
-            if [[ $f == *"win"* ]]; then
-              # Windows artifacts: keep original zip files as they are already in correct format
-              echo "Processing Windows artifact: $f - keeping original zip format"
-              # Move zip files to root directory
-              cd $f
-              mv *.zip ../
-              cd ..
-              # Remove the original directory
-              rm -rf $f
-            else
-              # Unix artifacts: extract, set permissions, and repackage as tar.gz
-              echo "Processing Unix artifact: $f"
-              
-              # Extract the original zip
-              cd $f
-              unzip -q *.zip
-              rm *.zip
-              
-              # Set execute permissions for MFAAvalonia
-              find . -type f -name "MFAAvalonia*" -exec chmod +x {} \; 2>/dev/null || true
-              echo "Set execute permission for all MFAAvalonia files"
-              
-              # Set execute permissions for MFAUpdater
-              find . -type f -name "MFAUpdater*" -exec chmod +x {} \; 2>/dev/null || true
-              echo "Set execute permission for all MFAUpdater files"
-              
-              # Create tar.gz with preserved permissions
-              tar -cpzf ../MFAAvalonia-${{ needs.meta.outputs.tag }}-${f}.tar.gz .
-              echo "Created archive with preserved permissions: MFAAvalonia-${{ needs.meta.outputs.tag }}-${f}.tar.gz"
-              
-              cd ..
-              # Remove the original directory to avoid duplicate files
-              rm -rf $f
-            fi
-          done
-        
-      - name: Validate Artifacts
-        run: |
-          ls -R artifacts
-          echo "Total files: $(find artifacts -type f | wc -l)"
-          
+
       - name: Create Release
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.meta.outputs.tag }}
-          body: |
-            ${{ needs.changelog.outputs.release_body }}
-            [已有Mirror酱 CDk?前往Mirror酱 高速下载](https://mirrorchyan.com/zh/projects?rid=MFAAvalonia&source=mfaagh-release)
+          body: ${{ needs.changelog.outputs.release_body }}
           files: |
-            artifacts/*.zip
-            artifacts/*.tar.gz
+            artifacts/**/*.zip
           draft: false
           prerelease: ${{ contains(needs.meta.outputs.tag, '-') }}
           generate_release_notes: true
+          replace_existing: true
         env:
-          TOKEN: ${{ secrets.MFA_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger MirrorChyanUploading
         run: |

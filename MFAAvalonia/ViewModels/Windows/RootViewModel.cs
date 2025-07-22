@@ -60,6 +60,13 @@ public partial class RootViewModel : ViewModelBase
     private bool _shouldTip = true;
     [ObservableProperty] private bool _isUpdating;
 
+    [ObservableProperty] private string? _currentConfiguration;
+
+    public RootViewModel()
+    {
+        _currentConfiguration = ConfigurationManager.GetCurrentConfiguration();
+    }
+
     public void CheckDebug()
     {
         if (IsDebugMode && _shouldTip)
