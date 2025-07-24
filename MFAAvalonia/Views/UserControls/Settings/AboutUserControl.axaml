@@ -14,7 +14,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages">
     <StackPanel Spacing="10">
-        <suki:GlassCard Padding="25,8,25,8">
+        <suki:GlassCard Padding="25,8,25,8"  Width="400">
             <DockPanel>
                 <Button
                     BorderBrush="Transparent"
