@@ -11,6 +11,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
+using MFAAvalonia.ViewModels.Other;
+using MaaFramework.Binding;
 
 namespace MFAAvalonia.ViewModels.Pages;
 
@@ -46,6 +48,68 @@ public partial class CopilotViewModel : ObservableObject
         EnsureDirs();
         _ = RefreshAsync();
     }
+
+    #region 右侧列（连接与日志）- 与 TaskQueue 右栏对齐
+    // 说明：为复用 TaskQueue 的右侧列 UI，本 ViewModel 补齐必要的同名属性/命令，
+    // 实现采取最小必要封装，直接转发到 Instances.TaskQueueViewModel，避免重复逻辑。
+
+    // 显示控制（与主页一致）
+    public int ShouldShow
+    {
+        get => Instances.TaskQueueViewModel.ShouldShow;
+        set => Instances.TaskQueueViewModel.ShouldShow = value;
+    }
+
+    // 设备列表与当前设备
+    public ObservableCollection<object> Devices
+    {
+        get => Instances.TaskQueueViewModel.Devices;
+        set => Instances.TaskQueueViewModel.Devices = value;
+    }
+
+    public object? CurrentDevice
+    {
+        get => Instances.TaskQueueViewModel.CurrentDevice;
+        set => Instances.TaskQueueViewModel.CurrentDevice = value;
+    }
+
+    // 控制器（ADB/Win32）
+    public MaaControllerTypes CurrentController
+    {
+        get => Instances.TaskQueueViewModel.CurrentController;
+        set => Instances.TaskQueueViewModel.CurrentController = value;
+    }
+
+    // 日志集合
+    public ObservableCollection<LogItemViewModel> LogItemViewModels =>
+        Instances.TaskQueueViewModel.LogItemViewModels;
+
+    // 命令转发（与 TaskQueueViewModel 保持一致的名称，以满足 XAML 绑定）
+    [RelayCommand]
+    private void CustomAdb()
+    {
+        // 直接调用 TaskQueue 的同名方法，避免重复实现
+        try { Instances.TaskQueueViewModel.CustomAdb(); }
+        catch (Exception ex) { LoggerHelper.Error(ex); }
+    }
+
+    // 注意：本 ViewModel 已存在 [RelayCommand] RefreshAsync() → 生成 RefreshCommand。
+    // 因此此处不再声明同名 Refresh() 命令以避免命名冲突。
+
+    [RelayCommand]
+    private void Clear()
+    {
+        try { Instances.TaskQueueViewModel.ClearCommand?.Execute(null); }
+        catch (Exception ex) { LoggerHelper.Error(ex); }
+    }
+
+    [RelayCommand]
+    private void Export()
+    {
+        try { Instances.TaskQueueViewModel.ExportCommand?.Execute(null); }
+        catch (Exception ex) { LoggerHelper.Error(ex); }
+    }
+    #endregion
 
     private static void EnsureDirs()
     {
