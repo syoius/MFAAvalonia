@@ -109,6 +109,21 @@ public partial class CopilotViewModel : ObservableObject
         try { Instances.TaskQueueViewModel.ExportCommand?.Execute(null); }
         catch (Exception ex) { LoggerHelper.Error(ex); }
     }
+
+    // GridSplitter 拖拽指令（与 TaskQueue 保持一致命名，供 XAML behaviors 绑定）
+    [RelayCommand]
+    public void GridSplitterDragStarted(string splitterName)
+    {
+        try { Instances.TaskQueueViewModel.GridSplitterDragStartedCommand?.Execute(splitterName); }
+        catch (Exception ex) { LoggerHelper.Error(ex); }
+    }
+
+    [RelayCommand]
+    public void GridSplitterDragCompleted(string splitterName)
+    {
+        try { Instances.TaskQueueViewModel.GridSplitterDragCompletedCommand?.Execute(splitterName); }
+        catch (Exception ex) { LoggerHelper.Error(ex); }
+    }
     #endregion
 
     private static void EnsureDirs()

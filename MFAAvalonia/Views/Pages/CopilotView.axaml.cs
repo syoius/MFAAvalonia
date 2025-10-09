@@ -10,6 +10,8 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
+using Avalonia.Input;
+using MFAAvalonia.Helper;
 
 namespace MFAAvalonia.Views.Pages;
 
@@ -83,78 +85,138 @@ public partial class CopilotView : UserControl
     /// </summary>
     private void InitializeControllerUI()
     {
-        if (connectionGrid is null || FirstButton is null || SecondButton is null || ControllerPanel is null)
-            return;
-
-        connectionGrid.SizeChanged += (_, __) =>
+        void ApplyLayout()
         {
-            var actualWidth = connectionGrid.Bounds.Width;
-            double totalMinWidth = FirstButton.MinWidth + SecondButton.MinWidth + ControllerPanel.MinWidth;
+            var grid = connectionGrid ?? this.FindControl<Grid>("connectionGrid");
+            var first = FirstButton ?? this.FindControl<RadioButton>("FirstButton");
+            var second = SecondButton ?? this.FindControl<RadioButton>("SecondButton");
+            var panel = ControllerPanel ?? this.FindControl<DockPanel>("ControllerPanel");
+
+            if (grid is null || first is null || second is null || panel is null)
+                return;
+
+            var actualWidth = grid.Bounds.Width;
+            double totalMinWidth = first.MinWidth + second.MinWidth + panel.MinWidth;
 
             if (actualWidth >= totalMinWidth)
             {
                 // 左右三列
-                connectionGrid.RowDefinitions.Clear();
-                connectionGrid.ColumnDefinitions.Clear();
-                connectionGrid.ColumnDefinitions.AddRange(new[]
+                grid.RowDefinitions.Clear();
+                grid.ColumnDefinitions.Clear();
+                grid.ColumnDefinitions.AddRange(new[]
                 {
-                    new ColumnDefinition { Width = new GridLength(FirstButton.MinWidth, GridUnitType.Pixel) },
-                    new ColumnDefinition { Width = new GridLength(SecondButton.MinWidth, GridUnitType.Pixel) },
+                    new ColumnDefinition { Width = new GridLength(first.MinWidth, GridUnitType.Pixel) },
+                    new ColumnDefinition { Width = new GridLength(second.MinWidth, GridUnitType.Pixel) },
                     new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
                 });
 
-                Grid.SetColumn(FirstButton, 0);
-                Grid.SetRow(FirstButton, 0);
-                Grid.SetColumn(SecondButton, 1);
-                Grid.SetRow(SecondButton, 0);
-                Grid.SetColumn(ControllerPanel, 2);
-                Grid.SetRow(ControllerPanel, 0);
+                Grid.SetColumn(first, 0);
+                Grid.SetRow(first, 0);
+                Grid.SetColumn(second, 1);
+                Grid.SetRow(second, 0);
+                Grid.SetColumn(panel, 2);
+                Grid.SetRow(panel, 0);
             }
-            else if (actualWidth >= (FirstButton.MinWidth + SecondButton.MinWidth))
+            else if (actualWidth >= (first.MinWidth + second.MinWidth))
             {
                 // 按钮并排，设备选择换行
-                connectionGrid.RowDefinitions.Clear();
-                connectionGrid.ColumnDefinitions.Clear();
-                connectionGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                connectionGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                connectionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                connectionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Clear();
+                grid.ColumnDefinitions.Clear();
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-                Grid.SetRow(FirstButton, 0);
-                Grid.SetColumn(FirstButton, 0);
-                Grid.SetRow(SecondButton, 0);
-                Grid.SetColumn(SecondButton, 1);
-                Grid.SetRow(ControllerPanel, 1);
-                Grid.SetColumn(ControllerPanel, 0);
-                Grid.SetColumnSpan(ControllerPanel, 2);
+                Grid.SetRow(first, 0);
+                Grid.SetColumn(first, 0);
+                Grid.SetRow(second, 0);
+                Grid.SetColumn(second, 1);
+                Grid.SetRow(panel, 1);
+                Grid.SetColumn(panel, 0);
+                Grid.SetColumnSpan(panel, 2);
 
-                FirstButton.InvalidateMeasure();
-                SecondButton.InvalidateMeasure();
+                first.InvalidateMeasure();
+                second.InvalidateMeasure();
             }
             else
             {
                 // 三行堆叠
-                connectionGrid.ColumnDefinitions.Clear();
-                connectionGrid.RowDefinitions.Clear();
-                connectionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                connectionGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                connectionGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                connectionGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.ColumnDefinitions.Clear();
+                grid.RowDefinitions.Clear();
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-                Grid.SetRow(FirstButton, 0);
-                Grid.SetColumn(FirstButton, 0);
-                Grid.SetRow(SecondButton, 1);
-                Grid.SetColumn(SecondButton, 0);
-                Grid.SetRow(ControllerPanel, 2);
-                Grid.SetColumn(ControllerPanel, 0);
+                Grid.SetRow(first, 0);
+                Grid.SetColumn(first, 0);
+                Grid.SetRow(second, 1);
+                Grid.SetColumn(second, 0);
+                Grid.SetRow(panel, 2);
+                Grid.SetColumn(panel, 0);
             }
 
-            // 保证 UI 在主线程刷新
             Dispatcher.UIThread.Post(() =>
             {
-                connectionGrid.InvalidateMeasure();
-                connectionGrid.InvalidateArrange();
+                grid.InvalidateMeasure();
+                grid.InvalidateArrange();
             }, DispatcherPriority.Background);
-        };
+        }
+
+        // 监听尺寸变化
+        {
+            var grid = connectionGrid ?? this.FindControl<Grid>("connectionGrid");
+            if (grid != null)
+                grid.SizeChanged += (_, __) => ApplyLayout();
+        }
+
+        // 初始应用一次，避免初次显示重叠
+        Dispatcher.UIThread.Post(ApplyLayout, DispatcherPriority.Background);
+    }
+
+    // 与主页相同语义：在分隔条拖拽结束时写回列宽并持久化
+    private void GridSplitter_DragCompleted(object? sender, VectorEventArgs e)
+    {
+        if (MainGrid == null)
+        {
+            LoggerHelper.Error("GridSplitter_DragCompleted: MainGrid is null");
+            return;
+        }
+
+        Dispatcher.UIThread.Post(() =>
+        {
+            try
+            {
+                var actualCol1Width = MainGrid.ColumnDefinitions[0].ActualWidth;
+                var col1Width = MainGrid.ColumnDefinitions[0].Width;
+                var col2Width = MainGrid.ColumnDefinitions[2].Width;
+                var col3Width = MainGrid.ColumnDefinitions[4].Width;
+
+                var vm = MFAAvalonia.Helper.Instances.TaskQueueViewModel;
+                if (vm != null)
+                {
+                    vm.SuppressPropertyChangedCallbacks = true;
+
+                    if (col1Width is { IsStar: true, Value: 0 } && actualCol1Width > 0)
+                        vm.Column1Width = new GridLength(actualCol1Width, GridUnitType.Pixel);
+                    else
+                        vm.Column1Width = col1Width;
+
+                    vm.Column2Width = col2Width;
+                    vm.Column3Width = col3Width;
+
+                    vm.SuppressPropertyChangedCallbacks = false;
+                    vm.SaveColumnWidths();
+                }
+                else
+                {
+                    LoggerHelper.Error("GridSplitter_DragCompleted: ViewModel is null");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.Error($"更新列宽失败: {ex.Message}");
+            }
+        });
     }
 }
