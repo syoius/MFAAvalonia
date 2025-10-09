@@ -1246,8 +1246,12 @@ public class MaaProcessor
                     {
                         if (!Path.Exists($"{resourcePath}/pipeline/"))
                             break;
-                        var jsonFiles = Directory.GetFiles(Path.GetFullPath($"{resourcePath}/pipeline/"), "*.json", SearchOption.AllDirectories);
-                        var jsoncFiles = Directory.GetFiles(Path.GetFullPath($"{resourcePath}/pipeline/"), "*.jsonc", SearchOption.AllDirectories);
+                        var pipelineRoot = Path.GetFullPath($"{resourcePath}/pipeline/");
+                        var excludeMarker = $"{Path.DirectorySeparatorChar}copilot-cache{Path.DirectorySeparatorChar}";
+                        var jsonFiles = Directory.GetFiles(pipelineRoot, "*.json", SearchOption.AllDirectories)
+                            .Where(p => !p.Contains(excludeMarker, StringComparison.OrdinalIgnoreCase));
+                        var jsoncFiles = Directory.GetFiles(pipelineRoot, "*.jsonc", SearchOption.AllDirectories)
+                            .Where(p => !p.Contains(excludeMarker, StringComparison.OrdinalIgnoreCase));
                         var allFiles = jsonFiles.Concat(jsoncFiles).ToArray();
                         fileCount = allFiles.Length;
                         // var taskDictionaryA = new Dictionary<string, MaaNode>();

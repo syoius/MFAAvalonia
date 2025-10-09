@@ -172,6 +172,8 @@ public partial class CopilotViewModel : ObservableObject
         EnsureDirs();
         try
         {
+            // 清理 copilot 目录：仅保留 copilot_config.json，其余 *.json/*.jsonc 删除
+            ClearCopilotActiveDir();
             var dest = Path.Combine(CopilotActiveDir, SelectedFile.Name);
             File.Copy(SelectedFile.FullPath, dest, true);
             // 重载资源
@@ -183,6 +185,31 @@ public partial class CopilotViewModel : ObservableObject
         {
             LoggerHelper.Error(ex);
             ToastHelper.Error("加载失败");
+        }
+    }
+
+    private static void ClearCopilotActiveDir()
+    {
+        try
+        {
+            if (!Directory.Exists(CopilotActiveDir)) return;
+            foreach (var file in Directory.EnumerateFiles(CopilotActiveDir, "*.*", SearchOption.TopDirectoryOnly))
+            {
+                var ext = Path.GetExtension(file);
+                var name = Path.GetFileName(file);
+                if (ext.Equals(".json", StringComparison.OrdinalIgnoreCase) || ext.Equals(".jsonc", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!name.Equals("copilot_config.json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        try { File.Delete(file); }
+                        catch (Exception e) { LoggerHelper.Warning($"删除旧作业失败: {file} => {e.Message}"); }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning(ex);
         }
     }
 
