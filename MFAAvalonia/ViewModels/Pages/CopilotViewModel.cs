@@ -33,6 +33,9 @@ public partial class CopilotViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasSelection;
 
+    [ObservableProperty]
+    private string _secretCode = string.Empty;
+
     partial void OnSelectedFileChanged(CopilotFileItem? value)
     {
         HasSelection = value != null;
@@ -107,6 +110,7 @@ public partial class CopilotViewModel : ObservableObject
 
     public async Task ImportMysteryCodeAsync(string code)
     {
+        if (string.IsNullOrWhiteSpace(code)) code = SecretCode;
         if (string.IsNullOrWhiteSpace(code)) { ToastHelper.Warn("请输入神秘代码"); return; }
         EnsureDirs();
         try

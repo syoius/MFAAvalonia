@@ -6,6 +6,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:pages="clr-namespace:MFAAvalonia.Views.Pages"
     xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    xmlns:extensions="clr-namespace:MFAAvalonia.Extensions"
+    x:DataType="vm:CopilotViewModel"
+    DataContext="{extensions:ServiceProvider ServiceType={x:Type vm:CopilotViewModel}}"
     d:DesignWidth="800"
     d:DesignHeight="600"
     mc:Ignorable="d">
@@ -16,7 +19,7 @@
         <!-- Toolbar -->
         <StackPanel Orientation="Horizontal" Spacing="8" Margin="8" Grid.Row="0" Grid.ColumnSpan="2">
             <Button Content="导入本地 JSON" Click="OnImportLocalJson" />
-            <TextBox x:Name="MysteryCodeTextBox" Watermark="maa://<id> 或 <id>" Width="220"/>
+            <TextBox Watermark="maa://&lt;id&gt; 或 &lt;id&gt;" Width="220" Text="{Binding SecretCode, Mode=TwoWay}"/>
             <Button Content="使用神秘代码导入" Click="OnImportMysteryCode" />
             <Button Content="刷新" Click="OnRefresh"/>
             <Button Content="打开缓存目录" Click="OnOpenCacheDir"/>
@@ -29,9 +32,9 @@
                    Text="缓存目录中的作业在此展示；选择一项后点击‘加载到资源’将文件复制到 resource/base/pipeline/copilot/ 并触发资源重载（无需重启）。"/>
 
         <!-- File list -->
-        <ListBox Grid.Row="2" Grid.Column="0" Margin="8" Items="{Binding Files}" SelectedItem="{Binding SelectedFile}">
+        <ListBox Grid.Row="2" Grid.Column="0" Margin="8" ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}">
             <ListBox.ItemTemplate>
-                <DataTemplate>
+                <DataTemplate x:DataType="vm:CopilotFileItem">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="{Binding Name}" Width="320"/>
                         <TextBlock Text="{Binding SizeText}" Width="100"/>

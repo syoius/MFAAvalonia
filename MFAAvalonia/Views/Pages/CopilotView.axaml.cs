@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using MFAAvalonia.ViewModels.Pages;
+using Microsoft.Extensions.DependencyInjection;
 using Avalonia.Markup.Xaml;
 
 namespace MFAAvalonia.Views.Pages;
@@ -13,6 +14,8 @@ public partial class CopilotView : UserControl
 {
     public CopilotView()
     {
+        // 兜底：在编译的 XAML 未刷新时（--no-build），仍确保 DataContext 正确
+        try { DataContext = MFAAvalonia.App.Services.GetRequiredService<CopilotViewModel>(); } catch { /* fallback to XAML */ }
         InitializeComponent();
         this.AttachedToVisualTree += (_, __) => (DataContext as CopilotViewModel)?.Initialize();
     }
@@ -32,7 +35,7 @@ public partial class CopilotView : UserControl
             {
                 Title = "选择作业 JSON",
                 AllowMultiple = false,
-                FileTypeFilter =
+                FileTypeFilter = new[]
                 {
                     new FilePickerFileType("JSON") { Patterns = new[] { "*.json" } }
                 }
@@ -48,8 +51,7 @@ public partial class CopilotView : UserControl
 
     private async void OnImportMysteryCode(object? sender, RoutedEventArgs e)
     {
-        var code = this.FindControl<TextBox>("MysteryCodeTextBox").Text?.Trim();
-        await (DataContext as CopilotViewModel)!.ImportMysteryCodeAsync(code ?? string.Empty);
+        await (DataContext as CopilotViewModel)!.ImportMysteryCodeAsync(string.Empty);
     }
 
     private async void OnRefresh(object? sender, RoutedEventArgs e)
