@@ -18,10 +18,14 @@ namespace MFAAvalonia.ViewModels.Pages;
 
 public partial class CopilotViewModel : ObservableObject
 {
+    private const string DefaultCopilotTaskName = "✨ 自动抄作业V3";
+
     private static string ResourceBase => MaaProcessor.ResourceBase;
     private static string PipelineDir => Path.Combine(ResourceBase, "pipeline");
     private static string CopilotActiveDir => Path.Combine(PipelineDir, "copilot");
-    private static string CopilotCacheDir => Path.Combine(PipelineDir, "copilot-cache");
+    // 迁移：缓存目录移至 ResourceBase 根，避免引擎扫描 pipeline 下的缓存导致解析冲突
+    private static string CopilotCacheDir => Path.Combine(ResourceBase, "copilot-cache");
+    private static string OldCopilotCacheDir => Path.Combine(PipelineDir, "copilot-cache");
 
     [ObservableProperty]
     private ObservableCollection<CopilotFileItem> _files = new();
@@ -46,7 +50,10 @@ public partial class CopilotViewModel : ObservableObject
     public void Initialize()
     {
         EnsureDirs();
+        // 优先确保资源与任务源已加载（避免首次进入时任务列表为空）
+        try { MaaProcessor.ReloadResources(); } catch { /* ignore */ }
         _ = RefreshAsync();
+        _ = EnsureDefaultTaskSelectedAsync();
     }
 
     #region 右侧列（连接与日志）- 与 TaskQueue 右栏对齐
@@ -133,11 +140,92 @@ public partial class CopilotViewModel : ObservableObject
             Directory.CreateDirectory(PipelineDir);
             Directory.CreateDirectory(CopilotActiveDir);
             Directory.CreateDirectory(CopilotCacheDir);
+
+            // 迁移：将 pipeline/copilot-cache 挪到 resource/base/copilot-cache，避免被底层引擎当作 pipeline 解析
+            if (Directory.Exists(OldCopilotCacheDir))
+            {
+                try
+                {
+                    foreach (var file in Directory.EnumerateFiles(OldCopilotCacheDir, "*.json", SearchOption.TopDirectoryOnly))
+                    {
+                        var dest = Path.Combine(CopilotCacheDir, Path.GetFileName(file));
+                        if (!File.Exists(dest))
+                        {
+                            File.Move(file, dest);
+                        }
+                        else
+                        {
+                            // 已存在则保留较新的
+                            var srcInfo = new FileInfo(file);
+                            var dstInfo = new FileInfo(dest);
+                            if (srcInfo.LastWriteTimeUtc > dstInfo.LastWriteTimeUtc)
+                            {
+                                File.Copy(file, dest, true);
+                            }
+                            File.Delete(file);
+                        }
+                    }
+                    // 移除旧目录
+                    Directory.Delete(OldCopilotCacheDir, true);
+                    LoggerHelper.Info("已迁移 copilot-cache 至 ResourceBase，避免引擎解析缓存");
+                }
+                catch (Exception e)
+                {
+                    LoggerHelper.Warning($"迁移 copilot-cache 失败: {e.Message}");
+                }
+            }
         }
         catch (Exception ex)
         {
             LoggerHelper.Error($"创建目录失败: {ex}");
         }
+    }
+
+    /// <summary>
+    /// 将主页任务选择固定为“✨ 自动抄作业V3”，并取消勾选其余任务。
+    /// </summary>
+    private async Task EnsureDefaultTaskSelectedAsync()
+    {
+        try
+        {
+            // 若任务正在运行，避免修改选择
+            if (Instances.RootViewModel.IsRunning)
+                return;
+
+            // 确保任务源存在
+            MaaProcessor.Instance.InitializeData();
+
+            var vm = Instances.TaskQueueViewModel;
+            var items = vm.TaskItemViewModels;
+            if (items == null || items.Count == 0)
+                return;
+
+            // 先全部取消勾选
+            foreach (var it in items)
+                it.IsCheckedWithNull = false;
+
+            // 按名称匹配（兼容已本地化的名称）
+            var target = items.FirstOrDefault(i => string.Equals(i.Name, DefaultCopilotTaskName, StringComparison.OrdinalIgnoreCase))
+                         ?? items.FirstOrDefault(i => string.Equals(i.InterfaceItem?.Name, DefaultCopilotTaskName, StringComparison.OrdinalIgnoreCase));
+
+            if (target != null)
+            {
+                target.IsCheckedWithNull = true; // 三态为 true
+                // 默认展开设置（若在主页查看），这里不强依赖面板，仅保证配置为该任务
+                vm.ShowSettings = false;
+                await Task.CompletedTask;
+                return;
+            }
+
+            // 未命中则写日志但不抛异常，避免阻塞界面
+            LoggerHelper.Warning($"Copilot: 未找到默认任务 '{DefaultCopilotTaskName}'");
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"设置默认任务失败: {ex.Message}");
+        }
+
+        await Task.CompletedTask;
     }
 
     [RelayCommand]
