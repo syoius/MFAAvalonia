@@ -99,12 +99,12 @@
                             <TextBlock Text="当前激活："/>
                             <TextBlock Text="{Binding Status}" Foreground="{DynamicResource SukiPrimaryColor}"/>
                         </StackPanel>
-                        <ListBox Grid.Row="1" Classes="Fluent" ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}"
+                        <ListBox Grid.Row="1" x:Name="CopilotList" Classes="Fluent" ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}"
                                  MinHeight="220" ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <ListBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:CopilotFileItem">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <TextBlock Text="{Binding Name}" Width="320"/>
+                                        <TextBlock Text="{Binding DisplayName}" Width="320"/>
                                         <TextBlock Text="{Binding SizeText}" Width="100"/>
                                         <TextBlock Text="{Binding ModifiedText}"/>
                                     </StackPanel>

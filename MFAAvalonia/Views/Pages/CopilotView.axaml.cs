@@ -24,6 +24,8 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Xaml.Interactivity;
 using Avalonia.Data.Converters;
 using System.Text.RegularExpressions;
+using System.Text;
+using System.IO;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Extensions;
 using Avalonia;
@@ -35,6 +37,8 @@ namespace MFAAvalonia.Views.Pages;
 
 public partial class CopilotView : UserControl
 {
+    private bool _isSelectionRefreshBusy;
+
     public CopilotView()
     {
         // 兜底：在编译的 XAML 未刷新时（--no-build），仍确保 DataContext 正确
@@ -46,6 +50,8 @@ public partial class CopilotView : UserControl
             (DataContext as CopilotViewModel)?.Initialize();
             // 稍后渲染默认任务的设置与说明
             Dispatcher.UIThread.Post(async () => await RenderDefaultTaskSettingsAsync(), DispatcherPriority.Background);
+            // 选中即预览并重载
+            TryHookSelectionChanged();
         };
     }
 
@@ -91,6 +97,8 @@ public partial class CopilotView : UserControl
     private async void OnLoadSelected(object? sender, RoutedEventArgs e)
     {
         await (DataContext as CopilotViewModel)!.LoadSelectedAsync();
+        // 加载完成后，尝试用所选作业的 details 渲染“任务说明”
+        try { await RenderSelectedTaskDetailsAsync(); } catch { /* ignore */ }
     }
 
     private async void OnOpenCacheDir(object? sender, RoutedEventArgs e)
@@ -101,6 +109,35 @@ public partial class CopilotView : UserControl
     private async void OnPreview(object? sender, RoutedEventArgs e)
     {
         await (DataContext as CopilotViewModel)!.PreviewSelectedAsync();
+    }
+
+    private void TryHookSelectionChanged()
+    {
+        try
+        {
+            var list = this.FindControl<ListBox>("CopilotList");
+            if (list == null) return;
+            list.SelectionChanged -= OnListSelectionChanged;
+            list.SelectionChanged += OnListSelectionChanged;
+        }
+        catch { /* ignore */ }
+    }
+
+    private async void OnListSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (_isSelectionRefreshBusy) return;
+        _isSelectionRefreshBusy = true;
+        try
+        {
+            // 选中即预览
+            try { await RenderSelectedTaskDetailsAsync(); } catch { }
+            // 并触发加载（重载资源）
+            try { await (DataContext as CopilotViewModel)!.LoadSelectedAsync(); } catch { }
+        }
+        finally
+        {
+            _isSelectionRefreshBusy = false;
+        }
     }
 
     /// <summary>
@@ -184,6 +221,70 @@ public partial class CopilotView : UserControl
         catch (Exception ex)
         {
             LoggerHelper.Error($"Copilot 渲染任务设置失败: {ex.Message}");
+        }
+    }
+
+    private async Task RenderSelectedTaskDetailsAsync()
+    {
+        var vm = DataContext as CopilotViewModel;
+        if (vm?.SelectedFile == null) return;
+        try
+        {
+            var introView = CopilotIntroduction ?? this.FindControl<Markdown.Avalonia.MarkdownScrollViewer>("CopilotIntroduction");
+            if (introView == null) return;
+
+            // 读取所选作业文件，解析关卡/密探/详情
+            string details = string.Empty;
+            string stageLine = string.Empty;
+            string opersLine = string.Empty;
+            using (var sr = new StreamReader(vm.SelectedFile.FullPath, Encoding.UTF8, true))
+            {
+                var text = await sr.ReadToEndAsync();
+                try
+                {
+                    var node = System.Text.Json.Nodes.JsonNode.Parse(text) as System.Text.Json.Nodes.JsonObject;
+                    if (node != null)
+                    {
+                        // details
+                        if (node["doc"] is System.Text.Json.Nodes.JsonObject doc && doc["details"] is System.Text.Json.Nodes.JsonValue dv && dv.TryGetValue<string>(out var dstr))
+                            details = dstr ?? string.Empty;
+
+                        // 关卡行：关卡:{game}-{cat_one}-{cat_two}
+                        string game = string.Empty, cat1 = string.Empty, cat2 = string.Empty;
+                        if (node["level_meta"] is System.Text.Json.Nodes.JsonObject lm)
+                        {
+                            if (lm["game"] is System.Text.Json.Nodes.JsonValue gv && gv.TryGetValue<string>(out var g)) game = g ?? string.Empty;
+                            if (lm["cat_one"] is System.Text.Json.Nodes.JsonValue c1v && c1v.TryGetValue<string>(out var c1)) cat1 = c1 ?? string.Empty;
+                            if (lm["cat_two"] is System.Text.Json.Nodes.JsonValue c2v && c2v.TryGetValue<string>(out var c2)) cat2 = c2 ?? string.Empty;
+                        }
+                        stageLine = $"关卡:{game}-{cat1}-{cat2}".TrimEnd('-');
+
+                        // 密探行：密探:{opers}
+                        if (node["opers"] is System.Text.Json.Nodes.JsonArray opersArr)
+                        {
+                            var names = new System.Collections.Generic.List<string>();
+                            foreach (var it in opersArr)
+                            {
+                                if (it is System.Text.Json.Nodes.JsonObject o && o["name"] is System.Text.Json.Nodes.JsonValue nv && nv.TryGetValue<string>(out var name) && !string.IsNullOrWhiteSpace(name))
+                                    names.Add(name);
+                            }
+                            opersLine = names.Count > 0 ? $"密探:{string.Join("、", names)}" : string.Empty;
+                        }
+                    }
+                }
+                catch { /* ignore parse error */ }
+            }
+
+            // 组装：两行前缀 + 详情（使用 Markdown 强制换行 "  \n"）
+            var sb = new StringBuilder();
+            if (!string.IsNullOrWhiteSpace(stageLine)) sb.Append(stageLine).Append("  \n\n");
+            if (!string.IsNullOrWhiteSpace(opersLine)) sb.Append(opersLine).Append("  \n\n");
+            if (!string.IsNullOrWhiteSpace(details)) sb.Append(details);
+            introView.Markdown = sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"渲染作业说明失败：{ex.Message}");
         }
     }
 

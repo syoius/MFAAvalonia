@@ -328,31 +328,42 @@ public partial class CopilotViewModel : ObservableObject
                 content = cArr[0];
             }
 
-            // 获取 actions 节点
-            JsonNode? actionsNode = null;
-            if (content is JsonObject cObj)
-            {
-                actionsNode = cObj["actions"] ?? cObj["Actions"];
-            }
-
-            // 兜底：若没有 actions，但 content 本身是一个对象，且看起来就是作业 JSON，则直接使用 content
-            if (actionsNode == null && content is JsonObject fallbackObj)
-            {
-                actionsNode = fallbackObj;
-            }
-
-            if (actionsNode == null)
+            // 提取 doc.title / doc.details / level_meta，并以 title 命名保存完整 content 为主作业 JSON
+            if (content is not JsonObject contentObj)
             {
                 var snippet = json.Length > 512 ? json[..512] + "..." : json;
-                LoggerHelper.Error($"神秘代码返回格式不符，未找到 actions：\n{snippet}");
-                ToastHelper.Error("未找到可用的作业数据（缺少 actions）");
+                LoggerHelper.Error($"神秘代码返回格式不符，未找到 content 对象：\n{snippet}");
+                ToastHelper.Error("未找到可用的作业数据（content）");
                 return;
             }
 
-            var pretty = actionsNode.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-            var file = Path.Combine(CopilotCacheDir, $"{id}-{DateTime.Now:yyyyMMddHHmmss}.json");
-            await File.WriteAllTextAsync(file, pretty, new UTF8Encoding(false));
-            ToastHelper.Success($"已从神秘代码导入：{Path.GetFileName(file)}");
+            string? title = null;
+            string? details = null;
+            JsonNode? levelMeta = null;
+            if (contentObj["doc"] is JsonObject docObj)
+            {
+                if (docObj["title"] is JsonValue t && t.TryGetValue<string>(out var tStr)) title = tStr;
+                if (docObj["details"] is JsonValue d && d.TryGetValue<string>(out var dStr)) details = dStr;
+            }
+            levelMeta = contentObj["level_meta"] ?? contentObj["levelMeta"];
+
+            // 规范化文件名：保留中文与空格，替换非法字符
+            string fileName = string.IsNullOrWhiteSpace(title) ? $"{id}-{DateTime.Now:yyyyMMddHHmmss}.json" : title;
+            fileName = SanitizeFileName(fileName);
+            if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) fileName += ".json";
+
+            var prettyContent = contentObj.ToJsonString(new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+
+            var mainPath = UniquePath(Path.Combine(CopilotCacheDir, fileName));
+            await File.WriteAllTextAsync(mainPath, prettyContent, new UTF8Encoding(false));
+
+            // 不再额外写入 info 缓存文件（id/details/level_meta），避免重复与冗余。
+
+            ToastHelper.Success($"已从神秘代码导入：{Path.GetFileName(mainPath)}");
             await RefreshAsync();
         }
         catch (Exception ex)
@@ -360,6 +371,20 @@ public partial class CopilotViewModel : ObservableObject
             LoggerHelper.Error(ex);
             ToastHelper.Error("神秘代码导入失败");
         }
+    }
+
+    // 替换文件名中的非法字符
+    private static string SanitizeFileName(string name)
+    {
+        var invalids = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder(name.Length);
+        foreach (var ch in name)
+        {
+            sb.Append(invalids.Contains(ch) ? '_' : ch);
+        }
+        // 去除首尾空白与点
+        var result = sb.ToString().Trim().Trim('.');
+        return string.IsNullOrWhiteSpace(result) ? "job.json" : result;
     }
 
     public async Task LoadSelectedAsync()
@@ -376,7 +401,28 @@ public partial class CopilotViewModel : ObservableObject
             // 清理 copilot 目录：仅保留 copilot_config.json，其余 *.json/*.jsonc 删除
             ClearCopilotActiveDir();
             var dest = Path.Combine(CopilotActiveDir, SelectedFile.Name);
-            File.Copy(SelectedFile.FullPath, dest, true);
+            // 若缓存文件为“完整 content”，则仅将其中的 actions 写入引擎目录，避免不兼容的元字段（如 difficulty 数字）
+            try
+            {
+                var raw = await File.ReadAllTextAsync(SelectedFile.FullPath, Encoding.UTF8);
+                JsonNode? node = null;
+                try { node = JsonNode.Parse(raw); } catch { node = null; }
+                if (node is JsonObject rootObj && rootObj["actions"] is JsonObject actionsObj)
+                {
+                    var prettyActions = actionsObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+                    await File.WriteAllTextAsync(dest, prettyActions, new UTF8Encoding(false));
+                }
+                else
+                {
+                    // 兼容旧文件（直接为 actions 映射或其他合法格式）
+                    await File.WriteAllTextAsync(dest, raw, new UTF8Encoding(false));
+                }
+            }
+            catch
+            {
+                // 回退为直接复制
+                File.Copy(SelectedFile.FullPath, dest, true);
+            }
             // 重载资源
             var ok = MaaProcessor.ReloadResources();
             if (ok) ToastHelper.Success("已加载到资源并刷新");
@@ -473,17 +519,36 @@ public sealed class CopilotFileItem
     public required string FullPath { get; init; }
     public required long Size { get; init; }
     public required DateTime Modified { get; init; }
+    public required string DisplayName { get; init; }
 
     public string SizeText => FormatSize(Size);
     public string ModifiedText => Modified.ToString("yyyy-MM-dd HH:mm:ss");
 
-    public static CopilotFileItem FromFileInfo(FileInfo f) => new()
+    public static CopilotFileItem FromFileInfo(FileInfo f)
     {
-        Name = f.Name,
-        FullPath = f.FullName,
-        Size = f.Length,
-        Modified = f.LastWriteTime
-    };
+        var baseName = Path.GetFileNameWithoutExtension(f.Name);
+        string display = baseName;
+        try
+        {
+            using var sr = new StreamReader(f.FullName, Encoding.UTF8, true);
+            var text = sr.ReadToEnd();
+            var node = JsonNode.Parse(text) as JsonObject;
+            if (node != null && node["level_meta"] is JsonObject lm && lm["game"] is JsonValue gv && gv.TryGetValue<string>(out var game) && !string.IsNullOrWhiteSpace(game))
+            {
+                display = $"{game}-{baseName}";
+            }
+        }
+        catch { /* ignore parse errors */ }
+
+        return new CopilotFileItem
+        {
+            Name = f.Name,
+            FullPath = f.FullName,
+            Size = f.Length,
+            Modified = f.LastWriteTime,
+            DisplayName = display
+        };
+    }
 
     private static string FormatSize(long size)
     {
