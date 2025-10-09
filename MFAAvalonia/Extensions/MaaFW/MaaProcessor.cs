@@ -146,6 +146,34 @@ public class MaaProcessor
         return buffer.ToBitmap();
     }
 
+    /// <summary>
+    /// 重新读取 interface 与 pipeline，刷新任务源（无需重启应用）。
+    /// </summary>
+    public static bool ReloadResources()
+    {
+        try
+        {
+            // 避免在运行中热重载引发状态错乱
+            if (Instances.RootViewModel.IsRunning)
+            {
+                ToastHelper.Warn("任务运行中，无法重载资源");
+                return false;
+            }
+
+            var ok = Instance.InitializeData();
+            if (!ok)
+            {
+                LoggerHelper.Warning("ReloadResources: InitializeData 返回 false");
+            }
+            return ok;
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            return false;
+        }
+    }
+
     public MaaImageBuffer GetImage(IMaaController? maaController)
     {
         var buffer = new MaaImageBuffer();

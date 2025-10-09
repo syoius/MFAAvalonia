@@ -1,0 +1,53 @@
+<UserControl
+    x:Class="MFAAvalonia.Views.Pages.CopilotView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="clr-namespace:MFAAvalonia.Views.Pages"
+    xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    d:DesignWidth="800"
+    d:DesignHeight="600"
+    mc:Ignorable="d">
+    <Design.DataContext>
+        <vm:CopilotViewModel />
+    </Design.DataContext>
+    <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,Auto">
+        <!-- Toolbar -->
+        <StackPanel Orientation="Horizontal" Spacing="8" Margin="8" Grid.Row="0" Grid.ColumnSpan="2">
+            <Button Content="导入本地 JSON" Click="OnImportLocalJson" />
+            <TextBox x:Name="MysteryCodeTextBox" Watermark="maa://<id> 或 <id>" Width="220"/>
+            <Button Content="使用神秘代码导入" Click="OnImportMysteryCode" />
+            <Button Content="刷新" Click="OnRefresh"/>
+            <Button Content="打开缓存目录" Click="OnOpenCacheDir"/>
+        </StackPanel>
+
+        <!-- Info Bar -->
+        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="8,0,8,4"
+                   Foreground="Gray"
+                   TextWrapping="Wrap"
+                   Text="缓存目录中的作业在此展示；选择一项后点击‘加载到资源’将文件复制到 resource/base/pipeline/copilot/ 并触发资源重载（无需重启）。"/>
+
+        <!-- File list -->
+        <ListBox Grid.Row="2" Grid.Column="0" Margin="8" Items="{Binding Files}" SelectedItem="{Binding SelectedFile}">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Name}" Width="320"/>
+                        <TextBlock Text="{Binding SizeText}" Width="100"/>
+                        <TextBlock Text="{Binding ModifiedText}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Actions -->
+        <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,8,8,8" Orientation="Vertical" Spacing="8">
+            <Button Content="加载到资源" IsEnabled="{Binding HasSelection}" Click="OnLoadSelected"/>
+            <Button Content="预览（前200行）" IsEnabled="{Binding HasSelection}" Click="OnPreview"/>
+        </StackPanel>
+
+        <!-- Status -->
+        <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Margin="8" Foreground="Gray" Text="{Binding Status}"/>
+    </Grid>
+</UserControl>

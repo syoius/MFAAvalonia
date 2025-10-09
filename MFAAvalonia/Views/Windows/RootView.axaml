@@ -125,6 +125,12 @@
                                        Icon="{markupExtensions:FluentIcon Icon=TasksApp,
                                                        IconVariant=Regular}"
                                        PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:TaskQueueView}}" />
+                <!-- Copilot Tab: 抄作业 -->
+                <suki:SukiSideMenuItem IsContentMovable="False"
+                                       Header="抄作业"
+                                       Icon="{markupExtensions:FluentIcon Icon=ClipboardTaskList,
+                                                       IconVariant=Regular}"
+                                       PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CopilotView}}" />
                 <suki:SukiSideMenuItem IsContentMovable="False"
                                        Header="{markup:I18n {x:Static helper:LangKeys.ScreenshotPage}}"
                                        Icon="{markupExtensions:FluentIcon Icon=Screenshot,
