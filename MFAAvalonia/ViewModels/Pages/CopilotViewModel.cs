@@ -127,24 +127,58 @@ public partial class CopilotViewModel : ObservableObject
             try { root = JsonNode.Parse(json); }
             catch { ToastHelper.Error("返回体解析失败"); return; }
 
-            var data = root?["data"] ?? root?["Data"];
-            var content = data?["content"] ?? data?["Content"];
-            JsonNode? actionsNode = content?["actions"] ?? content?["Actions"];
-
-            // 某些情况下 content 可能是字符串包裹的 JSON
-            if (actionsNode == null && content is JsonValue jv && jv.TryGetValue<string>(out var contentStr))
+            // 安全获取 data
+            JsonNode? data = null;
+            if (root != null)
             {
-                try
-                {
-                    var croot = JsonNode.Parse(contentStr);
-                    actionsNode = croot?["actions"] ?? croot?["Actions"];
-                }
-                catch { /* ignore */ }
+                if (root is JsonObject) data = root["data"] ?? root["Data"];
+                else if (root is JsonArray arr && arr.Count > 0 && arr[0] is JsonObject obj0) data = obj0["data"] ?? obj0["Data"];
+            }
+
+            // 安全获取 content
+            JsonNode? content = null;
+            if (data != null)
+            {
+                if (data is JsonObject) content = data["content"] ?? data["Content"];
+                else if (data is JsonArray dArr && dArr.Count > 0 && dArr[0] is JsonObject dObj0) content = dObj0["content"] ?? dObj0["Content"];
+            }
+            else
+            {
+                // 某些后端可能直接返回 content 顶层
+                if (root is JsonObject) content = root["content"] ?? root["Content"];
+            }
+
+            // 如果 content 是字符串，尝试再次解析
+            if (content is JsonValue jv && jv.TryGetValue<string>(out var contentStr))
+            {
+                try { content = JsonNode.Parse(contentStr); }
+                catch { /* ignore parse error */ }
+            }
+
+            // 如果 content 是数组，取第一个对象
+            if (content is JsonArray cArr && cArr.Count > 0)
+            {
+                content = cArr[0];
+            }
+
+            // 获取 actions 节点
+            JsonNode? actionsNode = null;
+            if (content is JsonObject cObj)
+            {
+                actionsNode = cObj["actions"] ?? cObj["Actions"];
+            }
+
+            // 兜底：若没有 actions，但 content 本身是一个对象，且看起来就是作业 JSON，则直接使用 content
+            if (actionsNode == null && content is JsonObject fallbackObj)
+            {
+                actionsNode = fallbackObj;
             }
 
             if (actionsNode == null)
             {
-                ToastHelper.Error("未找到 actions 字段");
+                var snippet = json.Length > 512 ? json[..512] + "..." : json;
+                LoggerHelper.Error($"神秘代码返回格式不符，未找到 actions：\n{snippet}");
+                ToastHelper.Error("未找到可用的作业数据（缺少 actions）");
                 return;
             }
 
