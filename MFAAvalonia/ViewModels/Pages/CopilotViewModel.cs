@@ -20,9 +20,26 @@ public partial class CopilotViewModel : ObservableObject
 {
     private const string DefaultCopilotTaskName = "✨ 自动抄作业V3";
 
-    private static string ResourceBase => MaaProcessor.ResourceBase;
-    private static string PipelineDir => Path.Combine(ResourceBase, "pipeline");
-    private static string CopilotActiveDir => Path.Combine(PipelineDir, "copilot");
+    private static string ResourceBase => MaaProcessor.ResourceBase; // 简中基准资源，用于缓存与默认路径
+    private static string PipelineDir => Path.Combine(ResourceBase, "pipeline"); // 基准 pipeline（用于兼容迁移等）
+
+    private static string GetActiveResourceBase()
+    {
+        try
+        {
+            var name = Instances.TaskQueueViewModel.CurrentResource;
+            var selected = Instances.TaskQueueViewModel.CurrentResources?.FirstOrDefault(r => r.Name == name);
+            var path = selected?.Path?.FirstOrDefault();
+            return string.IsNullOrWhiteSpace(path) ? ResourceBase : path;
+        }
+        catch
+        {
+            return ResourceBase;
+        }
+    }
+
+    private static string ActivePipelineDir => Path.Combine(GetActiveResourceBase(), "pipeline");
+    private static string CopilotActiveDir => Path.Combine(ActivePipelineDir, "copilot");
     // 迁移：缓存目录移至 ResourceBase 根，避免引擎扫描 pipeline 下的缓存导致解析冲突
     private static string CopilotCacheDir => Path.Combine(ResourceBase, "copilot-cache");
     private static string OldCopilotCacheDir => Path.Combine(PipelineDir, "copilot-cache");
@@ -42,6 +59,9 @@ public partial class CopilotViewModel : ObservableObject
     [ObservableProperty]
     private string _secretCode = string.Empty;
 
+    [ObservableProperty]
+    private string _activeJob = string.Empty;
+
     partial void OnSelectedFileChanged(CopilotFileItem? value)
     {
         HasSelection = value != null;
@@ -54,6 +74,7 @@ public partial class CopilotViewModel : ObservableObject
         try { MaaProcessor.ReloadResources(); } catch { /* ignore */ }
         _ = RefreshAsync();
         _ = EnsureDefaultTaskSelectedAsync();
+        _ = UpdateActiveJobFromDiskAsync();
     }
 
     #region 右侧列（连接与日志）- 与 TaskQueue 右栏对齐
@@ -137,7 +158,7 @@ public partial class CopilotViewModel : ObservableObject
     {
         try
         {
-            Directory.CreateDirectory(PipelineDir);
+            Directory.CreateDirectory(ActivePipelineDir);
             Directory.CreateDirectory(CopilotActiveDir);
             Directory.CreateDirectory(CopilotCacheDir);
 
@@ -247,6 +268,7 @@ public partial class CopilotViewModel : ObservableObject
                     foreach (var i in items) Files.Add(i);
                     Status = Files.Count == 0 ? "缓存为空，先导入作业 JSON 或使用神秘代码。" : $"共 {Files.Count} 个作业";
                 });
+                _ = UpdateActiveJobFromDiskAsync();
             }
             catch (Exception ex)
             {
@@ -427,6 +449,9 @@ public partial class CopilotViewModel : ObservableObject
             var ok = MaaProcessor.ReloadResources();
             if (ok) ToastHelper.Success("已加载到资源并刷新");
             else ToastHelper.Error("资源重载失败");
+
+            // 更新当前激活文本
+            ActiveJob = SelectedFile.DisplayName;
         }
         catch (Exception ex)
         {
@@ -510,6 +535,56 @@ public partial class CopilotViewModel : ObservableObject
         string candidate;
         do { candidate = Path.Combine(dir, $"{name}({i++}){ext}"); } while (File.Exists(candidate));
         return candidate;
+    }
+}
+
+// 读取资源目录当前激活的作业文件名，转为展示名
+partial class CopilotViewModel
+{
+    private async Task UpdateActiveJobFromDiskAsync()
+    {
+        try
+        {
+            string? activePath = null;
+            if (Directory.Exists(CopilotActiveDir))
+            {
+                activePath = Directory.EnumerateFiles(CopilotActiveDir, "*.json", SearchOption.TopDirectoryOnly)
+                    .Select(p => new FileInfo(p))
+                    .Where(f => !string.Equals(f.Name, "copilot_config.json", StringComparison.OrdinalIgnoreCase))
+                    .OrderByDescending(f => f.LastWriteTimeUtc)
+                    .FirstOrDefault()?.FullName;
+            }
+
+            if (string.IsNullOrWhiteSpace(activePath))
+            {
+                DispatcherHelper.RunOnMainThread(() => ActiveJob = "未加载");
+                return;
+            }
+
+            var baseName = Path.GetFileNameWithoutExtension(activePath);
+            var cacheCandidate = Path.Combine(CopilotCacheDir, baseName + ".json");
+            string display = baseName;
+            if (File.Exists(cacheCandidate))
+            {
+                try
+                {
+                    using var sr = new StreamReader(cacheCandidate, Encoding.UTF8, true);
+                    var text = await sr.ReadToEndAsync();
+                    var node = JsonNode.Parse(text) as JsonObject;
+                    if (node != null && node["level_meta"] is JsonObject lm && lm["game"] is JsonValue gv && gv.TryGetValue<string>(out var game) && !string.IsNullOrWhiteSpace(game))
+                    {
+                        display = $"{game}-{baseName}";
+                    }
+                }
+                catch { /* ignore */ }
+            }
+
+            DispatcherHelper.RunOnMainThread(() => ActiveJob = display);
+        }
+        catch
+        {
+            // ignore
+        }
     }
 }
 

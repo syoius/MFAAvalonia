@@ -52,11 +52,27 @@
                     </suki:GroupBox.Header>
                     <StackPanel Spacing="6" Margin="8,4,8,8">
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBox Width="120" Watermark="maa://&lt;id&gt; 或 &lt;id&gt;" Text="{Binding SecretCode, Mode=TwoWay}"/>
-                            <Button Classes="Basic" Content="使用神秘代码导入" Click="OnImportMysteryCode" />
+                            <TextBox Width="130" Watermark="maa://&lt;id&gt;" Text="{Binding SecretCode, Mode=TwoWay}"/>
+                            <Button Classes="Basic" Click="OnOpenShareSite">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="Globe" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text="作业站" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Classes="Basic" Content="导入本地 JSON" Click="OnImportLocalJson" />
+                            <Button Classes="Basic" Click="OnImportMysteryCode">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="Link" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text="神秘代码导入" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="Basic" Click="OnImportLocalJson">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="FolderOpen" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text="本地导入" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </StackPanel>
                 </suki:GroupBox>
@@ -76,16 +92,12 @@
                                            HorizontalAlignment="Left" Margin="2,0,0,0" Text="作业展示" />
                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,0,0"
-                                        ToolTip.Tip="加载到资源" IsEnabled="{Binding HasSelection}" Click="OnLoadSelected">
-                                    <fluent:FluentIcon Icon="Save" IconSize="Size16" IconVariant="Regular" />
-                                </Button>
-                                <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,0,0"
                                         ToolTip.Tip="打开作业文件夹" Click="OnOpenCacheDir">
-                                    <fluent:FluentIcon Icon="Save" IconSize="Size16" IconVariant="Regular" />
+                                    <fluent:FluentIcon Icon="Folder" IconSize="Size16" IconVariant="Regular" />
                                 </Button>
                                 <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,8,0"
                                         ToolTip.Tip="刷新" Click="OnRefresh">
-                                    <fluent:FluentIcon Icon="Document" IconSize="Size16" IconVariant="Regular" />
+                                    <fluent:FluentIcon Icon="ArrowClockwise" IconSize="Size16" IconVariant="Regular" />
                                 </Button>
                             </StackPanel>
                         </Grid>
@@ -97,7 +109,7 @@
                         </Grid.RowDefinitions>
                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
                             <TextBlock Text="当前激活："/>
-                            <TextBlock Text="{Binding Status}" Foreground="{DynamicResource SukiPrimaryColor}"/>
+                            <TextBlock Text="{Binding ActiveJob}" Foreground="{DynamicResource SukiPrimaryColor}"/>
                         </StackPanel>
                         <ListBox Grid.Row="1" x:Name="CopilotList" Classes="Fluent" ItemsSource="{Binding Files}" SelectedItem="{Binding SelectedFile}"
                                  MinHeight="220" ScrollViewer.VerticalScrollBarVisibility="Auto">
@@ -175,6 +187,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,0,5" x:Name="Row1">
                 <suki:GlassCard.Resources>
@@ -222,7 +235,20 @@
                     </ScrollViewer>
                 </suki:GroupBox>
             </suki:GlassCard>
-            <suki:GlassCard Grid.Row="1" Margin="0,8,15,25">
+            <!-- 垂直滑块：在任务设置与任务说明之间可调整高度比例 -->
+            <GridSplitter Grid.Row="1" Height="8" Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <GridSplitter.Template>
+                    <ControlTemplate>
+                        <Border Background="Transparent" Cursor="SizeNorthSouth">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+                                <Rectangle Width="24" Height="2" Fill="{DynamicResource SukiControlBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </ControlTemplate>
+                </GridSplitter.Template>
+            </GridSplitter>
+
+            <suki:GlassCard Grid.Row="2" Margin="0,8,15,25">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
                         <TextBlock FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SukiLowText}"

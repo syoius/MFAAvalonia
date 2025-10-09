@@ -37,6 +37,12 @@ namespace MFAAvalonia.Views.Pages;
 
 public partial class CopilotView : UserControl
 {
+    private const string DefaultCopilotIntro =
+        "需要展开战斗中手动/自动和倍速的那个面板。\n\n" +
+        "（简中）resource/base/pipeline/copilot \n\n" +
+        "（繁中）resource/zh_tw/pipeline/copilot\n\n" +
+        "文件夹下，并确认文件夹内只有copilot_config.json\n\n" +
+        "没有勾选“战斗中开始抄作业”时需要在想打的关卡的编队界面（页面中有“进入战斗”按钮）处启动任务。";
     private bool _isSelectionRefreshBusy;
 
     public CopilotView()
@@ -109,6 +115,26 @@ public partial class CopilotView : UserControl
     private async void OnPreview(object? sender, RoutedEventArgs e)
     {
         await (DataContext as CopilotViewModel)!.PreviewSelectedAsync();
+    }
+
+    private async void OnOpenShareSite(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var url = "https://share.maayuan.fun/";
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex);
+            MFAAvalonia.Helper.ToastHelper.Error("无法打开浏览器");
+        }
+        await Task.CompletedTask;
     }
 
     private void TryHookSelectionChanged()
@@ -208,15 +234,8 @@ public partial class CopilotView : UserControl
             Instances.TaskQueueViewModel.ShowSettings = hasAny;
             Instances.TaskQueueViewModel.IsCommon = true;
 
-            // 渲染说明
-            var intro = string.Empty;
-            if (dragItem.InterfaceItem?.Document?.Count > 0)
-            {
-                var input = Regex.Unescape(string.Join("\\n", dragItem.InterfaceItem.Document));
-                input = LanguageHelper.GetLocalizedString(input);
-                intro = TaskQueueView.ConvertCustomMarkup(input);
-            }
-            introView.Markdown = intro;
+            // 渲染说明：首次进入强制显示默认说明，不展示默认任务的 doc
+            introView.Markdown = DefaultCopilotIntro;
         }
         catch (Exception ex)
         {
@@ -275,10 +294,16 @@ public partial class CopilotView : UserControl
                 catch { /* ignore parse error */ }
             }
 
-            // 组装：两行前缀 + 详情（使用 Markdown 强制换行 "  \n"）
+            // 当没有 details 时，仅显示默认说明；否则显示前缀 + 详情
+            bool useDefault = string.IsNullOrWhiteSpace(details);
+            if (useDefault) details = DefaultCopilotIntro;
+
             var sb = new StringBuilder();
-            if (!string.IsNullOrWhiteSpace(stageLine)) sb.Append(stageLine).Append("  \n\n");
-            if (!string.IsNullOrWhiteSpace(opersLine)) sb.Append(opersLine).Append("  \n\n");
+            if (!useDefault)
+            {
+                if (!string.IsNullOrWhiteSpace(stageLine)) sb.Append(stageLine).Append("  \n\n");
+                if (!string.IsNullOrWhiteSpace(opersLine)) sb.Append(opersLine).Append("  \n\n");
+            }
             if (!string.IsNullOrWhiteSpace(details)) sb.Append(details);
             introView.Markdown = sb.ToString();
         }
