@@ -95,9 +95,13 @@
                                         ToolTip.Tip="打开作业文件夹" Click="OnOpenCacheDir">
                                     <fluent:FluentIcon Icon="Folder" IconSize="Size16" IconVariant="Regular" />
                                 </Button>
-                                <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,8,0"
+                                <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,0,0"
                                         ToolTip.Tip="刷新" Click="OnRefresh">
                                     <fluent:FluentIcon Icon="ArrowClockwise" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                                <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,8,0"
+                                        ToolTip.Tip="删除选中作业" Click="OnDeleteSelectedJobs">
+                                    <fluent:FluentIcon Icon="Delete" IconSize="Size16" IconVariant="Regular" />
                                 </Button>
                             </StackPanel>
                         </Grid>

@@ -32,6 +32,8 @@ using Avalonia;
 using AvaloniaExtensions.Axaml.Markup;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Controls.Templates;
+using SukiUI.MessageBox;
+using SukiUI.Controls;
 
 namespace MFAAvalonia.Views.Pages;
 
@@ -114,6 +116,39 @@ public partial class CopilotView : UserControl
     private async void OnPreview(object? sender, RoutedEventArgs e)
     {
         await (DataContext as CopilotViewModel)!.PreviewSelectedAsync();
+    }
+
+    private async void OnDeleteSelectedJobs(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var vm = DataContext as CopilotViewModel;
+            if (vm?.SelectedFile == null)
+            {
+                ToastHelper.Warn("请选择要删除的作业");
+                return;
+            }
+
+            var result = await SukiMessageBox.ShowDialog(new SukiMessageBoxHost
+            {
+                Content = "确定删除选中的作业吗？此操作不可撤销",
+                ActionButtonsPreset = SukiMessageBoxButtons.YesNo,
+                IconPreset = SukiMessageBoxIcons.Warning,
+            }, new SukiMessageBoxOptions
+            {
+                Title = "删除确认",
+            });
+
+            if (result is not SukiMessageBoxResult.Yes)
+                return;
+
+            await vm.DeleteSelectedAsync();
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("删除失败");
+        }
     }
 
     private async void OnOpenShareSite(object? sender, RoutedEventArgs e)

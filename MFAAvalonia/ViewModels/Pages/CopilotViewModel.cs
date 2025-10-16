@@ -525,6 +525,39 @@ public partial class CopilotViewModel : ObservableObject
         }
     }
 
+    public async Task DeleteSelectedAsync()
+    {
+        if (SelectedFile == null)
+        {
+            ToastHelper.Warn("请选择要删除的作业");
+            return;
+        }
+
+        try
+        {
+            var path = SelectedFile.FullPath;
+            await Task.Run(() =>
+            {
+                try
+                {
+                    if (File.Exists(path)) File.Delete(path);
+                }
+                catch (Exception e)
+                {
+                    throw new IOException($"删除文件失败: {path}", e);
+                }
+            });
+
+            await RefreshAsync();
+            ToastHelper.Success("删除完成");
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("删除失败");
+        }
+    }
+
     private static string UniquePath(string path)
     {
         if (!File.Exists(path)) return path;
