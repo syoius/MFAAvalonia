@@ -15,6 +15,9 @@ using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
 using MFAAvalonia.Helper.ValueType;
 using MaaFramework.Binding;
+using Avalonia;
+using Avalonia.Threading;
+using Avalonia.Controls.ApplicationLifetimes;
 
 namespace MFAAvalonia.ViewModels.Pages;
 
@@ -49,7 +52,10 @@ public partial class CopilotViewModel : ObservableObject
     private static string LegacyPipelineCopilotCacheDir => Path.Combine(PipelineDir, "copilot-cache");
 
     [ObservableProperty]
-    private ObservableCollection<CopilotFileItem> _files = new();
+    private ObservableCollection<CopilotTreeItem> _fileTree = new();
+
+    [ObservableProperty]
+    private CopilotTreeItem? _selectedNode;
 
     [ObservableProperty]
     private CopilotFileItem? _selectedFile;
@@ -69,6 +75,11 @@ public partial class CopilotViewModel : ObservableObject
     partial void OnSelectedFileChanged(CopilotFileItem? value)
     {
         HasSelection = value != null;
+    }
+
+    partial void OnSelectedNodeChanged(CopilotTreeItem? value)
+    {
+        SelectedFile = value?.File;
     }
 
     public void Initialize()
@@ -210,7 +221,7 @@ public partial class CopilotViewModel : ObservableObject
     }
 
     /// <summary>
-    /// 将主页任务选择固定为“✨ 自动抄作业V3”，并取消勾选其余任务。
+    /// 将主页任务选择固定为"✨ 自动抄作业V3"，并取消勾选其余任务。
     /// </summary>
     private async Task EnsureDefaultTaskSelectedAsync()
     {
@@ -304,16 +315,13 @@ public partial class CopilotViewModel : ObservableObject
             try
             {
                 EnsureDirs();
-                var items = Directory.EnumerateFiles(CopilotCacheDir, "*.json", SearchOption.TopDirectoryOnly)
-                    .Select(p => new FileInfo(p))
-                    .OrderByDescending(f => f.LastWriteTimeUtc)
-                    .Select(f => CopilotFileItem.FromFileInfo(f))
-                    .ToList();
+                int fileCount = 0;
+                var nodes = BuildTree(CopilotCacheDir, ref fileCount);
                 DispatcherHelper.RunOnMainThread(() =>
                 {
-                    Files.Clear();
-                    foreach (var i in items) Files.Add(i);
-                    Status = Files.Count == 0 ? "缓存为空，先导入作业 JSON 或使用神秘代码。" : $"共 {Files.Count} 个作业";
+                    FileTree.Clear();
+                    foreach (var node in nodes) FileTree.Add(node);
+                    Status = fileCount == 0 ? "缓存为空，先导入作业 JSON 或使用神秘代码。" : $"共 {fileCount} 个作业";
                 });
                 _ = UpdateActiveJobFromDiskAsync();
             }
@@ -323,6 +331,51 @@ public partial class CopilotViewModel : ObservableObject
                 DispatcherHelper.RunOnMainThread(() => Status = "扫描缓存失败");
             }
         });
+    }
+
+    private static List<CopilotTreeItem> BuildTree(string directory, ref int fileCount)
+    {
+        var result = new List<CopilotTreeItem>();
+        if (!Directory.Exists(directory))
+            return result;
+
+        var subDirs = Directory.EnumerateDirectories(directory)
+            .OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var dir in subDirs)
+        {
+            var folder = new CopilotTreeItem
+            {
+                Name = Path.GetFileName(dir),
+                FullPath = dir,
+                IsFolder = true
+            };
+            var children = BuildTree(dir, ref fileCount);
+            foreach (var child in children)
+            {
+                folder.Children.Add(child);
+            }
+            result.Add(folder);
+        }
+
+        var files = Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly)
+            .Select(p => new FileInfo(p))
+            .OrderByDescending(f => f.LastWriteTimeUtc);
+
+        foreach (var file in files)
+        {
+            var item = CopilotFileItem.FromFileInfo(file);
+            result.Add(new CopilotTreeItem
+            {
+                Name = Path.GetFileNameWithoutExtension(file.Name),
+                FullPath = file.FullName,
+                IsFolder = false,
+                File = item
+            });
+            fileCount++;
+        }
+
+        return result;
     }
 
     public async Task ImportLocalJsonAsync(string? path)
@@ -344,26 +397,74 @@ public partial class CopilotViewModel : ObservableObject
         }
     }
 
-    public async Task ImportMysteryCodeAsync(string code)
+            public async Task ImportMysteryCodeAsync(string code, bool skipClipboard = false, string? targetDirectory = null)
     {
-        if (string.IsNullOrWhiteSpace(code)) code = SecretCode;
-        if (string.IsNullOrWhiteSpace(code)) { ToastHelper.Warn("请输入神秘代码"); return; }
+        if (!skipClipboard)
+        {
+            var clipboardCode = await TryReadSecretCodeFromClipboardAsync();
+            if (!string.IsNullOrWhiteSpace(clipboardCode))
+            {
+                code = clipboardCode;
+                if (!string.Equals(SecretCode, clipboardCode, StringComparison.Ordinal))
+                {
+                    SecretCode = clipboardCode;
+                }
+            }
+            else if (string.IsNullOrWhiteSpace(code))
+            {
+                code = SecretCode;
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(code) && !string.Equals(SecretCode, code, StringComparison.Ordinal))
+        {
+            SecretCode = code;
+        }
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            ToastHelper.Warn("神秘代码缺失");
+            return;
+        }
+
+        if (!TryExtractCodeId(code, out var id))
+        {
+            ToastHelper.Warn("神秘代码格式不正确");
+            return;
+        }
+
         EnsureDirs();
+        var destinationDir = string.IsNullOrWhiteSpace(targetDirectory) ? CopilotCacheDir : targetDirectory;
+        Directory.CreateDirectory(destinationDir);
         try
         {
-            var id = code.StartsWith("maay://", StringComparison.OrdinalIgnoreCase) ? code[6..] : code;
-            id = id.Trim('/');
-            if (id.Contains('/')) id = id.Split('/')[^1];
             var url = $"https://share.maayuan.top/api/copilot/get/{id}";
             using var http = new HttpClient();
             var json = await http.GetStringAsync(url);
 
-            // 解析 data -> content -> actions
             JsonNode? root;
             try { root = JsonNode.Parse(json); }
-            catch { ToastHelper.Error("返回体解析失败"); return; }
+            catch
+            {
+                ToastHelper.Error("神秘代码解析失败");
+                return;
+            }
 
-            // 安全获取 data
+            if (root?["status_code"] is JsonValue statusValue && statusValue.TryGetValue<int>(out var statusCode) && statusCode != 200)
+            {
+                var message = root?["message"] is JsonValue msgValue && msgValue.TryGetValue<string>(out var msg)
+                    ? msg
+                    : "神秘代码导入失败";
+                if (statusCode == 400)
+                {
+                    ToastHelper.Warn($"{message}\n请确认该作业代码是否仍然有效");
+                }
+                else
+                {
+                    ToastHelper.Warn(message);
+                }
+                return;
+            }
+
             JsonNode? data = null;
             if (root != null)
             {
@@ -371,7 +472,6 @@ public partial class CopilotViewModel : ObservableObject
                 else if (root is JsonArray arr && arr.Count > 0 && arr[0] is JsonObject obj0) data = obj0["data"] ?? obj0["Data"];
             }
 
-            // 安全获取 content
             JsonNode? content = null;
             if (data != null)
             {
@@ -380,29 +480,25 @@ public partial class CopilotViewModel : ObservableObject
             }
             else
             {
-                // 某些后端可能直接返回 content 顶层
                 if (root is JsonObject) content = root["content"] ?? root["Content"];
             }
 
-            // 如果 content 是字符串，尝试再次解析
             if (content is JsonValue jv && jv.TryGetValue<string>(out var contentStr))
             {
                 try { content = JsonNode.Parse(contentStr); }
                 catch { /* ignore parse error */ }
             }
 
-            // 如果 content 是数组，取第一个对象
             if (content is JsonArray cArr && cArr.Count > 0)
             {
                 content = cArr[0];
             }
 
-            // 提取 doc.title / doc.details / level_meta，并以 title 命名保存完整 content 为主作业 JSON
             if (content is not JsonObject contentObj)
             {
                 var snippet = json.Length > 512 ? json[..512] + "..." : json;
-                LoggerHelper.Error($"神秘代码返回格式不符，未找到 content 对象：\n{snippet}");
-                ToastHelper.Error("未找到可用的作业数据（content）");
+                LoggerHelper.Error($"神秘代码返回格式异常，未找到 content 字段: {snippet}");
+                ToastHelper.Error("未找到有效的作业数据（content）");
                 return;
             }
 
@@ -416,7 +512,6 @@ public partial class CopilotViewModel : ObservableObject
             }
             levelMeta = contentObj["level_meta"] ?? contentObj["levelMeta"];
 
-            // 规范化文件名：保留中文与空格，替换非法字符
             string fileName = string.IsNullOrWhiteSpace(title) ? $"{id}-{DateTime.Now:yyyyMMddHHmmss}.json" : title;
             fileName = SanitizeFileName(fileName);
             if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) fileName += ".json";
@@ -427,12 +522,10 @@ public partial class CopilotViewModel : ObservableObject
                 Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
             });
 
-            var mainPath = UniquePath(Path.Combine(CopilotCacheDir, fileName));
+            var mainPath = UniquePath(Path.Combine(destinationDir, fileName));
             await File.WriteAllTextAsync(mainPath, prettyContent, new UTF8Encoding(false));
 
-            // 不再额外写入 info 缓存文件（id/details/level_meta），避免重复与冗余。
-
-            ToastHelper.Success($"已从神秘代码导入：{Path.GetFileName(mainPath)}");
+            ToastHelper.Success($"已下载神秘代码导入：{Path.GetFileName(mainPath)}");
             await RefreshAsync();
         }
         catch (Exception ex)
@@ -442,7 +535,185 @@ public partial class CopilotViewModel : ObservableObject
         }
     }
 
-    // 替换文件名中的非法字符
+    public async Task ImportMysterySetAsync(string code)
+    {
+        var clipboardCode = await TryReadSecretCodeFromClipboardAsync();
+        if (!string.IsNullOrWhiteSpace(clipboardCode))
+        {
+            code = clipboardCode;
+            if (!string.Equals(SecretCode, clipboardCode, StringComparison.Ordinal))
+            {
+                SecretCode = clipboardCode;
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(code))
+        {
+            code = SecretCode;
+        }
+
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            ToastHelper.Warn("作业集代码缺失");
+            return;
+        }
+
+        if (!TryExtractCodeId(code, out var id))
+        {
+            ToastHelper.Warn("作业集代码格式不正确");
+            return;
+        }
+
+        try
+        {
+            var url = $"https://share.maayuan.top/api/set/get?id={id}";
+            using var http = new HttpClient();
+            var json = await http.GetStringAsync(url);
+
+            JsonNode? root;
+            try { root = JsonNode.Parse(json); }
+            catch
+            {
+                ToastHelper.Error("作业集响应解析失败");
+                return;
+            }
+
+            int status = 200;
+            bool hasStatus = false;
+            if (root?["status_code"] is JsonValue statusValue && statusValue.TryGetValue<int>(out var statusCode))
+            {
+                status = statusCode;
+                hasStatus = true;
+            }
+
+            if (hasStatus && status != 200)
+            {
+                var message = root?["message"] is JsonValue msgValue && msgValue.TryGetValue<string>(out var msg)
+                    ? msg
+                    : "作业集下载失败";
+                if (status == 400)
+                {
+                    ToastHelper.Warn($"{message}\n请确认这是作业集代码，并在右键菜单中导入作业集。");
+                }
+                else
+                {
+                    ToastHelper.Warn(message);
+                }
+                return;
+            }
+
+            if (root?["data"] is not JsonObject data)
+            {
+                ToastHelper.Error("作业集数据缺失");
+                return;
+            }
+
+            var ids = data["copilot_ids"] as JsonArray;
+            if (ids == null || ids.Count == 0)
+            {
+                ToastHelper.Warn("该作业集中没有任何作业");
+                return;
+            }
+
+            var name = data["name"] is JsonValue nameValue && nameValue.TryGetValue<string>(out var setName)
+                ? setName
+                : id;
+
+            EnsureDirs();
+            var folderName = SanitizeDirectoryName(name);
+            var targetDir = Path.Combine(CopilotCacheDir, folderName);
+            Directory.CreateDirectory(targetDir);
+
+            var processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            int success = 0;
+
+            foreach (var item in ids)
+
+            {
+
+                if (item is JsonValue value)
+
+                {
+
+                    string? entryId = null;
+
+                    if (value.TryGetValue<int>(out var intId))
+
+                        entryId = intId.ToString();
+
+                    else if (value.TryGetValue<string>(out var strId))
+
+                        entryId = strId;
+
+
+
+                    if (!string.IsNullOrWhiteSpace(entryId) && processed.Add(entryId))
+
+                    {
+
+                        try
+
+                        {
+
+                            await ImportMysteryCodeAsync($"maay://{entryId}", skipClipboard: true, targetDirectory: targetDir);
+
+                            success++;
+
+                        }
+
+                        catch (Exception ex)
+
+                        {
+
+                            LoggerHelper.Warning($"导入作业集条目失败: {entryId} => {ex.Message}");
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+
+
+            if (success > 0)
+            {
+                ToastHelper.Success($"已导入作业集 {name} 中的 {success} 个作业");
+            }
+            else
+            {
+                ToastHelper.Warn("未能导入作业集中的任何作业");
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("作业集下载失败，请检查网络");
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("作业集导入失败");
+        }
+    }
+
+
+
+        // 替换文件夹名中的非法字符
+    private static string SanitizeDirectoryName(string name)
+    {
+        var invalids = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder(name.Length);
+        foreach (var ch in name)
+        {
+            sb.Append(invalids.Contains(ch) ? '_' : ch);
+        }
+        var result = sb.ToString().Trim().Trim('.');
+        return string.IsNullOrWhiteSpace(result) ? "copilot-set" : result;
+    }
+
+// 替换文件名中的非法字符
     private static string SanitizeFileName(string name)
     {
         var invalids = Path.GetInvalidFileNameChars();
@@ -470,7 +741,7 @@ public partial class CopilotViewModel : ObservableObject
             // 清理 copilot 目录：仅保留 copilot_config.json，其余 *.json/*.jsonc 删除
             ClearCopilotActiveDir();
             var dest = Path.Combine(CopilotActiveDir, SelectedFile.Name);
-            // 若缓存文件为“完整 content”，则仅将其中的 actions 写入引擎目录，避免不兼容的元字段（如 difficulty 数字）
+            // 若缓存文件为"完整 content"，则仅将其中的 actions 写入引擎目录，避免不兼容的元字段（如 difficulty 数字）
             try
             {
                 var raw = await File.ReadAllTextAsync(SelectedFile.FullPath, Encoding.UTF8);
@@ -504,6 +775,48 @@ public partial class CopilotViewModel : ObservableObject
         {
             LoggerHelper.Error(ex);
             ToastHelper.Error("加载失败");
+        }
+    }
+
+    public async Task UnloadActiveJobAsync()
+    {
+        try
+        {
+            var hasActiveJob = Directory.Exists(CopilotActiveDir) &&
+                               Directory.EnumerateFiles(CopilotActiveDir, "*.*", SearchOption.TopDirectoryOnly)
+                                   .Any(file =>
+                                   {
+                                       var ext = Path.GetExtension(file);
+                                       var name = Path.GetFileName(file);
+                                       var isJobFile = ext.Equals(".json", StringComparison.OrdinalIgnoreCase) ||
+                                                       ext.Equals(".jsonc", StringComparison.OrdinalIgnoreCase);
+                                       return isJobFile &&
+                                              !name.Equals("copilot_config.json", StringComparison.OrdinalIgnoreCase);
+                                   });
+
+            if (!hasActiveJob)
+            {
+                ToastHelper.Warn("当前没有激活的作业");
+                return;
+            }
+
+            ClearCopilotActiveDir();
+            var reloadOk = MaaProcessor.ReloadResources();
+            await UpdateActiveJobFromDiskAsync();
+
+            if (reloadOk)
+            {
+                ToastHelper.Success("已卸载当前作业");
+            }
+            else
+            {
+                ToastHelper.Warn("已清空作业，但资源刷新失败");
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("卸载失败");
         }
     }
 
@@ -572,6 +885,191 @@ public partial class CopilotViewModel : ObservableObject
         }
     }
 
+
+    private static async Task<string?> TryReadSecretCodeFromClipboardAsync()
+    {
+        try
+        {
+            var clipboard = await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (Instances.RootView?.Clipboard != null)
+                    return Instances.RootView.Clipboard;
+
+                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                    return desktop.MainWindow?.Clipboard;
+
+                return null;
+            });
+
+            if (clipboard == null)
+                return null;
+
+            var text = await clipboard.GetTextAsync();
+            return NormalizeSecretCode(text);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"Copilot: 读取剪贴板失败: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static string? NormalizeSecretCode(string? raw)
+    {
+        const string Prefix = "maay://";
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+
+        var candidate = raw.Trim();
+        if (!candidate.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var id = candidate.Substring(Prefix.Length).Trim('/');
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        if (id.Any(ch => !char.IsDigit(ch)))
+            return null;
+
+        return $"{Prefix}{id}";
+    }
+
+
+
+    private static bool TryExtractCodeId(string code, out string id)
+    {
+        id = string.Empty;
+        if (string.IsNullOrWhiteSpace(code))
+            return false;
+
+        string working = code;
+        if (code.StartsWith("maay://", StringComparison.OrdinalIgnoreCase))
+            working = code[6..];
+
+        working = working.Trim('/');
+        if (string.IsNullOrWhiteSpace(working))
+            return false;
+
+        if (working.Contains('/'))
+            working = working.Split('/')[^1];
+
+        if (string.IsNullOrWhiteSpace(working))
+            return false;
+
+        id = working;
+        return true;
+    }
+    public async Task DeleteSelectedAsync()
+
+    {
+
+        var node = SelectedNode;
+
+        if (node == null)
+
+        {
+
+            ToastHelper.Warn("请选择要删除的作业");
+
+            return;
+
+        }
+
+
+
+        try
+
+        {
+
+            string successMessage;
+
+            if (node.IsFile && node.File != null)
+
+            {
+
+                var path = node.File.FullPath;
+
+                await Task.Run(() =>
+
+                {
+
+                    try
+
+                    {
+
+                        if (File.Exists(path)) File.Delete(path);
+
+                    }
+
+                    catch (Exception e)
+
+                    {
+
+                        throw new IOException($"删除失败: {path}", e);
+
+                    }
+
+                });
+
+                successMessage = "删除成功";
+
+            }
+
+            else
+
+            {
+
+                var path = node.FullPath;
+
+                await Task.Run(() =>
+
+                {
+
+                    try
+
+                    {
+
+                        if (Directory.Exists(path)) Directory.Delete(path, true);
+
+                    }
+
+                    catch (Exception e)
+
+                    {
+
+                        throw new IOException($"删除失败: {path}", e);
+
+                    }
+
+                });
+
+                successMessage = "删除成功";
+
+            }
+
+
+
+            SelectedNode = null;
+
+
+
+            await RefreshAsync();
+
+            ToastHelper.Success(successMessage);
+
+        }
+
+        catch (Exception ex)
+
+        {
+
+            LoggerHelper.Error(ex);
+
+            ToastHelper.Error("删除失败");
+
+        }
+
+    }
+
+
+
     private static string UniquePath(string path)
     {
         if (!File.Exists(path)) return path;
@@ -609,9 +1107,18 @@ partial class CopilotViewModel
             }
 
             var baseName = Path.GetFileNameWithoutExtension(activePath);
-            var cacheCandidate = Path.Combine(CopilotCacheDir, baseName + ".json");
             string display = baseName;
-            if (File.Exists(cacheCandidate))
+            string? cacheCandidate = null;
+            try
+            {
+                cacheCandidate = Directory.EnumerateFiles(CopilotCacheDir, baseName + ".json", SearchOption.AllDirectories).FirstOrDefault();
+            }
+            catch
+            {
+                cacheCandidate = null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(cacheCandidate) && File.Exists(cacheCandidate))
             {
                 try
                 {
@@ -633,6 +1140,20 @@ partial class CopilotViewModel
             // ignore
         }
     }
+}
+
+public sealed class CopilotTreeItem
+{
+    public required string Name { get; init; }
+    public required string FullPath { get; init; }
+    public bool IsFolder { get; init; }
+    public ObservableCollection<CopilotTreeItem> Children { get; } = new();
+    public CopilotFileItem? File { get; init; }
+
+    public bool IsFile => File != null;
+    public string DisplayName => File?.DisplayName ?? Name;
+    public string? SizeText => File?.SizeText;
+    public string? ModifiedText => File?.ModifiedText;
 }
 
 public sealed class CopilotFileItem
@@ -680,3 +1201,5 @@ public sealed class CopilotFileItem
         return $"{v:F1} {units[i]}";
     }
 }
+
+

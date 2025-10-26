@@ -97,7 +97,7 @@ public static class MaaExtensions
         {
             return;
         }
-        maaTasker.Controller.PressKey(key).Wait();
+        maaTasker.Controller.ClickKey(key).Wait();
     }
     public static void InputText(this IMaaTasker maaTasker, string text)
     {

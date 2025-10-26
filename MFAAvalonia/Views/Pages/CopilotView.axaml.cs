@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using System;
@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using MFAAvalonia.ViewModels.Pages;
 using Microsoft.Extensions.DependencyInjection;
 using Avalonia.Markup.Xaml;
-using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Threading;
 using Avalonia.Input;
@@ -32,17 +31,22 @@ using Avalonia;
 using AvaloniaExtensions.Axaml.Markup;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Controls.Templates;
+using SukiUI.MessageBox;
+using SukiUI.Controls;
 
 namespace MFAAvalonia.Views.Pages;
 
 public partial class CopilotView : UserControl
 {
     private const string DefaultCopilotIntro =
-        "左上角导入作业文件，点击作业列表中的候选文件，\n" +
-        "激活想抄的作业后开始任务。\n\n" +
-        "需要展开战斗中手动/自动和倍速的那个面板。\n\n" +
-        "不勾选“战斗中开始抄作业”时，需要在想打的关卡的编队界面（页面中有“进入战斗”按钮）处启动任务。";
+        "左上角导入作业文件，点击作业列表中的候选文件将自动激活该作业，\n" +
+        "激活想抄的作业后即可点击开始任务。\n\n" +
+        "不勾选“战斗中开始抄作业”时，需要在想打的关卡的编队界面（页面中有“进入战斗”按钮）处启动任务。\n\n" +
+        "在“战斗中开始抄作业”需要展开战斗中手动/自动和倍速的那个面板。";
     private bool _isSelectionRefreshBusy;
+    private bool _mysteryImportInProgress;
+    private DateTime _lastMysteryImportUtc = DateTime.MinValue;
+    private static readonly TimeSpan MysteryImportCooldown = TimeSpan.FromMilliseconds(500);
 
     public CopilotView()
     {
@@ -89,9 +93,16 @@ public partial class CopilotView : UserControl
         }
     }
 
-    private async void OnImportMysteryCode(object? sender, RoutedEventArgs e)
+    private async void OnImportMysteryCode(object? sender, RoutedEventArgs e) =>
+        await TryRunMysteryImportAsync(vm => vm.ImportMysteryCodeAsync(string.Empty));
+
+    private async void OnImportMysteryCodePointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        await (DataContext as CopilotViewModel)!.ImportMysteryCodeAsync(string.Empty);
+        if (sender is Avalonia.Visual visual && e.GetCurrentPoint(visual).Properties.IsRightButtonPressed)
+        {
+            e.Handled = true;
+            await TryRunMysteryImportAsync(vm => vm.ImportMysterySetAsync(string.Empty));
+        }
     }
 
     private async void OnRefresh(object? sender, RoutedEventArgs e)
@@ -106,6 +117,22 @@ public partial class CopilotView : UserControl
         try { await RenderSelectedTaskDetailsAsync(); } catch { /* ignore */ }
     }
 
+    private async void OnUnloadActiveJob(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var vm = DataContext as CopilotViewModel;
+            if (vm == null) return;
+
+            await vm.UnloadActiveJobAsync();
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("卸载失败");
+        }
+    }
+
     private async void OnOpenCacheDir(object? sender, RoutedEventArgs e)
     {
         await (DataContext as CopilotViewModel)!.OpenCacheDirAsync();
@@ -114,6 +141,57 @@ public partial class CopilotView : UserControl
     private async void OnPreview(object? sender, RoutedEventArgs e)
     {
         await (DataContext as CopilotViewModel)!.PreviewSelectedAsync();
+    }
+
+    private async void OnDeleteSelectedJobs(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var vm = DataContext as CopilotViewModel;
+            if (sender is MenuItem menuItem && vm != null)
+            {
+                switch (menuItem.DataContext)
+                {
+                    case CopilotTreeItem treeItem:
+                        vm.SelectedNode = treeItem;
+                        break;
+                    case CopilotFileItem fileItem:
+                        vm.SelectedFile = fileItem;
+                        break;
+                }
+            }
+
+            if (vm?.SelectedNode == null)
+            {
+                ToastHelper.Warn("请选择要删除的作业或文件夹");
+                return;
+            }
+
+            var target = vm.SelectedNode;
+            var confirmText = target.IsFile
+                ? "确认删除选中的作业？此操作不可恢复"
+                : "确认删除选中的文件夹？将一并删除其中的所有作业";
+
+            var result = await SukiMessageBox.ShowDialog(new SukiMessageBoxHost
+            {
+                Content = confirmText,
+                ActionButtonsPreset = SukiMessageBoxButtons.YesNo,
+                IconPreset = SukiMessageBoxIcons.Warning,
+            }, new SukiMessageBoxOptions
+            {
+                Title = "删除确认",
+            });
+
+            if (result is not SukiMessageBoxResult.Yes)
+                return;
+
+            await vm.DeleteSelectedAsync();
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("删除失败");
+        }
     }
 
     private async void OnOpenShareSite(object? sender, RoutedEventArgs e)
@@ -140,10 +218,10 @@ public partial class CopilotView : UserControl
     {
         try
         {
-            var list = this.FindControl<ListBox>("CopilotList");
-            if (list == null) return;
-            list.SelectionChanged -= OnListSelectionChanged;
-            list.SelectionChanged += OnListSelectionChanged;
+            var tree = this.FindControl<TreeView>("CopilotTree");
+            if (tree == null) return;
+            tree.SelectionChanged -= OnListSelectionChanged;
+            tree.SelectionChanged += OnListSelectionChanged;
         }
         catch { /* ignore */ }
     }
@@ -151,13 +229,28 @@ public partial class CopilotView : UserControl
     private async void OnListSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (_isSelectionRefreshBusy) return;
+        var tree = sender as TreeView ?? this.FindControl<TreeView>("CopilotTree");
+        var vm = DataContext as CopilotViewModel;
+        var node = e.AddedItems?.OfType<CopilotTreeItem>().FirstOrDefault() ?? tree?.SelectedItem as CopilotTreeItem;
+        if (vm != null && node != null)
+        {
+            vm.SelectedNode = node;
+        }
+
+        // Clear visual selection immediately to avoid highlight flashes
+        if (tree != null)
+        {
+            try { tree.SelectedItem = null; } catch { /* ignore */ }
+        }
+
+        if (vm?.SelectedFile == null)
+            return;
+
         _isSelectionRefreshBusy = true;
         try
         {
-            // 选中即预览
             try { await RenderSelectedTaskDetailsAsync(); } catch { }
-            // 并触发加载（重载资源）
-            try { await (DataContext as CopilotViewModel)!.LoadSelectedAsync(); } catch { }
+            try { await vm.LoadSelectedAsync(); } catch { }
         }
         finally
         {
@@ -809,5 +902,38 @@ public partial class CopilotView : UserControl
                 LoggerHelper.Error($"更新列宽失败: {ex.Message}");
             }
         });
+    }
+
+    private async Task<bool> TryRunMysteryImportAsync(Func<CopilotViewModel, Task> action)
+    {
+        if (DataContext is not CopilotViewModel vm)
+        {
+            return false;
+        }
+
+        var now = DateTime.UtcNow;
+        if (_mysteryImportInProgress)
+        {
+            return false;
+        }
+
+        if (now - _lastMysteryImportUtc < MysteryImportCooldown)
+        {
+            return false;
+        }
+
+        _mysteryImportInProgress = true;
+        _lastMysteryImportUtc = now;
+
+        try
+        {
+            await action(vm);
+            return true;
+        }
+        finally
+        {
+            _mysteryImportInProgress = false;
+            _lastMysteryImportUtc = DateTime.UtcNow;
+        }
     }
 }
