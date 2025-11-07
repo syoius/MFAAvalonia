@@ -1446,31 +1446,28 @@ public static class VersionChecker
 
     async private static Task<(bool, string)> DownloadFileAsync(string url, string filePath, ProgressBar? progressBar)
     {
+        var targetFilePath = filePath;
         try
         {
             using var httpClient = CreateHttpClientWithProxy();
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("request");
-            httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+            httpClient.DefaultRequestHeaders.Accept.Clear();
+            httpClient.DefaultRequestHeaders.Accept.ParseAdd("*/*");
 
-            using var headResponse = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, url));
-            headResponse.EnsureSuccessStatusCode();
-
-            string? suggestedFileName = null;
-            if (headResponse.Content.Headers.ContentDisposition != null)
-            {
-                suggestedFileName = ParseFileNameFromContentDisposition(
-                    headResponse.Content.Headers.ContentDisposition.ToString());
-            }
-
-            if (!string.IsNullOrEmpty(suggestedFileName))
-            {
-                string dir = Path.GetDirectoryName(filePath)!;
-                string newFileName = Path.GetFileNameWithoutExtension(filePath) + Path.GetExtension(suggestedFileName);
-                filePath = Path.Combine(dir, newFileName);
-            }
-
-            using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Get, url), HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
+
+            if (response.Content.Headers.ContentDisposition != null)
+            {
+                var suggestedFileName = ParseFileNameFromContentDisposition(
+                    response.Content.Headers.ContentDisposition.ToString());
+                if (!string.IsNullOrEmpty(suggestedFileName))
+                {
+                    string dir = Path.GetDirectoryName(filePath)!;
+                    string newFileName = Path.GetFileNameWithoutExtension(filePath) + Path.GetExtension(suggestedFileName);
+                    targetFilePath = Path.Combine(dir, newFileName);
+                }
+            }
 
             var startTime = DateTime.Now;
             long totalBytesRead = 0;
@@ -1478,7 +1475,7 @@ public static class VersionChecker
             long? totalBytes = response.Content.Headers.ContentLength;
 
             await using var contentStream = await response.Content.ReadAsStreamAsync();
-            await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+            await using var fileStream = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write);
 
             var buffer = new byte[8192];
             var stopwatch = Stopwatch.StartNew();
@@ -1545,22 +1542,22 @@ public static class VersionChecker
                     (DateTime.Now - startTime).TotalSeconds
                 ));
 
-            return (true, filePath);
+            return (true, targetFilePath);
         }
         catch (HttpRequestException httpEx)
         {
             LoggerHelper.Error($"HTTP请求失败: {httpEx.Message}");
-            return (false, filePath);
+            return (false, targetFilePath);
         }
         catch (IOException ioEx)
         {
             LoggerHelper.Error($"文件操作失败: {ioEx.Message}");
-            return (false, filePath);
+            return (false, targetFilePath);
         }
         catch (Exception ex)
         {
             LoggerHelper.Error($"未知错误: {ex.Message}");
-            return (false, filePath);
+            return (false, targetFilePath);
         }
     }
 
