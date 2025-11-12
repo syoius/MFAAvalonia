@@ -56,6 +56,7 @@
                         <Binding Path="ResourceName" />
                         <Binding Path="ResourceVersion" />
                         <Binding Path="IsResourceNameVisible" />
+                        <Binding Path="CurrentConfiguration" />
                     </MultiBinding>
                 </TextBlock.Text>
             </TextBlock>
@@ -74,6 +75,7 @@
             <Binding Path="ResourceName" />
             <Binding Path="ResourceVersion" />
             <Binding Path="IsResourceNameVisible" />
+            <Binding Path="CurrentConfiguration" />
         </MultiBinding>
     </suki:SukiWindow.Title>
     <suki:SukiWindow.RightWindowTitleBarControls>
@@ -123,6 +125,12 @@
                                        Icon="{markupExtensions:FluentIcon Icon=TasksApp,
                                                        IconVariant=Regular}"
                                        PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:TaskQueueView}}" />
+                <!-- Copilot Tab: 抄作业 -->
+                <suki:SukiSideMenuItem IsContentMovable="False"
+                                       Header="自动战斗"
+                                       Icon="{markupExtensions:FluentIcon Icon=Games,
+                                                       IconVariant=Regular}"
+                                       PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CopilotView}}" />
                 <suki:SukiSideMenuItem IsContentMovable="False"
                                        Header="{markup:I18n {x:Static helper:LangKeys.ScreenshotPage}}"
                                        Icon="{markupExtensions:FluentIcon Icon=Screenshot,

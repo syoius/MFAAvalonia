@@ -75,40 +75,4 @@ public partial class StartSettingsUserControlModel : ViewModelBase
             SoftwarePath = path;
         }
     }
-
-    
-    public AvaloniaList<LocalizationViewModel> BeforeTaskList =>
-    [
-        new("None"),
-        new("StartupSoftware"),
-        new("StartupSoftwareAndScript"),
-    ];
-
-
-    public AvaloniaList<LocalizationViewModel> AfterTaskList =>
-    [
-        new("None"),
-        new("CloseMFA"),
-        new("CloseEmulator"),
-        new("CloseEmulatorAndMFA"),
-        new("ShutDown"),
-        new("CloseEmulatorAndRestartMFA"),
-        new("RestartPC"),
-    ];
-
-
-    [ObservableProperty] private string? _beforeTask = ConfigurationManager.Current.GetValue(ConfigurationKeys.BeforeTask, "None");
-
-    partial void OnBeforeTaskChanged(string? value)
-    {
-        ConfigurationManager.Current.SetValue(ConfigurationKeys.BeforeTask, value);
-    }
-
-    [ObservableProperty] private string? _afterTask = ConfigurationManager.Current.GetValue(ConfigurationKeys.AfterTask, "None");
-
-    partial void OnAfterTaskChanged(string? value)
-    {
-        ConfigurationManager.Current.SetValue(ConfigurationKeys.AfterTask, value);
-    }
-
 }
