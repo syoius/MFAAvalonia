@@ -76,9 +76,13 @@ public partial class CopilotViewModel : ObservableObject
     [ObservableProperty]
     private string _activeJob = string.Empty;
 
+    [ObservableProperty]
+    private bool _canLike;
+
     partial void OnSelectedFileChanged(CopilotFileItem? value)
     {
         HasSelection = value != null;
+        try { UpdateCanLikeFromSelection(); } catch { /* ignore */ }
     }
 
     partial void OnSelectedNodeChanged(CopilotTreeItem? value)
@@ -91,6 +95,7 @@ public partial class CopilotViewModel : ObservableObject
         EnsureDirs();
         _ = RefreshAsync();
         _ = UpdateActiveJobFromDiskAsync();
+        try { UpdateCanLikeFromSelection(); } catch { /* ignore */ }
     }
     // 统一的主备域回退请求封装：按序尝试主域与备域，仅两者均失败时抛出异常
     private static async Task<string> GetStringWithFallbackAsync(HttpClient http, string relativePath)
@@ -548,6 +553,10 @@ public partial class CopilotViewModel : ObservableObject
             if (ok)
             {
                 ToastHelper.Success("已点赞，感谢反馈！");
+                // 点赞成功后，写入本地历史并禁用按钮
+                string? key = idStr ?? idNum.ToString();
+                try { LikeHistoryHelper.MarkLiked(key); } catch { /* ignore */ }
+                CanLike = false;
             }
             else
             {
@@ -558,6 +567,58 @@ public partial class CopilotViewModel : ObservableObject
         {
             LoggerHelper.Warning(ex);
             ToastHelper.Error("点赞失败");
+        }
+    }
+
+    private void UpdateCanLikeFromSelection()
+    {
+        if (SelectedFile == null)
+        {
+            CanLike = false;
+            return;
+        }
+
+        try
+        {
+            // 读取所选作业的 id，决定是否允许点赞
+            var text = File.ReadAllText(SelectedFile.FullPath, Encoding.UTF8);
+            var root = JsonNode.Parse(text) as JsonObject;
+            if (root == null)
+            {
+                CanLike = HasSelection; // 无法解析则默认允许
+                return;
+            }
+
+            long idNum = 0;
+            string? idStr = null;
+            if (root["id"] is JsonValue idVal)
+            {
+                if (idVal.TryGetValue<long>(out var asLong))
+                {
+                    idNum = asLong; idStr = null;
+                }
+                else if (idVal.TryGetValue<string>(out var asStr) && !string.IsNullOrWhiteSpace(asStr))
+                {
+                    idStr = asStr.Trim();
+                    if (idStr.StartsWith("maay://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var tail = idStr.Substring("maay://".Length);
+                        if (long.TryParse(tail, out var parsed))
+                        {
+                            idNum = parsed; idStr = null;
+                        }
+                    }
+                }
+            }
+
+            string key = idStr ?? idNum.ToString();
+            var liked = LikeHistoryHelper.HasLiked(key);
+            CanLike = HasSelection && !liked;
+        }
+        catch
+        {
+            // 任何异常下不阻塞交互：保持默认允许点赞
+            CanLike = HasSelection;
         }
     }
 

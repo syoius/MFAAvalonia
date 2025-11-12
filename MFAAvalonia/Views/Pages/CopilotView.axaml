@@ -321,7 +321,7 @@
                                 <Button
                                     Classes="Basic Round"
                                     Command="{Binding LikeCommand}"
-                                    IsEnabled="{Binding HasSelection}"
+                                    IsEnabled="{Binding CanLike}"
                                     Margin="3,0,3,0"
                                     Padding="0"
                                     ToolTip.Tip="点赞">
