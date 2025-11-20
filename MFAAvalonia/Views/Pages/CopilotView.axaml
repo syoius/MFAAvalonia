@@ -1,277 +1,195 @@
 ﻿<UserControl
-    d:DesignHeight="450"
-    d:DesignWidth="800"
-    mc:Ignorable="d"
-    x:Class="MFAAvalonia.Views.Pages.TaskQueueView"
-    x:DataType="pages:TaskQueueViewModel"
+    x:Class="MFAAvalonia.Views.Pages.CopilotView"
     xmlns="https://github.com/avaloniaui"
-    xmlns:System="clr-namespace:System;assembly=System.Runtime"
-    xmlns:binding="clr-namespace:MaaFramework.Binding;assembly=MaaFramework.Binding"
-    xmlns:calcBinding="clr-namespace:CalcBinding;assembly=CalcBindingAva"
-    xmlns:converters="clr-namespace:MFAAvalonia.Helper.Converters"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:ex="clr-namespace:MFAAvalonia.Extensions"
-    xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
-    xmlns:helper="clr-namespace:MFAAvalonia.Helper"
-    xmlns:maa="clr-namespace:MFAAvalonia.Extensions.MaaFW"
-    xmlns:markup="https://codewf.com"
-    xmlns:controls="clr-namespace:MFAAvalonia.Views.UserControls"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
-    xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
-    xmlns:suki="https://github.com/kikipoulet/SukiUI"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:behaviors="using:Avalonia.Xaml.Interactions.Core"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    xmlns:helper="clr-namespace:MFAAvalonia.Helper"
+    xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    xmlns:markup="https://codewf.com"
+    xmlns:suki="https://github.com/kikipoulet/SukiUI"
+    xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
+    xmlns:mdxaml="https://github.com/whistyun/Markdown.Avalonia"
+    xmlns:maa="clr-namespace:MFAAvalonia.Extensions.MaaFW"
+    xmlns:converters="clr-namespace:MFAAvalonia.Helper.Converters"
+    xmlns:calcBinding="clr-namespace:CalcBinding;assembly=CalcBindingAva"
     xmlns:interaction="using:Avalonia.Xaml.Interactivity"
-    xmlns:avalonia="https://github.com/whistyun/Markdown.Avalonia.Tight">
+    xmlns:behaviors="using:Avalonia.Xaml.Interactions.Core"
+    xmlns:binding="clr-namespace:MaaFramework.Binding;assembly=MaaFramework.Binding"
+    xmlns:ex="clr-namespace:MFAAvalonia.Extensions"
+    d:DesignWidth="1200"
+    d:DesignHeight="800"
+    x:DataType="vm:CopilotViewModel"
+    mc:Ignorable="d">
     <Design.DataContext>
-        <pages:TaskQueueViewModel />
+        <vm:CopilotViewModel />
     </Design.DataContext>
 
-    <UserControl.Resources>
-        <ContextMenu x:Key="TaskMenu">
-            <MenuItem IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}" Click="Run"
-                      Header="{markup:I18n {x:Static helper:LangKeys.Execute}}" />
-            <MenuItem Click="Delete" Header="{markup:I18n {x:Static helper:LangKeys.Delete}}" />
-        </ContextMenu>
-        <helper:MFALinkCommand x:Key="myLinkCommand" />
-    </UserControl.Resources>
+    <!-- 三列布局，复刻主页结构 -->
     <Grid ClipToBounds="False" Margin="0,0,0,0" x:Name="MainGrid">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="{Binding Column1Width, Source={x:Static helper:Instances.TaskQueueViewModel}}"
-                              MinWidth="200" />
+            <ColumnDefinition Width="{Binding Column1Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
             <ColumnDefinition Width="15" />
-            <ColumnDefinition Width="{Binding Column2Width, Source={x:Static helper:Instances.TaskQueueViewModel}}"
-                              MinWidth="200" />
+            <ColumnDefinition Width="{Binding Column2Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
             <ColumnDefinition Width="15" />
-            <ColumnDefinition Width="{Binding Column3Width, Source={x:Static helper:Instances.TaskQueueViewModel}}"
-                              MinWidth="200" />
+            <ColumnDefinition Width="{Binding Column3Width, Source={x:Static helper:Instances.TaskQueueViewModel}}" MinWidth="200" />
         </Grid.ColumnDefinitions>
 
-        <!-- 左侧列 -->
-        <Grid Grid.Column="0" x:Name="cs">
+        <!-- 左侧列：导入 + 作业展示 + 开始任务按钮 -->
+        <Grid Grid.Column="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" MaxHeight="230" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
+
+            <!-- 导入区（替换运行环境） -->
             <suki:GlassCard Grid.Row="0" Margin="15,15,0,0">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
-                        <TextBlock
-                            FontSize="11"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource SukiLowText}"
-                            HorizontalAlignment="Left"
-                            Margin="2,0,0,0"
-                            Text="运行环境"
-                            VerticalAlignment="Center" />
+                        <TextBlock FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SukiLowText}"
+                                   Margin="2,0,0,0" Text="导入" />
                     </suki:GroupBox.Header>
-                    <StackPanel Spacing="4">
-                        <DockPanel>
-                            <TextBlock
-                                DockPanel.Dock="Left"
-                                Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
-                                VerticalAlignment="Center"
-                                Margin="10,0,0,0" />
-                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                                      DisplayMemberBinding="{Binding Name}"
-                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                      ItemsSource="{Binding CurrentResources}"
-                                      Margin="15,0,0,0"
-                                      SelectedValue="{Binding CurrentResource}"
-                                      SelectedValueBinding="{Binding Name}"
-                                      VerticalAlignment="Center" />
-                        </DockPanel>
-                        
-                        <DockPanel>
-                            <TextBlock
-                                DockPanel.Dock="Left"
-                                Text="{markup:I18n {x:Static helper:LangKeys.AutoStartOption}}"
-                                VerticalAlignment="Center"
-                                Margin="2,0,0,0" />
-                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                                      DisplayMemberBinding="{Binding Name}"
-                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                      ItemsSource="{Binding BeforeTaskList}"
-                                      Margin="10,0,0,0"
-                                      SelectedValue="{Binding BeforeTask}"
-                                      SelectedValueBinding="{Binding ResourceKey}"
-                                      VerticalAlignment="Center" />
-                        </DockPanel>
-                        
-                        <DockPanel>
-                            <TextBlock
-                                DockPanel.Dock="Left"
-                                Text="{markup:I18n {x:Static helper:LangKeys.AfterTaskOption}}"
-                                VerticalAlignment="Center"
-                                Margin="2,0,0,0" />
-                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                                      DisplayMemberBinding="{Binding Name}"
-                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                      ItemsSource="{Binding AfterTaskList}"
-                                      Margin="10,0,0,0"
-                                      SelectedValue="{Binding AfterTask}"
-                                      SelectedValueBinding="{Binding ResourceKey}"
-                                      VerticalAlignment="Center" />
-                        </DockPanel>
+                    <StackPanel Spacing="6" Margin="8,4,8,8">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox Width="130" Watermark="maay://&lt;id&gt;" Text="{Binding SecretCode, Mode=TwoWay}"/>
+                            <Button Classes="Basic" Click="OnOpenShareSite">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="Globe" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text=" 作业站" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Classes="Basic" Click="OnImportMysteryCode" PointerPressed="OnImportMysteryCodePointerPressed">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="Clipboard" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text="使用神秘代码" />
+                                </StackPanel>
+                            </Button>
+                            <Button Classes="Basic" Click="OnImportLocalJson">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="FolderOpen" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text="本地导入" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock FontSize="14" Foreground="{DynamicResource SukiDisabledText}"
+                                   Text=" 左键点击自动粘贴+导入单份作业📒" TextWrapping="Wrap"/>
+                        <TextBlock FontSize="14" Foreground="{DynamicResource SukiDisabledText}"
+                                   Text=" 右键点击粘贴导入作业集📚" TextWrapping="Wrap"/>
                     </StackPanel>
                 </suki:GroupBox>
             </suki:GlassCard>
+
+            <!-- 作业展示 + 开始任务（放入同一容器） -->
             <Grid Grid.Row="1">
-                <suki:GlassCard Grid.Column="0" Margin="15,5,0,25">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <suki:GlassCard Grid.Row="0" Margin="15,5,0,25">
                     <suki:GroupBox>
                         <suki:GroupBox.Header>
-                            <Grid Grid.Row="0">
-                                <TextBlock
-                                    FontSize="11"
-                                    FontWeight="Bold"
-                                    Foreground="{DynamicResource SukiLowText}"
-                                    HorizontalAlignment="Left"
-                                    Margin="2,0,0,0"
-                                    Text="{markup:I18n {x:Static helper:LangKeys.TaskList}}"
-                                    VerticalAlignment="Center" />
-                                <StackPanel
-                                    HorizontalAlignment="Right"
-                                    Margin="2,0,2,0"
-                                    Orientation="Horizontal"
-                                    VerticalAlignment="Center">
-                                    <Button
-                                        Classes="Basic Round"
-                                        Command="{Binding SelectAllCommand}"
-                                        Height="16"
-                                        IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                        Margin="7,0,0,0"
-                                        Padding="0"
-
-                                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.SelectAll}}"
-                                        Width="16">
-                                        <fluent:FluentIcon
-                                            Icon="SelectAllOn"
-                                            IconSize="Size16"
-                                            IconVariant="Regular" />
-                                    </Button>
-                                    <Button
-                                        Classes="Basic Round"
-                                        Command="{Binding SelectNoneCommand}"
-                                        Height="16"
-                                        IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                        Margin="7,0,0,0"
-                                        Padding="0"
-
-                                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.DeselectAll}}"
-                                        Width="16">
-                                        <fluent:FluentIcon
-                                            Icon="SelectAllOff"
-                                            IconSize="Size16"
-                                            IconVariant="Regular" />
-                                    </Button>
-                                    <Button
-                                        Classes="Basic Round"
-                                        Command="{Binding AddTaskCommand}"
-                                        Height="16"
-                                        IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                        Margin="7,0,8,0"
-                                        Padding="0"
-
-                                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.AddTask}}">
-                                        <fluent:FluentIcon
-                                            Icon="AddSquareMultiple"
-                                            IconSize="Size16"
-                                            IconVariant="Regular" />
-                                    </Button>
-                                </StackPanel>
-                            </Grid>
-                        </suki:GroupBox.Header>
-                        <Grid>
-                            <ListBox Classes="Fluent"
-                                     DragDrop.AllowDrop="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                     ex:DragDropExtensions.EnableDragDrop="True"
-                                     ex:DragDropExtensions.DragStartThreshold="2"
-                                     ex:DragDropExtensions.EnableAnimation="True"
-                                     ItemsSource="{Binding Path=TaskItemViewModels}"
-                                     Margin="0,3,0,0"
-                                     MinHeight="220"
-                                     Width="{Binding Bounds.Width,RelativeSource={RelativeSource FindAncestor,AncestorType=Grid}}"
-                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                     SelectionChanged="SelectingItemsControl_OnSelectionChanged"
-                                     x:Name="TaskListBox">
-                                <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <StackPanel />
-                                    </ItemsPanelTemplate>
-                                </ListBox.ItemsPanel>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-
-                                        <Grid
-                                            ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
-                                            Background="Transparent" ex:DragDropExtensions.LimitDragDrop="True"
-                                            ColumnDefinitions="30,1*,Auto" ContextMenu="{StaticResource TaskMenu}"
-                                            x:Name="ListGrid">
-                                            <CheckBox IsThreeState="True"
-                                                      Grid.Column="0" MinWidth="150"
-                                                      ex:CheckBoxExtensions.EnableRightClickNull="True"
-                                                      HorizontalAlignment="Left"
-                                                      ex:CheckBoxExtensions.LimitDragDrop="True"
-                                                      IsEnabled="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                                      IsChecked="{Binding IsCheckedWithNull}"
-                                                      Tapped="CheckBox_Tapped" />
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Text="{Binding Name}"
-                                                TextTrimming="CharacterEllipsis"
-                                                TextWrapping="NoWrap"
-                                                MinWidth="170"
-                                                Margin="3,0,25,0"
-                                                HorizontalAlignment="Left"
-                                                VerticalAlignment="Center"
-                                                Tapped="TextBlock_Tapped" />
-
-                                            <!--  ReSharper disable once Xaml.StaticResourceNotResolved  -->
-                                            <RadioButton Classes="Icon"
-                                                         Background="Transparent" IsHitTestVisible="False"
-                                                         BorderThickness="0" IsChecked="{Binding EnableSetting}"
-                                                         Grid.Column="2"
-                                                         ex:IconElement.Width="16" ex:IconElement.Height="16"
-                                                         ex:IconElement.Geometry="{x:Static suki:Icons.Setting}"
-                                                         GroupName="TaskSettings" IsVisible="{Binding IsVisible}"
-                                                         HorizontalContentAlignment="Center" />
-                                        </Grid>
-
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-
-
+                            <Grid>
+                                <TextBlock FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SukiLowText}"
+                                           HorizontalAlignment="Left" Margin="2,0,0,0" Text="作业列表" />
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,0,0"
+                                        ToolTip.Tip="打开作业文件夹" Click="OnOpenCacheDir">
+                                    <fluent:FluentIcon Icon="Folder" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                                <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,0,0"
+                                        ToolTip.Tip="刷新" Click="OnRefresh">
+                                    <fluent:FluentIcon Icon="ArrowClockwise" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                                <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,8,0"
+                                        ToolTip.Tip="卸载当前激活的文件" Click="OnUnloadActiveJob">
+                                    <fluent:FluentIcon Icon="FolderArrowLeft" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                            </StackPanel>
                         </Grid>
+                    </suki:GroupBox.Header>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,4">
+                            <TextBlock Text="当前激活："/>
+                            <TextBlock Text="{Binding ActiveJob}" Foreground="{DynamicResource SukiPrimaryColor}"/>
+                        </StackPanel>
+                        <TreeView Grid.Row="1"
+                                  x:Name="CopilotTree"
+                                  Classes="Fluent"
+                                  ItemsSource="{Binding FileTree}"
+                                  MinHeight="220"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <TreeView.Styles>
+                                <Style Selector="TreeViewItem">
+                                    <Setter Property="Background" Value="Transparent" />
+                                    <Setter Property="BorderBrush" Value="Transparent" />
+                                    <Setter Property="FocusAdorner" Value="{x:Null}" />
+                                    <Setter Property="ContextMenu">
+                                        <ContextMenu>
+                                            <MenuItem Header="删除" Click="OnDeleteSelectedJobs" />
+                                        </ContextMenu>
+                                    </Setter>
+                                </Style>
+                                <Style Selector="TreeViewItem:pointerover /template/ Border#SelectionBorder">
+                                    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor7}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor7}" />
+                                </Style>
+                                <Style Selector="TreeViewItem:pressed /template/ Border#SelectionBorder">
+                                    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor15}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor15}" />
+                                </Style>
+                                <Style Selector="TreeViewItem:selected /template/ Border#SelectionBorder">
+                                    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor20}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor20}" />
+                                </Style>
+                                <Style Selector="TreeViewItem:selected:pointerover /template/ Border#SelectionBorder">
+                                    <Setter Property="Background" Value="{DynamicResource SukiPrimaryColor25}" />
+                                    <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor25}" />
+                                </Style>
+                                <Style Selector="TreeViewItem:focus /template/ Border#SelectionBorder">
+                                    <Setter Property="BorderBrush" Value="{DynamicResource SukiPrimaryColor20}" />
+                                </Style>
+                            </TreeView.Styles>
+                            <TreeView.ItemTemplate>
+                                <TreeDataTemplate DataType="vm:CopilotTreeItem" ItemsSource="{Binding Children}">
+                                    <StackPanel Orientation="Horizontal" Spacing="6" Margin="4,2">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   TextWrapping="NoWrap"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </TreeDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+                    </Grid>
                     </suki:GroupBox>
-
                 </suki:GlassCard>
-                <StackPanel HorizontalAlignment="Center" Margin="15 0 0  7" Orientation="Horizontal">
-                    <StackPanel.Resources>
-                        <markup:IfConditionConverter x:Key="StatusConditionConverter">
-                            <markup:IfConditionConverter.True>
-                                <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.StopTask}}" />
-                            </markup:IfConditionConverter.True>
-                            <markup:IfConditionConverter.False>
-                                <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.StartTask}}" />
-                            </markup:IfConditionConverter.False>
-                        </markup:IfConditionConverter>
-                    </StackPanel.Resources>
-                    <Button
-                        Classes="Flat Rounded"
-                        Command="{Binding ToggleCommand}"
+
+                <!-- 开始任务按钮，保持原位与行为 -->
+                <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="15 0 0  7" Orientation="Horizontal">
+                <StackPanel.Resources>
+                    <markup:IfConditionConverter x:Key="StatusConditionConverter">
+                        <markup:IfConditionConverter.True>
+                            <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.StopTask}}" />
+                        </markup:IfConditionConverter.True>
+                        <markup:IfConditionConverter.False>
+                            <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.StartTask}}" />
+                        </markup:IfConditionConverter.False>
+                    </markup:IfConditionConverter>
+                </StackPanel.Resources>
+                <Button Classes="Flat Rounded" Command="{Binding ToggleCopilotTaskCommand}"
                         Content="{Binding IsRunning, Source={x:Static helper:Instances.RootViewModel}, Converter={StaticResource StatusConditionConverter}}"
-                        FontWeight="DemiBold"
-                        Height="40"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Bottom"
-                        Width="150" />
-                </StackPanel>
+                        FontWeight="DemiBold" Height="40" Width="150" />
+            </StackPanel>
             </Grid>
         </Grid>
 
-        <!-- 第一个分隔条 -->
+        <!-- 分隔条1 -->
         <GridSplitter Grid.Column="1"
                       Background="Transparent"
                       Margin="0"
@@ -297,21 +215,22 @@
             </GridSplitter.Template>
             <interaction:Interaction.Behaviors>
                 <behaviors:EventTriggerBehavior EventName="DragStarted">
-                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}"
+                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand, Source={x:Static helper:Instances.TaskQueueViewModel}}"
                                                    CommandParameter="Splitter1" />
                 </behaviors:EventTriggerBehavior>
                 <behaviors:EventTriggerBehavior EventName="DragCompleted">
-                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}"
+                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand, Source={x:Static helper:Instances.TaskQueueViewModel}}"
                                                    CommandParameter="Splitter1" />
                 </behaviors:EventTriggerBehavior>
             </interaction:Interaction.Behaviors>
         </GridSplitter>
 
-        <!-- 中间列 -->
-        <Grid Grid.Column="2" x:Name="Grid1">
+        <!-- 中间列：任务设置 + 任务说明（占位） -->
+        <Grid Grid.Column="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,0,5" x:Name="Row1">
                 <suki:GlassCard.Resources>
@@ -324,9 +243,8 @@
                         </suki:IfConditionConverter.False>
                     </suki:IfConditionConverter>
                 </suki:GlassCard.Resources>
-                <suki:GroupBox SeparatorMargin="{Binding ShowSettings,Converter={StaticResource IfConditionConverter}}">
+                <suki:GroupBox SeparatorMargin="{Binding ShowSettings, Source={x:Static helper:Instances.TaskQueueViewModel}, Converter={StaticResource IfConditionConverter}}">
                     <suki:GroupBox.Header>
-
                         <DockPanel>
                             <TextBlock DockPanel.Dock="Left"
                                        FontSize="11"
@@ -337,81 +255,90 @@
                                        Text="{markup:I18n {x:Static helper:LangKeys.TaskSettings}}"
                                        VerticalAlignment="Top" />
                             <StackPanel Margin="2 0 0 5" Orientation="Horizontal" HorizontalAlignment="Right"
-                                        DockPanel.Dock="Right" IsVisible="{Binding ShowSettings}"
+                                        DockPanel.Dock="Right" IsVisible="{Binding ShowSettings, Source={x:Static helper:Instances.TaskQueueViewModel}}"
                                         Spacing="8">
                                 <RadioButton FontSize="11" FontWeight="Bold" Classes="Inner"
-                                             IsChecked="{Binding IsCommon}" GroupName="SettingA">
+                                             IsChecked="{Binding IsCommon, Source={x:Static helper:Instances.TaskQueueViewModel}}" GroupName="SettingB">
                                     <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.CommonSetting}}"></TextBlock>
                                 </RadioButton>
-                                <RadioButton FontSize="11" FontWeight="Bold" Classes="Inner" GroupName="SettingA"
-                                             IsChecked="{calcBinding:Binding '!IsCommon'}">
+                                <RadioButton FontSize="11" FontWeight="Bold" Classes="Inner" GroupName="SettingB"
+                                             IsChecked="{calcBinding:Binding '!IsCommon', Source={x:Static helper:Instances.TaskQueueViewModel}}">
                                     <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.AdvancedSetting}}"></TextBlock>
                                 </RadioButton>
                             </StackPanel>
                         </DockPanel>
-
                     </suki:GroupBox.Header>
-                    <ScrollViewer
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer HorizontalAlignment="Stretch" VerticalAlignment="Stretch" VerticalScrollBarVisibility="Auto">
                         <Grid>
-
-                            <StackPanel IsVisible="{calcBinding:Binding 'IsCommon'}"
-                                        x:Name="CommonOptionSettings" Orientation="Vertical">
-                            </StackPanel>
-                            <StackPanel IsVisible="{calcBinding:Binding '!IsCommon'}"
-                                        x:Name="AdvancedOptionSettings" Orientation="Vertical">
-                            </StackPanel>
+                            <StackPanel IsVisible="{calcBinding:Binding 'IsCommon', Source={x:Static helper:Instances.TaskQueueViewModel}}"
+                                        x:Name="CopilotCommonOptionSettings" Orientation="Vertical" />
+                            <StackPanel IsVisible="{calcBinding:Binding '!IsCommon', Source={x:Static helper:Instances.TaskQueueViewModel}}"
+                                        x:Name="CopilotAdvancedOptionSettings" Orientation="Vertical" />
                         </Grid>
                     </ScrollViewer>
                 </suki:GroupBox>
             </suki:GlassCard>
-            <suki:GlassCard Grid.Row="1" Margin="0,8,0,25"
-                            MaxHeight="{calcBinding:Binding 'Bounds.Height / 2',RelativeSource={RelativeSource FindAncestor,AncestorType=Grid}}">
+            <!-- 垂直滑块：在任务设置与任务说明之间可调整高度比例 -->
+            <GridSplitter Grid.Row="1" Height="8" Background="Transparent" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <GridSplitter.Template>
+                    <ControlTemplate>
+                        <Border Background="Transparent" Cursor="SizeNorthSouth">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6">
+                                <Rectangle Width="24" Height="2" Fill="{DynamicResource SukiControlBorderBrush}"/>
+                            </StackPanel>
+                        </Border>
+                    </ControlTemplate>
+                </GridSplitter.Template>
+            </GridSplitter>
+
+            <suki:GlassCard Grid.Row="2" Margin="0,8,15,25">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
-                        <TextBlock
-                            FontSize="11"
-                            FontWeight="Bold"
-                            Foreground="{DynamicResource SukiLowText}"
-                            HorizontalAlignment="Left"
-                            Margin="2,0,0,0"
-                            Text="{markup:I18n {x:Static helper:LangKeys.TaskDescription}}"
-                            VerticalAlignment="Center" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource SukiLowText}"
+                                       Margin="2,0,0,0"
+                                       Text="{markup:I18n {x:Static helper:LangKeys.TaskDescription}}" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button
+                                    Classes="Basic Round"
+                                    Command="{Binding LikeCommand}"
+                                    IsEnabled="{Binding CanLike}"
+                                    Margin="3,0,3,0"
+                                    Padding="0"
+                                    ToolTip.Tip="点赞">
+                                    <TextBlock Text="👍"/>
+                                </Button>
+                                <Button
+                                    Classes="Basic Round"
+                                    Command="{Binding OpenJobPageCommand}"
+                                    IsEnabled="{Binding HasSelection}"
+                                    Margin="3,0,3,0"
+                                    Padding="0"
+                                    ToolTip.Tip="打开作业页">
+                                    <TextBlock Text="🔗"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
                     </suki:GroupBox.Header>
-
-                    <!-- <avaloniaEdit:TextEditor -->
-                    <!--     FontFamily="Cascadia Code,Consolas,Menlo,Monospace" -->
-                    <!--     IsReadOnly="True" VerticalScrollBarVisibility="Auto" -->
-                    <!--     x:Name="Introduction"> -->
-                    <!-- </avaloniaEdit:TextEditor> -->
-                    <ScrollViewer
-                        HorizontalScrollBarVisibility="Disabled"
-                        VerticalScrollBarVisibility="Auto"
-                        Padding="2,2,8,2"
-                        Margin="0">
-                        <mdxaml:MarkdownScrollViewer
-                            Focusable="True" x:Name="Introduction"
-                            Margin="10,0,10,0">
-                            <mdxaml:MarkdownScrollViewer.Engine>
-                                <avalonia:Markdown
-                                    HyperlinkCommand="{StaticResource myLinkCommand}" />
-                            </mdxaml:MarkdownScrollViewer.Engine>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="2,2,8,2">
+                        <mdxaml:MarkdownScrollViewer Margin="10,0,10,0" x:Name="CopilotIntroduction">
                             <mdxaml:MarkdownScrollViewer.Styles>
                                 <StyleInclude Source="avares://MFAAvalonia/Assets/Style/MdXamlDocStyle.axaml" />
                             </mdxaml:MarkdownScrollViewer.Styles>
-                            <mdxaml:MarkdownScrollViewer.Plugins>
-                                <StaticResource ResourceKey="MdXamlPlugin" />
-                            </mdxaml:MarkdownScrollViewer.Plugins>
                         </mdxaml:MarkdownScrollViewer>
                     </ScrollViewer>
                 </suki:GroupBox>
-
             </suki:GlassCard>
         </Grid>
 
-        <!-- 第二个分隔条 -->
+        <!-- 分隔条2 -->
         <GridSplitter Grid.Column="3"
                       Background="Transparent" DragCompleted="GridSplitter_DragCompleted"
                       Margin="0"
@@ -437,17 +364,16 @@
             </GridSplitter.Template>
             <interaction:Interaction.Behaviors>
                 <behaviors:EventTriggerBehavior EventName="DragStarted">
-                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand}"
+                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragStartedCommand, Source={x:Static helper:Instances.TaskQueueViewModel}}"
                                                    CommandParameter="Splitter2" />
                 </behaviors:EventTriggerBehavior>
                 <behaviors:EventTriggerBehavior EventName="DragCompleted">
-                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand}"
+                    <behaviors:InvokeCommandAction Command="{Binding GridSplitterDragCompletedCommand, Source={x:Static helper:Instances.TaskQueueViewModel}}"
                                                    CommandParameter="Splitter2" />
                 </behaviors:EventTriggerBehavior>
             </interaction:Interaction.Behaviors>
         </GridSplitter>
-
-        <!-- 右侧列 -->
+        <!-- 右侧列：连接 + 日志（原样复用） -->
         <Grid Grid.Column="4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -497,7 +423,7 @@
                                 </StackPanel.Resources>
                                 <Button
                                     Classes="Basic Round"
-                                    Command="{Binding CustomAdbCommand}"
+                                    Command="{Binding CustomAdbCommand, Source={x:Static helper:Instances.TaskQueueViewModel}}"
                                     Height="16"
                                     IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
                                     IsVisible="{calcBinding:Binding 'CurrentController == maa:MaaControllerTypes.Adb'}"
@@ -513,7 +439,7 @@
                                 </Button>
                                 <Button
                                     Classes="Basic Round"
-                                    Command="{Binding RefreshCommand}"
+                                    Command="{Binding RefreshCommand, Source={x:Static helper:Instances.TaskQueueViewModel}}"
                                     Height="17"
                                     IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
                                     Margin="3,0,3,0"
@@ -540,7 +466,7 @@
                             Content="{markup:I18n {x:Static helper:LangKeys.TabADB}}"
                             FontSize="12"
                             GroupName="Controller"
-                            IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
+                            IsChecked="{Binding CurrentController, Source={x:Static helper:Instances.TaskQueueViewModel}, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
                             IsVisible="{calcBinding:Binding 'ShouldShow != 1'}"
                             IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
@@ -551,7 +477,7 @@
                             Content="{markup:I18n {x:Static helper:LangKeys.TabWin32}}"
                             FontSize="12"
                             GroupName="Controller"
-                            IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
+                            IsChecked="{Binding CurrentController, Source={x:Static helper:Instances.TaskQueueViewModel}, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
                             IsVisible="{calcBinding:Binding 'ShouldShow != 2'}"
                             IsEnabled="{calcBinding:Binding '!LockController and Idle',
                                                                 Source={x:Static helper:Instances.RootViewModel}}"
@@ -570,9 +496,9 @@
                                 VerticalAlignment="Center" />
                             <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True" Classes="LimitWidth"
                                       IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                      ItemsSource="{Binding Devices}"
+                                      ItemsSource="{Binding Devices, Source={x:Static helper:Instances.TaskQueueViewModel}}"
                                       Margin="5,0,0,5"
-                                      SelectedValue="{Binding CurrentDevice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                      SelectedValue="{Binding CurrentDevice, Source={x:Static helper:Instances.TaskQueueViewModel}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                 <ComboBox.DataTemplates>
                                     <DataTemplate DataType="binding:AdbDeviceInfo">
                                         <TextBlock HorizontalAlignment="Left"
@@ -685,6 +611,5 @@
                 </suki:GroupBox>
             </suki:GlassCard>
         </Grid>
-
     </Grid>
 </UserControl>

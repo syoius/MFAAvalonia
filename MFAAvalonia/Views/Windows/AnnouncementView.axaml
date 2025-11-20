@@ -23,6 +23,7 @@
     d:DesignHeight="450"
     x:Class="MFAAvalonia.Views.Windows.AnnouncementView">
     <suki:SukiWindow.Resources>
+        <helper:MFALinkCommand x:Key="myLinkCommand" />
     </suki:SukiWindow.Resources>
     <suki:SukiWindow.LogoContent>
         <Image
@@ -72,7 +73,8 @@
                         Margin="10,0,10,0"
                         Markdown="{Binding SelectedAnnouncement.Content, Mode=OneWay}">
                         <full:MarkdownScrollViewer.Engine>
-                            <extensions:MarkdownExtension />
+                            <mdxaml:Markdown
+                                HyperlinkCommand="{StaticResource myLinkCommand}" />
                         </full:MarkdownScrollViewer.Engine>
                         <full:MarkdownScrollViewer.Plugins>
                             <StaticResource ResourceKey="MdXamlPlugin" />

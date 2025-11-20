@@ -225,7 +225,7 @@ public static class VersionChecker
             if (isGithub)
                 GetLatestVersionAndDownloadUrlFromGithub(out _, out latestVersion, out sha256);
             else
-                GetDownloadUrlFromMirror(localVersion, "MFAAvalonia", CDK(), out _, out latestVersion, out sha256, isUI: true, onlyCheck: true);
+                GetDownloadUrlFromMirror(localVersion, "YuanMFA", CDK(), out _, out latestVersion, out sha256, isUI: true, onlyCheck: true);
             var mirrocS = false;
             if (IsNewVersionAvailable(latestVersion, GetMaxVersion()))
             {
@@ -476,6 +476,7 @@ public static class VersionChecker
                     {
                         if (!Path.GetFileName(rfile).Contains("MFAUpdater")
                             && !Path.GetFileName(rfile).Contains("MFAAvalonia")
+                            && !Path.GetFileName(rfile).Contains("MaaYuan")
                             && !Path.GetFileName(rfile).Contains("interface.json", StringComparison.OrdinalIgnoreCase)
                             && !Path.GetFileName(rfile).Contains(Process.GetCurrentProcess().MainModule?.ModuleName ?? string.Empty))
                         {
@@ -602,9 +603,116 @@ public static class VersionChecker
         }
 
 
-        // File.Delete(tempZipFilePath);
-        // Directory.Delete(tempExtractDir, true);
+        // 检查是否存在config文件夹，如果存在，安排程序关闭后更新
+        var sourceConfigDir = Path.Combine(tempExtractDir, "config");
+        if (Directory.Exists(sourceConfigDir))
+        {
+            var configBackupDir = Path.Combine(AppContext.BaseDirectory, "backup_config");
+            Directory.CreateDirectory(configBackupDir);
 
+            // 如果备份目录已存在，先清理
+            if (Directory.Exists(configBackupDir))
+                Directory.Delete(configBackupDir, true);
+            
+            // 简单复制到备份目录
+            CopyFolder(sourceConfigDir, configBackupDir); 
+            
+            // 创建更新配置的脚本
+            var updaterScriptPath = Path.Combine(AppContext.BaseDirectory, RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
+                ? "update_config.bat"
+                : "update_config.sh");
+                
+            try
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    // Windows批处理脚本
+                    string batchContent = $@"@echo off
+timeout /t 1 /nobreak > nul
+echo 正在更新配置文件...
+xcopy ""{configBackupDir}\*.*"" ""{Path.Combine(AppContext.BaseDirectory, "config")}"" /E /Y /I
+echo 配置更新完成!
+rmdir /S /Q ""{configBackupDir}""
+del ""%~f0""
+";
+                    File.WriteAllText(updaterScriptPath, batchContent);
+                }
+                else
+                {
+                    // Unix Shell脚本
+                    string shContent = $@"#!/bin/bash
+sleep 1
+echo ""正在更新配置文件...""
+mkdir -p ""{Path.Combine(AppContext.BaseDirectory, "config")}""
+cp -rf ""{configBackupDir}""/* ""{Path.Combine(AppContext.BaseDirectory, "config")}""/ 
+echo ""配置更新完成!""
+rm -rf ""{configBackupDir}""
+rm $0
+";
+                    File.WriteAllText(updaterScriptPath, shContent);
+                    // 设置执行权限
+                    var chmodProcess = Process.Start("/bin/chmod", $"+x {updaterScriptPath}");
+                    chmodProcess?.WaitForExitAsync();
+                }
+                
+                // 通知用户需要重启应用以完成配置更新
+                SetText(textBlock, "配置文件将在应用重启后更新");
+                LoggerHelper.Info("已安排配置文件在程序重启后更新");
+                
+                // 更新完成后在对话框中显示重启按钮
+                DispatcherHelper.RunOnMainThread(() =>
+                {
+                    if (!noDialog)
+                    {
+                        Instances.DialogManager.CreateDialog().WithContent("GameResourceUpdated".ToLocalization() + 
+                        "\n配置文件将在重启后更新").WithActionButton("Yes".ToLocalization(), _ =>
+                        {
+                            // 在程序退出前启动配置更新脚本
+                            try
+                            {
+                                var psi = new ProcessStartInfo
+                                {
+                                    FileName = updaterScriptPath,
+                                    UseShellExecute = true,
+                                    CreateNoWindow = false,
+                                    WindowStyle = ProcessWindowStyle.Hidden
+                                };
+                                Process.Start(psi);
+                                LoggerHelper.Info("已启动配置文件更新器");
+                            }
+                            catch (Exception ex)
+                            {
+                                LoggerHelper.Error($"启动配置文件更新器失败: {ex.Message}");
+                            }
+                            
+                            Process.Start(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
+                            Instances.ShutdownApplication();
+                            Instances.ApplicationLifetime.Shutdown();
+                        }, dismissOnClick: true, "Flat", "Accent")
+                        .WithActionButton("No".ToLocalization(), _ =>
+                        {
+                        }, dismissOnClick: true).TryShow();
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.Error($"准备配置更新器失败: {ex.Message}");
+            }
+        }
+        // 清理临时文件
+        try
+        {
+            if (Directory.Exists(tempPath))
+            {
+                Directory.Delete(tempPath, true);
+                LoggerHelper.Info($"已删除临时目录: {tempPath}，准备重启");
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"清理临时文件失败: {ex.Message}");
+        }
 
         var newInterfacePath = Path.Combine(wpfDir, "interface.json");
         if (File.Exists(newInterfacePath))
@@ -694,7 +802,7 @@ public static class VersionChecker
                 if (isGithub)
                     GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, out sha256);
                 else
-                    GetDownloadUrlFromMirror(GetLocalVersion(), "MFAAvalonia", CDK(), out downloadUrl, out latestVersion, out sha256, isUI: true);
+                    GetDownloadUrlFromMirror(GetLocalVersion(), "YuanMFA", CDK(), out downloadUrl, out latestVersion, out sha256, isUI: true);
             }
             catch (Exception ex)
             {
@@ -884,7 +992,7 @@ public static class VersionChecker
             }
             SetProgress(progress, 100);
 
-            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, $"{Assembly.GetEntryAssembly().GetName().Name}{(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "")}",
+            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, $"MaaYuan{(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "")}",
                 Process.GetCurrentProcess().MainModule.ModuleName);
 
             Thread.Sleep(500);
@@ -1245,7 +1353,7 @@ public static class VersionChecker
     public static void GetLatestVersionAndDownloadUrlFromGithub(out string url,
         out string latestVersion,
         out string sha256,
-        string owner = "SweetSmellFox",
+        string owner = "syoius",
         string repo = "MFAAvalonia",
         bool onlyCheck = false,
         string targetVersion = "",
@@ -1603,7 +1711,7 @@ public static class VersionChecker
         out string url,
         out string latestVersion,
         out string sha256,
-        string userAgent = "MFA",
+        string userAgent = "YuanMFA",
         bool isUI = false,
         bool onlyCheck = false,
         string currentVersion = "v0.0.0"
@@ -1766,7 +1874,6 @@ public static class VersionChecker
     {
         return Instances.VersionUpdateSettingsUserControlModel.ResourceVersion;
     }
-
 
     private static string GetResourceID()
     {
@@ -2071,7 +2178,9 @@ public static class VersionChecker
             {
                 var resourceDirectory = Path.Combine(AppContext.BaseDirectory, "resource");
                 Directory.CreateDirectory(resourceDirectory);
-                var filePath = Path.Combine(resourceDirectory, ChangelogViewModel.ChangelogFileName);
+                var announcementDir = Path.Combine(resourceDirectory, "Announcement");
+                Directory.CreateDirectory(announcementDir);
+                var filePath = Path.Combine(announcementDir, ChangelogViewModel.ChangelogFileName);
                 File.WriteAllText(filePath, bodyContent);
                 LoggerHelper.Info($"{ChangelogViewModel.ChangelogFileName} saved successfully.");
                 GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowChangelogAgain, bool.FalseString);
