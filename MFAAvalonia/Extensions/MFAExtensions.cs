@@ -494,17 +494,4 @@ public static class MFAExtensions
         result = rawData;
         return true;
     }
-
-    public static bool TryGetText(this IDataTransfer dataTransfer, out string? result)
-    {
-        result = null;
-        var textFormat = DataFormat.Text;
-        if (!dataTransfer.Formats.Contains(textFormat))
-            return false;
-
-        var rawData = dataTransfer.TryGetText();
-
-        result = rawData;
-        return true;
-    }
 }

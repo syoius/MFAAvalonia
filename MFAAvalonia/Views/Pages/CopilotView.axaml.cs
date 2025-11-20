@@ -29,6 +29,7 @@ using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Extensions;
 using Avalonia;
 using AvaloniaExtensions.Axaml.Markup;
+using Lang.Avalonia.MarkupExtensions;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Controls.Templates;
 using SukiUI.MessageBox;
