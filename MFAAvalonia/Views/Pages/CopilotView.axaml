@@ -100,7 +100,7 @@
                                     <fluent:FluentIcon Icon="Folder" IconSize="Size16" IconVariant="Regular" />
                                 </Button>
                                 <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,0,0"
-                                        ToolTip.Tip="刷新" Click="OnRefresh">
+                                        ToolTip.Tip="刷新作业列表" Click="OnRefresh">
                                     <fluent:FluentIcon Icon="ArrowClockwise" IconSize="Size16" IconVariant="Regular" />
                                 </Button>
                                 <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,8,0"
