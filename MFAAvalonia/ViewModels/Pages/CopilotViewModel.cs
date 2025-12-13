@@ -39,8 +39,26 @@ public partial class CopilotViewModel : ObservableObject
         {
             var name = Instances.TaskQueueViewModel.CurrentResource;
             var selected = Instances.TaskQueueViewModel.CurrentResources?.FirstOrDefault(r => r.Name == name);
-            var path = selected?.Path?.FirstOrDefault();
-            return string.IsNullOrWhiteSpace(path) ? ResourceBase : path;
+
+            // 优先使用解析后的路径，避免出现占位符目录
+            var resolved = selected?.ResolvedPath?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
+            if (!string.IsNullOrWhiteSpace(resolved))
+            {
+                return resolved!;
+            }
+
+            // 回退到原始 Path，并标准化 {PROJECT_DIR} 等占位符
+            var rawPath = selected?.Path?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
+            if (!string.IsNullOrWhiteSpace(rawPath))
+            {
+                var normalized = MaaInterface.ReplacePlaceholder(rawPath, AppContext.BaseDirectory);
+                if (!string.IsNullOrWhiteSpace(normalized))
+                {
+                    return normalized;
+                }
+            }
+
+            return ResourceBase;
         }
         catch
         {
