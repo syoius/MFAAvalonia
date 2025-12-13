@@ -200,7 +200,6 @@ jobs:
           draft: false
           prerelease: ${{ contains(needs.meta.outputs.tag, '-') }}
           generate_release_notes: true
-          replace_existing: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
