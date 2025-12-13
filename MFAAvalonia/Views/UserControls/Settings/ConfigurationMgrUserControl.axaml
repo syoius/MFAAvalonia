@@ -69,7 +69,7 @@
                                             Icon="Delete"
                                             IconSize="Size16"
                                             IconVariant="Regular"
-                                            />
+                                        />
                                     </Button>
                                 </Grid>
                             </DataTemplate>

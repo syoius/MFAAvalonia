@@ -15,6 +15,8 @@ using SukiUI.MessageBox;
 using System;
 using System.IO;
 using System.Linq;
+using System.Management;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -27,8 +29,30 @@ public partial class RootView : SukiWindow
         // 添加初始化标志
         _isInitializing = true;
 
-        // 先从配置中加载窗口大小和位置，在窗口显示前设置
-        LoadWindowSizeAndPosition();
+        // 先从配置中加载窗口大小，在窗口显示前设置
+        try
+        {
+            var widthStr = ConfigurationManager.Current.GetValue(ConfigurationKeys.MainWindowWidth, "");
+            var heightStr = ConfigurationManager.Current.GetValue(ConfigurationKeys.MainWindowHeight, "");
+
+            if (!string.IsNullOrEmpty(widthStr) && !string.IsNullOrEmpty(heightStr))
+            {
+                if (double.TryParse(widthStr, out double width) && double.TryParse(heightStr, out double height))
+                {
+                    if (width > 100 && height > 100) // 确保有效的窗口大小
+                    {
+                        // 直接设置窗口初始大小
+                        Width = width;
+                        Height = height;
+                        LoggerHelper.Info($"窗口初始大小设置为: 宽度={width}, 高度={height}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error($"加载初始窗口大小失败: {ex.Message}");
+        }
 
         // 初始化组件
         InitializeComponent();
@@ -62,10 +86,8 @@ public partial class RootView : SukiWindow
                 LoadUI();
             });
         };
-        if (Program.IsNewInstance)
-        {
-            MaaProcessor.Instance.InitializeData();
-        }
+
+        MaaProcessor.Instance.InitializeData();
     }
 
 
@@ -201,44 +223,25 @@ public partial class RootView : SukiWindow
 #pragma warning  disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法。请考虑将 "await" 运算符应用于调用结果。
     public void LoadUI()
     {
-        if (Program.IsNewInstance)
-        {
-            foreach (var rfile in Directory.EnumerateFiles(AppContext.BaseDirectory, "*.backupMFA", SearchOption.AllDirectories))
-            {
-                try
-                {
-                    File.SetAttributes(rfile, FileAttributes.Normal);
-                    LoggerHelper.Info("Deleting file: " + rfile);
-                    File.Delete(rfile);
-                }
-                catch (Exception ex)
-                {
-                    LoggerHelper.Error($"文件删除失败: {rfile}", ex);
-                }
-            }
 
-            if (!MaaProcessor.Instance.IsV3)
+        DispatcherHelper.RunOnMainThread(async () =>
+        {
+            await Task.Delay(300);
+            Instances.TaskQueueViewModel.CurrentController = (MaaProcessor.Interface?.Controller?.FirstOrDefault()?.Type).ToMaaControllerTypes(Instances.TaskQueueViewModel.CurrentController);
+            if (!Convert.ToBoolean(GlobalConfiguration.GetValue(ConfigurationKeys.NoAutoStart, bool.FalseString))
+                && ConfigurationManager.Current.GetValue(ConfigurationKeys.BeforeTask, "None").Contains("Startup", StringComparison.OrdinalIgnoreCase))
             {
-                DispatcherHelper.RunOnMainThread(
-                    (Action)(async () =>
-                    {
-                        await Task.Delay(300);
-                        if ((MaaProcessor.Interface?.Controller?.Count ?? 0) == 1 || !ConfigurationManager.Current.ContainsKey(ConfigurationKeys.CurrentController))
-                            Instances.TaskQueueViewModel.CurrentController = (MaaProcessor.Interface?.Controller?.FirstOrDefault()?.Type).ToMaaControllerTypes(Instances.TaskQueueViewModel.CurrentController);
-                        if (!Convert.ToBoolean(GlobalConfiguration.GetValue(ConfigurationKeys.NoAutoStart, bool.FalseString))
-                            && ConfigurationManager.Current.GetValue(ConfigurationKeys.BeforeTask, "None").Contains("Startup", StringComparison.OrdinalIgnoreCase))
-                        {
-                            MaaProcessor.Instance.TaskQueue.Enqueue(new MFATask
-                            {
-                                Name = "启动前",
-                                Type = MFATask.MFATaskType.MFA,
-                                Action = async () => await MaaProcessor.Instance.WaitSoftware(),
-                            });
-                            MaaProcessor.Instance.Start(!ConfigurationManager.Current.GetValue(ConfigurationKeys.BeforeTask, "None").Contains("And", StringComparison.OrdinalIgnoreCase), checkUpdate: true);
-                        }
-                        else
-                        {
-                            var isAdb = Instances.TaskQueueViewModel.CurrentController == MaaControllerTypes.Adb;
+                MaaProcessor.Instance.TaskQueue.Enqueue(new MFATask
+                {
+                    Name = "启动前",
+                    Type = MFATask.MFATaskType.MFA,
+                    Action = async () => await MaaProcessor.Instance.WaitSoftware(),
+                });
+                MaaProcessor.Instance.Start(!ConfigurationManager.Current.GetValue(ConfigurationKeys.BeforeTask, "None").Contains("And", StringComparison.OrdinalIgnoreCase), checkUpdate: true);
+            }
+            else
+            {
+                var isAdb = Instances.TaskQueueViewModel.CurrentController == MaaControllerTypes.Adb;
 
                             AddLogByKey("ConnectingTo", null, true, true, isAdb ? "Emulator" : "Window");
 
@@ -252,77 +255,49 @@ public partial class RootView : SukiWindow
                             MaaProcessor.Instance.Start(true, checkUpdate: true);
                         }
 
-                        GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.FalseString);
-                        Instances.RootViewModel.LockController = (MaaProcessor.Interface?.Controller?.Count ?? 0) == 1;
+            GlobalConfiguration.SetValue(ConfigurationKeys.NoAutoStart, bool.FalseString);
 
-                        ConfigurationManager.Current.SetValue(ConfigurationKeys.EnableEdit, ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableEdit, false));
-                        DragItemViewModel tempTask = null;
-                        foreach (var task in Instances.TaskQueueViewModel.TaskItemViewModels)
-                        {
-                            if (task.InterfaceItem?.Advanced is { Count: > 0 }
-                                || task.InterfaceItem?.Option is { Count: > 0 }
-                                || !string.IsNullOrWhiteSpace(task.InterfaceItem?.Description)
-                                || task.InterfaceItem?.Document != null
-                                || task.InterfaceItem?.Repeatable == true)
-                            {
-                                tempTask ??= task;
-                            }
-                            task.EnableSetting = true;
-                        }
+            Instances.RootViewModel.LockController = (MaaProcessor.Interface?.Controller?.Count ?? 0) < 2;
 
+            ConfigurationManager.Current.SetValue(ConfigurationKeys.EnableEdit, ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableEdit, false));
+            DragItemViewModel tempTask = null;
+            foreach (var task in Instances.TaskQueueViewModel.TaskItemViewModels)
+            {
+                if (task.InterfaceItem?.Advanced is { Count: > 0 } || task.InterfaceItem?.Option is { Count: > 0 } || task.InterfaceItem?.Document != null || task.InterfaceItem?.Repeatable == true)
+                {
+                    tempTask ??= task;
+                }
+                task.EnableSetting = true;
+            }
 
                         if (tempTask != null)
                             tempTask.EnableSetting = true;
 
-                        if (!string.IsNullOrWhiteSpace(MaaProcessor.Interface?.Message))
-                        {
-                            ToastHelper.Info(MaaProcessor.Interface.Message);
-                        }
 
-                        if (!string.IsNullOrWhiteSpace(MaaProcessor.Interface?.Welcome))
-                        {
-                            AnnouncementViewModel.AddAnnouncement(LanguageHelper.GetLocalizedString(MaaProcessor.Interface.Welcome));
-                        }
-                    }));
-
-                TaskManager.RunTaskAsync(async () =>
-                {
-                    await Task.Delay(1000);
-                    DispatcherHelper.RunOnMainThread(() =>
-                    {
-                        DispatcherHelper.RunOnMainThread(VersionChecker.CheckMinVersion);
-                        AnnouncementViewModel.CheckAnnouncement();
-                        if (ConfigurationManager.Current.GetValue(ConfigurationKeys.AutoMinimize, false))
-                        {
-                            WindowState = WindowState.Minimized;
-                        }
-                        if (ConfigurationManager.Current.GetValue(ConfigurationKeys.AutoHide, false))
-                        {
-                            Hide();
-                        }
-                    });
-
-                }, name: "公告和最新版本检测");
-            }
-            else
+            if (!string.IsNullOrWhiteSpace(MaaProcessor.Interface?.Message))
             {
-                DispatcherHelper.RunOnMainThread(async () =>
-                {
-                    await Task.Delay(1000);
-                    Instances.DialogManager.CreateDialog().OfType(NotificationType.Error).WithContent(LangKeys.UiDoesNotSupportCurrentResource.ToLocalization())
-                        .WithActionButton(LangKeys.Ok.ToLocalization(), _ => { Instances.ShutdownApplication(); }, true).TryShow();
-                });
+                ToastHelper.Info(MaaProcessor.Interface.Message);
             }
-        }
-        else
+
+        });
+
+        TaskManager.RunTaskAsync(async () =>
         {
-            DispatcherHelper.RunOnMainThread(async () =>
+            await Task.Delay(1000);
+            DispatcherHelper.RunOnMainThread(() =>
             {
-                await Task.Delay(1000);
-                Instances.DialogManager.CreateDialog().OfType(NotificationType.Warning).WithContent(LangKeys.MultiInstanceUnderSamePath.ToLocalization())
-                    .WithActionButton(LangKeys.Ok.ToLocalization(), dialog => { Instances.ShutdownApplication(); }, true).TryShow();
+                DispatcherHelper.RunOnMainThread(VersionChecker.CheckMinVersion);
+                AnnouncementViewModel.CheckAnnouncement();
+                if (ConfigurationManager.Current.GetValue(ConfigurationKeys.AutoMinimize, false))
+                {
+                    WindowState = WindowState.Minimized;
+                }
+                if (ConfigurationManager.Current.GetValue(ConfigurationKeys.AutoHide, false))
+                {
+                    Hide();
+                }
             });
-        }
+        });
     }
 
     public void ClearTasks(Action? action = null)

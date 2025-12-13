@@ -6,6 +6,7 @@ using MFAAvalonia.Extensions;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Views.Pages;
 using MFAAvalonia.Views.Windows;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;

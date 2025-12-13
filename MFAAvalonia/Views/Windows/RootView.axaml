@@ -189,6 +189,7 @@
             <Binding Path="ResourceName" />
             <Binding Path="ResourceVersion" />
             <Binding Path="IsResourceNameVisible" />
+            <Binding Path="CurrentConfiguration" />
         </MultiBinding>
     </suki:SukiWindow.Title>
     <suki:SukiWindow.RightWindowTitleBarControls>
@@ -238,12 +239,18 @@
                                            Header="{markup:I18n {x:Static helper:LangKeys.Home}}"
                                            Icon="{fluent:FluentIcon Icon=TasksApp,
                                                        IconVariant=Regular}"
-                                           PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:TaskQueueView}}" />
+                                       PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:TaskQueueView}}" />
+                    <!-- Copilot Tab: 抄作业 -->
                     <suki:SukiSideMenuItem IsContentMovable="False"
-                                           Header="{markup:I18n {x:Static helper:LangKeys.ScreenshotPage}}"
-                                           Icon="{fluent:FluentIcon Icon=Screenshot,
-                                                       IconVariant=Regular}"
-                                           PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ScreenshotView}}" />
+                                        Header="自动战斗"
+                                        Icon="{fluent:FluentIcon Icon=Games,
+                                                        IconVariant=Regular}"
+                                        PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CopilotView}}" />
+                    <suki:SukiSideMenuItem IsContentMovable="False"
+                                        Header="{markup:I18n {x:Static helper:LangKeys.ScreenshotPage}}"
+                                        Icon="{fluent:FluentIcon Icon=Screenshot,
+                                                        IconVariant=Regular}"
+                                            PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ScreenshotView}}" />
                     <suki:SukiSideMenuItem IsContentMovable="False"
                                            Header="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
                                            Icon="{fluent:FluentIcon Icon=Apps,

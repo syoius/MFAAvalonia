@@ -220,6 +220,7 @@ public static class LangKeys
 	public static readonly string MaaFwIsLatestVersion = "MaaFwIsLatestVersion";
 		public static readonly string MaaFWVersion = "MaaFWVersion";
 		public static readonly string MaaTouch = "MaaTouch";
+	public static readonly string Manual = "Manual";
 		public static readonly string MFAIsLatestVersion = "MFAIsLatestVersion";
 		public static readonly string MinimizeToTray = "MinimizeToTray";
 		public static readonly string MinimizeToTrayDescription = "MinimizeToTrayDescription";
@@ -250,6 +251,7 @@ public static class LangKeys
 	public static readonly string ProjectDescription = "ProjectDescription";
 	public static readonly string ProjectLink = "ProjectLink";
 	public static readonly string PurchaseLink = "PurchaseLink";
+	public static readonly string QQChannel = "QQChannel";
 	public static readonly string Quit = "Quit";
 	public static readonly string RegionSelectorTitle = "RegionSelectorTitle";
 	public static readonly string RegisterCustomAction = "RegisterCustomAction";

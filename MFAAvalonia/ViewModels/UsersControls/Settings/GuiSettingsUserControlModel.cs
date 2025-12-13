@@ -215,7 +215,6 @@ public partial class GuiSettingsUserControlModel : ViewModelBase
         OtherColorThemes.Add(color);
         ConfigurationManager.Current.SetValue(ConfigurationKeys.OtherColorTheme, OtherColorThemes);
     }
-
     public void RemoveOtherColor(SukiColorTheme color)
     {
         OtherColorThemes.Remove(color);

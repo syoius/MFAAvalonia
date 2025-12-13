@@ -62,6 +62,12 @@ public partial class RootViewModel : ViewModelBase
     private bool _shouldTip = true;
     [ObservableProperty] private bool _isUpdating;
 
+    [ObservableProperty] private string? _currentConfiguration;
+
+    public RootViewModel()
+    {
+        _currentConfiguration = ConfigurationManager.GetCurrentConfiguration();
+    }
     partial void OnLockControllerChanged(bool value)
     {
         if (value)
