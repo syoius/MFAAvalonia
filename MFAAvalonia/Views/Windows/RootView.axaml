@@ -125,44 +125,25 @@
                        Foreground="{DynamicResource SukiPrimaryColor}"
                        FontWeight="Bold">
             </TextBlock>
-            <!-- <TextBlock VerticalAlignment="Center" -->
-            <!--            FontSize="13" -->
-            <!--            FontWeight="Bold"> -->
-            <!--     <TextBlock.Text> -->
-            <!--         <MultiBinding Converter="{converters:TitleConverter}" Mode="OneWay"> -->
-            <!--             <Binding Path="CustomTitle" /> -->
-            <!--             <Binding Path="IsCustomTitleVisible" /> -->
-            <!--             <markup:I18nBinding> -->
-            <!--                 <x:Arguments> -->
-            <!--                     <x:Static Member="helper:LangKeys.AppTitle" /> -->
-            <!--                 </x:Arguments> -->
-            <!--             </markup:I18nBinding> -->
-            <!--             <Binding Path="Version" /> -->
-            <!--             <Binding Path="ResourceName" /> -->
-            <!--             <Binding Path="ResourceVersion" /> -->
-            <!--             <Binding Path="IsResourceNameVisible" /> -->
-            <!--         </MultiBinding> -->
-            <!--     </TextBlock.Text> -->
-            <!-- </TextBlock> -->
             <TextBlock VerticalAlignment="Center" IsVisible="{Binding IsCustomTitleVisible}"
-                       FontSize="13" Text="{Binding CustomTitle}"
+                       FontSize="13"
                        FontWeight="Bold">
-
-                <!-- <TextBlock.Text> -->
-                <!--     <MultiBinding Converter="{converters:TitleConverter}" Mode="OneWay"> -->
-                <!--         <Binding Path="CustomTitle" /> -->
-                <!--         <Binding Path="IsCustomTitleVisible" /> -->
-                <!--         <markup:I18nBinding> -->
-                <!--             <x:Arguments> -->
-                <!--                 <x:Static Member="helper:LangKeys.AppTitle" /> -->
-                <!--             </x:Arguments> -->
-                <!--         </markup:I18nBinding> -->
-                <!--         <Binding Path="Version" /> -->
-                <!--         <Binding Path="ResourceName" /> -->
-                <!--         <Binding Path="ResourceVersion" /> -->
-                <!--         <Binding Path="IsResourceNameVisible" /> -->
-                <!--     </MultiBinding> -->
-                <!-- </TextBlock.Text> -->
+                <TextBlock.Text>
+                    <MultiBinding Converter="{converters:TitleConverter}" Mode="OneWay">
+                        <Binding Path="CustomTitle" />
+                        <Binding Path="IsCustomTitleVisible" />
+                        <markup:I18nBinding>
+                            <x:Arguments>
+                                <x:Static Member="helper:LangKeys.AppTitle" />
+                            </x:Arguments>
+                        </markup:I18nBinding>
+                        <Binding Path="Version" />
+                        <Binding Path="ResourceName" />
+                        <Binding Path="ResourceVersion" />
+                        <Binding Path="IsResourceNameVisible" />
+                        <Binding Path="CurrentConfiguration" />
+                    </MultiBinding>
+                </TextBlock.Text>
             </TextBlock>
             <TextBlock VerticalAlignment="Center" IsVisible="{calcBinding:Binding '!IsCustomTitleVisible' }"
                        FontSize="13" Text="{markup:I18n {x:Static helper:LangKeys.AppTitle}}"
