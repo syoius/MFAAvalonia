@@ -231,18 +231,24 @@
                                                       HorizontalAlignment="Left"
                                                       ex:CheckBoxExtensions.LimitDragDrop="True"
                                                       IsEnabled="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                                                      IsChecked="{Binding IsCheckedWithNull}" />
-                                            <TextBlock
-                                                Grid.Column="1"
-                                                Text="{Binding Name}"
-                                                TextTrimming="CharacterEllipsis"
-                                                TextWrapping="NoWrap"
-                                                MinWidth="170"
-                                                Margin="3,0,25,0"
-                                                HorizontalAlignment="Left"
-                                                VerticalAlignment="Center" />
-
-                                            <!--  ReSharper disable once Xaml.StaticResourceNotResolved  -->
+                                                      IsChecked="{Binding IsCheckedWithNull}">
+                                                <CheckBox.ContentTemplate>
+                                                    <DataTemplate x:DataType="valueType:DragItemViewModel">
+                                                        <Grid ColumnDefinitions="Auto,*">
+                                                            <controls:DisplayIcon Grid.Column="0"
+                                                                    IconSource="{Binding ResolvedIcon}"
+                                                                    IconSize="20"
+                                                                    IsVisible="{Binding HasIcon}"
+                                                                    Margin="0,0,6,0"
+                                                                    VerticalAlignment="Center" />
+                                                            <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       TextWrapping="NoWrap" />
+                                                        </Grid>
+                                                    </DataTemplate>
+                                                </CheckBox.ContentTemplate>
+                                            </CheckBox>
+                                            <!-- ReSharper disable once Xaml.StaticResourceNotResolved -->
                                             <RadioButton Classes="Icon"
                                                          Background="Transparent"
                                                          IsHitTestVisible="False"

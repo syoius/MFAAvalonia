@@ -51,12 +51,14 @@ public partial class CopilotView : UserControl
     // 用于区分最近一次指针按下是否为右键，用来抑制右键导致的 SelectionChanged 触发加载
     private bool _lastPointerWasRightClick;
     private DateTime _lastPointerEventTimeUtc = DateTime.MinValue;
+    private int _currentLayoutMode = -1;
+    private int _currentSelectorMode = -1;
     public CopilotView()
     {
         // 兜底：在编译的 XAML 未刷新时（--no-build），仍确保 DataContext 正确
         try { DataContext = MFAAvalonia.App.Services.GetRequiredService<CopilotViewModel>(); } catch { /* fallback to XAML */ }
         InitializeComponent();
-        InitializeControllerUI();
+        InitializeDeviceSelectorLayout();
         this.AttachedToVisualTree += (_, __) =>
         {
             (DataContext as CopilotViewModel)?.Initialize();
@@ -825,95 +827,165 @@ public partial class CopilotView : UserControl
         return filtered;
     }
 
-    private void InitializeControllerUI()
+    private void InitializeDeviceSelectorLayout()
     {
-        void ApplyLayout()
-        {
-            var grid = connectionGrid ?? this.FindControl<Grid>("connectionGrid");
-            var first = FirstButton ?? this.FindControl<RadioButton>("FirstButton");
-            var second = SecondButton ?? this.FindControl<RadioButton>("SecondButton");
-            var panel = ControllerPanel ?? this.FindControl<DockPanel>("ControllerPanel");
+        var grid = ConnectionGrid ?? this.FindControl<Grid>("ConnectionGrid");
+        var selectorPanel = DeviceSelectorPanel ?? this.FindControl<Grid>("DeviceSelectorPanel");
+        var adbButton = AdbRadioButton ?? this.FindControl<RadioButton>("AdbRadioButton");
+        var win32Button = Win32RadioButton ?? this.FindControl<RadioButton>("Win32RadioButton");
 
-            if (grid is null || first is null || second is null || panel is null)
-                return;
-
-            var actualWidth = grid.Bounds.Width;
-            double totalMinWidth = first.MinWidth + second.MinWidth + panel.MinWidth;
-
-            if (actualWidth >= totalMinWidth)
+        if (grid != null)
+            grid.SizeChanged += (_, _) => UpdateConnectionLayout();
+        if (selectorPanel != null)
+            selectorPanel.SizeChanged += (_, _) => UpdateDeviceSelectorLayout();
+        if (adbButton != null)
+            adbButton.PropertyChanged += (_, e) =>
             {
-                // 左右三列
-                grid.RowDefinitions.Clear();
-                grid.ColumnDefinitions.Clear();
-                grid.ColumnDefinitions.AddRange(new[]
+                if (e.Property.Name == "IsVisible") UpdateConnectionLayout();
+            };
+        if (win32Button != null)
+            win32Button.PropertyChanged += (_, e) =>
+            {
+                if (e.Property.Name == "IsVisible") UpdateConnectionLayout();
+            };
+
+        UpdateConnectionLayout(true);
+    }
+
+    private void UpdateConnectionLayout(bool forceUpdate = false)
+    {
+        var grid = ConnectionGrid ?? this.FindControl<Grid>("ConnectionGrid");
+        var selectorPanel = DeviceSelectorPanel ?? this.FindControl<Grid>("DeviceSelectorPanel");
+        var adbButton = AdbRadioButton ?? this.FindControl<RadioButton>("AdbRadioButton");
+        var win32Button = Win32RadioButton ?? this.FindControl<RadioButton>("Win32RadioButton");
+
+        if (grid == null || selectorPanel == null || adbButton == null || win32Button == null)
+            return;
+
+        var totalWidth = grid.Bounds.Width;
+        if (totalWidth <= 0) return;
+
+        var adbWidth = adbButton.IsVisible ? adbButton.MinWidth + 8 : 0;
+        var win32Width = win32Button.IsVisible ? win32Button.MinWidth + 8 : 0;
+        var radioButtonsWidth = adbWidth + win32Width;
+        var selectorMinWidth = selectorPanel.MinWidth;
+
+        int newMode;
+        if (totalWidth >= radioButtonsWidth + selectorMinWidth + 20)
+            newMode = 0; // 一行
+        else if (totalWidth >= selectorMinWidth + 20)
+            newMode = 1; // 两行
+        else
+            newMode = 2; // 三行
+
+        if (!forceUpdate && newMode == _currentLayoutMode) return;
+        _currentLayoutMode = newMode;
+
+        grid.ColumnDefinitions.Clear();
+        grid.RowDefinitions.Clear();
+        Grid.SetColumnSpan(selectorPanel, 1);
+
+        switch (newMode)
+        {
+            case 0:
+                if (adbButton.IsVisible)
+                    grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+                if (win32Button.IsVisible)
+                    grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+                grid.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+
+                var col = 0;
+                if (adbButton.IsVisible)
                 {
-                    new ColumnDefinition { Width = new GridLength(first.MinWidth, GridUnitType.Pixel) },
-                    new ColumnDefinition { Width = new GridLength(second.MinWidth, GridUnitType.Pixel) },
-                    new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) }
-                });
+                    Grid.SetColumn(adbButton, col);
+                    Grid.SetRow(adbButton, 0);
+                    col++;
+                }
+                if (win32Button.IsVisible)
+                {
+                    Grid.SetColumn(win32Button, col);
+                    Grid.SetRow(win32Button, 0);
+                    col++;
+                }
+                Grid.SetColumn(selectorPanel, col);
+                Grid.SetRow(selectorPanel, 0);
+                break;
 
-                Grid.SetColumn(first, 0);
-                Grid.SetRow(first, 0);
-                Grid.SetColumn(second, 1);
-                Grid.SetRow(second, 0);
-                Grid.SetColumn(panel, 2);
-                Grid.SetRow(panel, 0);
-            }
-            else if (actualWidth >= (first.MinWidth + second.MinWidth))
-            {
-                // 按钮并排，设备选择换行
-                grid.RowDefinitions.Clear();
-                grid.ColumnDefinitions.Clear();
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            case 1:
+            case 2:
+                grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+                grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+                var visibleCount = (adbButton.IsVisible ? 1 : 0) + (win32Button.IsVisible ? 1 : 0);
+                for (var i = 0; i < Math.Max(visibleCount, 1); i++)
+                    grid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
 
-                Grid.SetRow(first, 0);
-                Grid.SetColumn(first, 0);
-                Grid.SetRow(second, 0);
-                Grid.SetColumn(second, 1);
-                Grid.SetRow(panel, 1);
-                Grid.SetColumn(panel, 0);
-                Grid.SetColumnSpan(panel, 2);
-
-                first.InvalidateMeasure();
-                second.InvalidateMeasure();
-            }
-            else
-            {
-                // 三行堆叠
-                grid.ColumnDefinitions.Clear();
-                grid.RowDefinitions.Clear();
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-                Grid.SetRow(first, 0);
-                Grid.SetColumn(first, 0);
-                Grid.SetRow(second, 1);
-                Grid.SetColumn(second, 0);
-                Grid.SetRow(panel, 2);
-                Grid.SetColumn(panel, 0);
-            }
-
-            Dispatcher.UIThread.Post(() =>
-            {
-                grid.InvalidateMeasure();
-                grid.InvalidateArrange();
-            }, DispatcherPriority.Background);
+                var c = 0;
+                if (adbButton.IsVisible)
+                {
+                    Grid.SetColumn(adbButton, c++);
+                    Grid.SetRow(adbButton, 0);
+                }
+                if (win32Button.IsVisible)
+                {
+                    Grid.SetColumn(win32Button, c);
+                    Grid.SetRow(win32Button, 0);
+                }
+                Grid.SetColumn(selectorPanel, 0);
+                Grid.SetColumnSpan(selectorPanel, Math.Max(visibleCount, 1));
+                Grid.SetRow(selectorPanel, 1);
+                break;
         }
 
-        // 监听尺寸变化
+        _currentSelectorMode = -1;
+        UpdateDeviceSelectorLayout();
+    }
+
+    private void UpdateDeviceSelectorLayout()
+    {
+        var selectorPanel = DeviceSelectorPanel ?? this.FindControl<Grid>("DeviceSelectorPanel");
+        var selectorLabel = DeviceSelectorLabel ?? this.FindControl<TextBlock>("DeviceSelectorLabel");
+        var deviceCombo = DeviceComboBox ?? this.FindControl<ComboBox>("DeviceComboBox");
+
+        if (selectorPanel == null || selectorLabel == null || deviceCombo == null)
+            return;
+
+        int newMode = _currentLayoutMode == 2 ? 1 : 0;
+
+        if (newMode == _currentSelectorMode) return;
+        _currentSelectorMode = newMode;
+
+        selectorPanel.ColumnDefinitions.Clear();
+        selectorPanel.RowDefinitions.Clear();
+
+        switch (newMode)
         {
-            var grid = connectionGrid ?? this.FindControl<Grid>("connectionGrid");
-            if (grid != null)
-                grid.SizeChanged += (_, __) => ApplyLayout();
-        }
+            case 0:
+                selectorPanel.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+                selectorPanel.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
 
-        // 初始应用一次，避免初次显示重叠
-        Dispatcher.UIThread.Post(ApplyLayout, DispatcherPriority.Background);
+                Grid.SetColumn(selectorLabel, 0);
+                Grid.SetRow(selectorLabel, 0);
+                Grid.SetColumn(deviceCombo, 1);
+                Grid.SetRow(deviceCombo, 0);
+
+                selectorLabel.Margin = new Thickness(0, 2, 8, 0);
+                deviceCombo.HorizontalAlignment = HorizontalAlignment.Stretch;
+                break;
+
+            case 1:
+                selectorPanel.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+                selectorPanel.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+                selectorPanel.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+
+                Grid.SetColumn(selectorLabel, 0);
+                Grid.SetRow(selectorLabel, 0);
+                Grid.SetColumn(deviceCombo, 0);
+                Grid.SetRow(deviceCombo, 1);
+
+                selectorLabel.Margin = new Thickness(5, 0, 0, 5);
+                deviceCombo.HorizontalAlignment = HorizontalAlignment.Stretch;
+                break;
+        }
     }
 
     // 与主页相同语义：在分隔条拖拽结束时写回列宽并持久化

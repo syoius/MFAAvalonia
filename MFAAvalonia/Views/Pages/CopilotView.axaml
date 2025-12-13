@@ -18,6 +18,7 @@
     xmlns:behaviors="using:Avalonia.Xaml.Interactions.Core"
     xmlns:binding="clr-namespace:MaaFramework.Binding;assembly=MaaFramework.Binding"
     xmlns:ex="clr-namespace:MFAAvalonia.Extensions"
+    xmlns:controls="clr-namespace:MFAAvalonia.Views.UserControls"
     d:DesignWidth="1200"
     d:DesignHeight="800"
     x:DataType="vm:CopilotViewModel"
@@ -380,139 +381,145 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <suki:GlassCard Grid.Row="0" Margin="0,15,15,8">
-                <suki:GroupBox>
+                <suki:GroupBox DataContext="{x:Static helper:Instances.TaskQueueViewModel}"
+                               x:DataType="pages:TaskQueueViewModel">
                     <suki:GroupBox.Header>
                         <Grid>
-                            <TextBlock
-                                FontSize="11"
-                                FontWeight="Bold"
-                                Foreground="{DynamicResource SukiLowText}"
-                                HorizontalAlignment="Left"
-                                Margin="2,0,0,0"
-                                Text="{markup:I18n {x:Static helper:LangKeys.Connection}}"
-                                VerticalAlignment="Center" />
+                            <TextBlock FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource SukiLowText}"
+                                       HorizontalAlignment="Left"
+                                       Margin="2,0,0,0"
+                                       Text="{markup:I18n {x:Static helper:LangKeys.Connection}}"
+                                       VerticalAlignment="Center" />
 
-                            <StackPanel
-                                HorizontalAlignment="Right"
-                                Orientation="Horizontal"
-                                VerticalAlignment="Center">
+                            <StackPanel HorizontalAlignment="Right"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
                                 <StackPanel.Resources>
                                     <markup:IfConditionConverter x:Key="ConnectedConditionConverter">
                                         <markup:IfConditionConverter.True>
-                                            <Path
-                                                Data="{StaticResource ConnectedGeometry}"
-                                                Fill="LimeGreen"
-                                                Height="11"
-                                                Margin="3,2,4,0"
-                                                Stretch="Uniform"
-
-                                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Connected}}" />
+                                            <Path Data="{StaticResource ConnectedGeometry}"
+                                                  Fill="LimeGreen"
+                                                  Height="11"
+                                                  Margin="3,2,4,0"
+                                                  Stretch="Uniform"
+                                                  ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Connected}}" />
                                         </markup:IfConditionConverter.True>
                                         <markup:IfConditionConverter.False>
-                                            <Path
-                                                Data="{StaticResource UnconnectedGeometry}"
-                                                Fill="Red"
-                                                Height="16"
-                                                Margin="3,3,4,0"
-                                                Stretch="Uniform"
-
-                                                ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Unconnected}}"
-                                                VerticalAlignment="Center" />
+                                            <Path Data="{StaticResource UnconnectedGeometry}"
+                                                  Fill="Red"
+                                                  Height="16"
+                                                  Margin="3,3,4,0"
+                                                  Stretch="Uniform"
+                                                  ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Unconnected}}"
+                                                  VerticalAlignment="Center" />
                                         </markup:IfConditionConverter.False>
                                     </markup:IfConditionConverter>
                                 </StackPanel.Resources>
-                                <Button
-                                    Classes="Basic Round"
-                                    Command="{Binding CustomAdbCommand, Source={x:Static helper:Instances.TaskQueueViewModel}}"
-                                    Height="16"
-                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                    IsVisible="{calcBinding:Binding 'CurrentController == maa:MaaControllerTypes.Adb'}"
-                                    Margin="3,0,2,0"
-                                    Padding="0"
-
-                                    ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Custom}}">
-                                    <fluent:FluentIcon
-                                        Height="18"
-                                        Icon="DesktopEdit"
-                                        IconSize="Size16"
-                                        IconVariant="Regular" />
+                                <Button Classes="Basic Round" ClipToBounds="False"
+                                        Command="{Binding CustomAdbCommand}"
+                                        IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                        IsVisible="{calcBinding:Binding 'CurrentController == maa:MaaControllerTypes.Adb'}"
+                                        Margin="3,0,2,0"
+                                        Padding="0"
+                                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Custom}}">
+                                    <fluent:FluentIcon Height="18"
+                                                       Icon="DesktopEdit"
+                                                       IconSize="Size16"
+                                                       IconVariant="Regular" />
                                 </Button>
-                                <Button
-                                    Classes="Basic Round"
-                                    Command="{Binding RefreshCommand, Source={x:Static helper:Instances.TaskQueueViewModel}}"
-                                    Height="17"
-                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                    Margin="3,0,3,0"
-                                    Padding="0"
-
-                                    ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipRefresh}}"
-                                    VerticalAlignment="Center">
-
-                                    <fluent:FluentIcon
-                                        Height="18"
-                                        Icon="ArrowSync"
-                                        IconSize="Size16"
-                                        IconVariant="Regular" />
+                                <Button Classes="Basic Round" ClipToBounds="False"
+                                        Command="{Binding RefreshCommand}"
+                                        IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipRefresh}}"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18"
+                                                       Icon="ArrowSync"
+                                                       IconSize="Size16"
+                                                       IconVariant="Regular" />
                                 </Button>
-
                                 <ContentControl
                                     Content="{Binding IsConnected, Converter={StaticResource ConnectedConditionConverter}, Source={x:Static helper:Instances.TaskQueueViewModel}}" />
                             </StackPanel>
                         </Grid>
                     </suki:GroupBox.Header>
-                    <Grid x:Name="connectionGrid" HorizontalAlignment="Stretch">
-                        <RadioButton
-                            Classes="GigaChips"
-                            Content="{markup:I18n {x:Static helper:LangKeys.TabADB}}"
-                            FontSize="12"
-                            GroupName="Controller"
-                            IsChecked="{Binding CurrentController, Source={x:Static helper:Instances.TaskQueueViewModel}, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
-                            IsVisible="{calcBinding:Binding 'ShouldShow != 1'}"
-                            IsEnabled="{calcBinding:Binding '!LockController and Idle',
-                                                                Source={x:Static helper:Instances.RootViewModel}}"
-                            MinWidth="120"
-                            x:Name="FirstButton" />
-                        <RadioButton
-                            Classes="GigaChips"
-                            Content="{markup:I18n {x:Static helper:LangKeys.TabWin32}}"
-                            FontSize="12"
-                            GroupName="Controller"
-                            IsChecked="{Binding CurrentController, Source={x:Static helper:Instances.TaskQueueViewModel}, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
-                            IsVisible="{calcBinding:Binding 'ShouldShow != 2'}"
-                            IsEnabled="{calcBinding:Binding '!LockController and Idle',
-                                                                Source={x:Static helper:Instances.RootViewModel}}"
-                            MinWidth="120"
-                            x:Name="SecondButton" />
-
-                        <DockPanel x:Name="ControllerPanel"
-                                   HorizontalAlignment="Stretch"
-                                   LastChildFill="True"
-                                   Margin="5,0"
-                                   MinWidth="200">
-                            <TextBlock
-                                FontSize="12"
-                                Foreground="{DynamicResource SukiLowText}"
-                                Text="{markup:I18n {x:Static helper:LangKeys.CurrentController}}"
-                                VerticalAlignment="Center" />
-                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True" Classes="LimitWidth"
+                    <Grid x:Name="ConnectionGrid"
+                          HorizontalAlignment="Stretch">
+                        <!-- 控制器类型选择 -->
+                        <RadioButton x:Name="AdbRadioButton"
+                                     Classes="GigaChips"
+                                     FontSize="12"
+                                     GroupName="Controller"
+                                     IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
+                                     IsVisible="{calcBinding:Binding 'ShouldShow != 1'}"
+                                     IsEnabled="{calcBinding:Binding '!LockController and Idle',
+                        &#xA;                                                                                    Source={x:Static helper:Instances.RootViewModel}}"
+                                     Margin="0,0,8,0"
+                                     MinWidth="110">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <controls:DisplayIcon IconSource="{Binding AdbIcon}"
+                                                      IconSize="24"
+                                                      IsVisible="{Binding HasAdbIcon}"
+                                                      VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Adb}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="Win32RadioButton"
+                                     Classes="GigaChips"
+                                     FontSize="12"
+                                     GroupName="Controller"
+                                     IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
+                                     IsVisible="{calcBinding:Binding 'ShouldShow != 2'}"
+                                     IsEnabled="{calcBinding:Binding '!LockController and Idle',
+                        &#xA;                                                                                    Source={x:Static helper:Instances.RootViewModel}}"
+                                     Margin="0,0,8,0"
+                                     MinWidth="110">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <controls:DisplayIcon IconSource="{Binding Win32Icon}"
+                                                      IconSize="24"
+                                                      IsVisible="{Binding HasWin32Icon}"
+                                                      VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Win32}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <!-- 设备选择器 -->
+                        <Grid x:Name="DeviceSelectorPanel"
+                              HorizontalAlignment="Stretch"
+                              MinWidth="300">
+                            <TextBlock x:Name="DeviceSelectorLabel"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource SukiLowText}"
+                                       Text="{markup:I18n {x:Static helper:LangKeys.CurrentController}}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,2,8,0" />
+                            <ComboBox x:Name="DeviceComboBox"
+                                      ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      Classes="LimitWidth"
                                       IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                                      ItemsSource="{Binding Devices, Source={x:Static helper:Instances.TaskQueueViewModel}}"
-                                      Margin="5,0,0,5"
-                                      SelectedValue="{Binding CurrentDevice, Source={x:Static helper:Instances.TaskQueueViewModel}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                      ItemsSource="{Binding Devices}"
+                                      MinWidth="100"
+                                      HorizontalAlignment="Stretch"
+                                      SelectedValue="{Binding CurrentDevice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <ToolTip.Tip>
+                                    <TextBlock
+                                        Text="{Binding CurrentDevice, Converter={converters:DeviceDisplayConverter}}" />
+                                </ToolTip.Tip>
                                 <ComboBox.DataTemplates>
                                     <DataTemplate DataType="binding:AdbDeviceInfo">
                                         <TextBlock HorizontalAlignment="Left"
                                                    Text="{Binding Converter={converters:DeviceDisplayConverter}}" />
                                     </DataTemplate>
-
                                     <DataTemplate DataType="binding:DesktopWindowInfo">
-                                        <TextBlock HorizontalAlignment="Left" Text="{Binding Name}" />
+                                        <TextBlock HorizontalAlignment="Left"
+                                                   Text="{Binding Name}" />
                                     </DataTemplate>
                                 </ComboBox.DataTemplates>
                             </ComboBox>
-                        </DockPanel>
+                        </Grid>
                     </Grid>
-
                 </suki:GroupBox>
             </suki:GlassCard>
             <suki:GlassCard Grid.Row="1" Margin="0,8,15,25">
