@@ -99,8 +99,8 @@ public class DragDropExtensions
             defaultValue: false);
 
     // 存储当前拖拽项的私有属性
-    private static readonly AttachedProperty<DragAdorner?> DragAdornerProperty =
-        AvaloniaProperty.RegisterAttached<ListBox, DragAdorner?>(
+    private static readonly AttachedProperty<Views.UserControls.DragAdorner?> DragAdornerProperty =
+        AvaloniaProperty.RegisterAttached<ListBox, Views.UserControls.DragAdorner?>(
             "DragAdorner",
             typeof(DragDropExtensions));
 
@@ -747,7 +747,7 @@ public class DragDropExtensions
     private static void ClearAdorner(ListBox listBox)
     {
         var adornerLayer = AdornerLayer.GetAdornerLayer(listBox);
-        if (listBox.GetValue(DragAdornerProperty) is DragAdorner adorner)
+        if (listBox.GetValue(DragAdornerProperty) is Views.UserControls.DragAdorner adorner)
         {
             adornerLayer?.Children.Remove(adorner);
         }

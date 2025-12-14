@@ -1,4 +1,4 @@
-﻿using Lang.Avalonia;
+using Lang.Avalonia;
 using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Localization;

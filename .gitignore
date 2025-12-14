@@ -1,5 +1,8 @@
 bin/
+logs/
 obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+AGENTS.md
+operations-log.md

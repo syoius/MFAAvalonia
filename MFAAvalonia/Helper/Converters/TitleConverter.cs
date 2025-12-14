@@ -1,9 +1,12 @@
 ﻿using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Markup.Xaml;
+using MFAAvalonia.Extensions;
+using MFAAvalonia.Helper;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace MFAAvalonia.Helper.Converters;
 
@@ -13,23 +16,58 @@ public class TitleConverter : MarkupExtension, IMultiValueConverter
 
     public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
     {
-        // 安全解包参数（处理 UnsetValue 和 null）
         var customTitle = SafeGetValue<string>(values, 0);
         var isCustomVisible = SafeGetValue<bool>(values, 1);
-        var appName = SafeGetValue<object>(values, 2);
-        var appVersion = SafeGetValue<string>(values, 3);
+        var appName = SafeGetValue<object>(values, 2)?.ToString() ?? string.Empty;
+        var appVersion = SafeGetValue<string>(values, 3) ?? string.Empty;
         var resourceName = SafeGetValue<string>(values, 4);
         var resourceVersion = SafeGetValue<string>(values, 5);
         var isResourceVisible = SafeGetValue<bool>(values, 6);
+        var currentConfig = SafeGetValue<string>(values, 7);
 
-        var result = $"{appName} {appVersion}";
-        // 主逻辑
-        if (isCustomVisible && !string.IsNullOrEmpty(customTitle))
-            result = customTitle;
+        var parts = new List<string>();
+        var hasCustomTitle = isCustomVisible && !string.IsNullOrWhiteSpace(customTitle);
 
-        if (isResourceVisible && !string.IsNullOrEmpty(resourceName))
-            result = $"{appName} {appVersion} | {resourceName} {resourceVersion}";
-        return result;
+        if (hasCustomTitle)
+        {
+            parts.Add(customTitle!.Trim());
+
+            if (!string.IsNullOrWhiteSpace(resourceVersion))
+                parts.Add(resourceVersion!.Trim());
+        }
+        else
+        {
+            var baseTitle = string.IsNullOrWhiteSpace(appVersion)
+                ? appName
+                : $"{appName} {appVersion}".Trim();
+            if (!string.IsNullOrWhiteSpace(baseTitle))
+                parts.Add(baseTitle);
+
+            if (isResourceVisible && !string.IsNullOrWhiteSpace(resourceName))
+            {
+                var resourcePart = resourceName!.Trim();
+                if (!string.IsNullOrWhiteSpace(resourceVersion))
+                    resourcePart = $"{resourcePart} {resourceVersion!.Trim()}".Trim();
+                if (!string.IsNullOrWhiteSpace(resourcePart))
+                    parts.Add(resourcePart);
+            }
+            else if (!string.IsNullOrWhiteSpace(resourceVersion))
+            {
+                parts.Add(resourceVersion!.Trim());
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentConfig))
+        {
+            var configLabel = LangKeys.CurrentConfig.ToLocalization();
+            var configIcon = "✏️";
+            var configText = string.IsNullOrWhiteSpace(configLabel)
+                ? $"{configIcon} {currentConfig}".Trim()
+                : $"{configIcon} {configLabel}: {currentConfig}".Trim();
+            parts.Add(configText);
+        }
+
+        return string.Join("  ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
     }
 
     public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture)

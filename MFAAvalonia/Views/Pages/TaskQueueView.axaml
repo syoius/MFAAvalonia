@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 
 <UserControl d:DesignHeight="450"
              d:DesignWidth="800"
@@ -41,6 +41,7 @@
             <MenuItem Click="Delete"
                       Header="{markup:I18n {x:Static helper:LangKeys.Delete}}" />
         </ContextMenu>
+        <helper:MFALinkCommand x:Key="myLinkCommand" />
     </UserControl.Resources>
     <Grid ClipToBounds="False"
           Margin="0,0,0,0"
@@ -67,64 +68,64 @@
                             Margin="15,15,0,5">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
-                        <TextBlock FontSize="11"
-                                   FontWeight="Bold"
-                                   Foreground="{DynamicResource SukiLowText}"
-                                   HorizontalAlignment="Left"
-                                   Margin="2,0,0,0"
-                                   Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
-                                   VerticalAlignment="Center" />
+                        <TextBlock
+                            FontSize="11"
+                            FontWeight="Bold"
+                            Foreground="{DynamicResource SukiLowText}"
+                            HorizontalAlignment="Left"
+                            Margin="2,0,0,0"
+                            Text="运行环境"
+                            VerticalAlignment="Center" />
                     </suki:GroupBox.Header>
-                    <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
-                              IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
-                              ItemsSource="{Binding CurrentResources}"
-                              Margin="10,0,10,0"
-                              SelectedValue="{Binding CurrentResource}"
-                              SelectedValueBinding="{Binding Name}"
-                              VerticalAlignment="Center">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate x:DataType="maa:MaaInterface+MaaInterfaceResource">
-                                <Grid ColumnDefinitions="Auto,*,40">
-                                    <controls:DisplayIcon Grid.Column="0"
-                                                          IconSource="{Binding ResolvedIcon}"
-                                                          IconSize="20"
-                                                          IsVisible="{Binding HasIcon}"
-                                                          Margin="0,0,6,0"
-                                                          VerticalAlignment="Center" />
-                                    <TextBlock Background="Transparent"
-                                               Foreground="{DynamicResource SukiText}"
-                                               Grid.Column="1"
-                                               Text="{Binding DisplayName}"
-                                               TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center" />
-                                    <controls:TooltipBlock Grid.Column="2"
-                                                           IsVisible="{Binding HasDescription}"
-                                                           TooltipText="{Binding DisplayDescription}" />
-                                </Grid>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                        <ComboBox.SelectionBoxItemTemplate>
-                            <DataTemplate>
-                                <Grid ColumnDefinitions="Auto,*,40">
-                                    <controls:DisplayIcon Grid.Column="0"
-                                                          IconSource="{Binding ResolvedIcon}"
-                                                          IconSize="20"
-                                                          IsVisible="{Binding HasIcon}"
-                                                          Margin="0,0,6,0"
-                                                          VerticalAlignment="Center" />
-                                    <TextBlock Background="Transparent"
-                                               Foreground="{DynamicResource SukiText}"
-                                               Grid.Column="1"
-                                               Text="{Binding DisplayName}"
-                                               TextTrimming="CharacterEllipsis"
-                                               VerticalAlignment="Center" />
-                                    <controls:TooltipBlock Grid.Column="2"
-                                                           IsVisible="{Binding HasDescription}"
-                                                           TooltipText="{Binding DisplayDescription}" />
-                                </Grid>
-                            </DataTemplate>
-                        </ComboBox.SelectionBoxItemTemplate>
-                    </ComboBox>
+                    <StackPanel Spacing="4">
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
+                                VerticalAlignment="Center"
+                                Margin="10,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding CurrentResources}"
+                                      Margin="15,0,0,0"
+                                      SelectedValue="{Binding CurrentResource}"
+                                      SelectedValueBinding="{Binding Name}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                        
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.AutoStartOption}}"
+                                VerticalAlignment="Center"
+                                Margin="2,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding BeforeTaskList}"
+                                      Margin="10,0,0,0"
+                                      SelectedValue="{Binding BeforeTask}"
+                                      SelectedValueBinding="{Binding ResourceKey}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                        
+                        <DockPanel>
+                            <TextBlock
+                                DockPanel.Dock="Left"
+                                Text="{markup:I18n {x:Static helper:LangKeys.AfterTaskOption}}"
+                                VerticalAlignment="Center"
+                                Margin="2,0,0,0" />
+                            <ComboBox ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding AfterTaskList}"
+                                      Margin="10,0,0,0"
+                                      SelectedValue="{Binding AfterTask}"
+                                      SelectedValueBinding="{Binding ResourceKey}"
+                                      VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
                 </suki:GroupBox>
             </suki:GlassCard>
             <Grid Grid.Row="1">

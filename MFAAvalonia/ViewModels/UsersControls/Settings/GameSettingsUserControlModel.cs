@@ -14,7 +14,7 @@ public partial class GameSettingsUserControlModel : ViewModelBase
 
     [ObservableProperty] private bool _enableSaveDraw = ConfigurationManager.Maa.GetValue(ConfigurationKeys.SaveDraw, false);
 
-    [ObservableProperty] private bool _enableSaveOnError = ConfigurationManager.Maa.GetValue(ConfigurationKeys.SaveOnError, true);
+    [ObservableProperty] private bool _enableSaveOnError = ConfigurationManager.Maa.GetValue(ConfigurationKeys.SaveOnError, false);
 
     [ObservableProperty] private bool _showHitDraw = ConfigurationManager.Maa.GetValue(ConfigurationKeys.ShowHitDraw, false);
 

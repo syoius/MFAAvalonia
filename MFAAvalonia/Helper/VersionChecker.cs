@@ -249,8 +249,8 @@ public static class VersionChecker
             if (isGithub)
                 GetLatestVersionAndDownloadUrlFromGithub(out _, out latestVersion, out sha256);
             else
-                GetDownloadUrlFromMirror(localVersion, "MFAAvalonia", CDK(), out _, out latestVersion, out sha256, out _, isUI: true, onlyCheck: true);
-            var mirrocS = false;
+                GetDownloadUrlFromMirror(localVersion, "MFAAvalonia", CDK(), out _, out latestVersion, out sha256, isUI: true, onlyCheck: true);
+
             if (IsNewVersionAvailable(latestVersion, GetMaxVersion()))
             {
                 latestVersion = GetMaxVersion();
@@ -298,6 +298,7 @@ public static class VersionChecker
     {
         shouldShowToast = false;
         Instances.RootViewModel.SetUpdating(true);
+        MaaProcessor.Instance.SetTasker();
         ProgressBar? progress = null;
         TextBlock? textBlock = null;
         ISukiToast? sukiToast = null;
@@ -492,17 +493,23 @@ public static class VersionChecker
 
         if (file.Exists)
         {
+            var jsonContent = await File.ReadAllTextAsync(interfacePath);
+
+            var @interface = JObject.Parse(jsonContent);
+            if (@interface != null && @interface["interface_version"] != null && @interface["interface_version"].ToString().Trim().Equals("2"))
+            {
+                Dismiss(sukiToast);
+                ToastHelper.Warn(LangKeys.Warning.ToLocalization(), LangKeys.UiDoesNotSupportResourceUpdateCancelled.ToLocalization());
+                RootView.AddLog(LangKeys.UiDoesNotSupportResourceUpdateCancelled.ToLocalization(), Brushes.Orange, changeColor: false);
+                Instances.RootViewModel.SetUpdating(false);
+                return;
+            }
+
             var targetPath = Path.Combine(wpfDir, "interface.json");
             file.CopyTo(targetPath, true);
         }
-
-        var changesPath = Path.Combine(tempExtractDir, "changes.json");
-        if (File.Exists(changesPath))
-            isFull = false;
-        else
-            LoggerHelper.Error("No changes.json found");
-        LoggerHelper.Info((isGithub || isFull || currentVersion.Equals("v0.0.0", StringComparison.OrdinalIgnoreCase)) ? "全量更新" : "增量更新");
-        if (isGithub || isFull || currentVersion.Equals("v0.0.0", StringComparison.OrdinalIgnoreCase))
+        
+        if (isGithub || currentVersion.Equals("v0.0.0", StringComparison.OrdinalIgnoreCase))
         {
             if (Directory.Exists(resourcePath))
             {
@@ -618,11 +625,14 @@ public static class VersionChecker
         var di = new DirectoryInfo(originPath);
         if (di.Exists)
         {
-            await CopyAndDelete(originPath, wpfDir, progress, true);
+            await DirectoryMerger.DirectoryMergeAsync(originPath, wpfDir, progress, false, true);
         }
+
 
         // File.Delete(tempZipFilePath);
         // Directory.Delete(tempExtractDir, true);
+
+
         var newInterfacePath = Path.Combine(wpfDir, "interface.json");
         if (File.Exists(newInterfacePath))
         {
@@ -1035,7 +1045,7 @@ public static class VersionChecker
                 if (isGithub)
                     GetLatestVersionAndDownloadUrlFromGithub(out downloadUrl, out latestVersion, out sha256);
                 else
-                    GetDownloadUrlFromMirror(GetLocalVersion(), "MFAAvalonia", CDK(), out downloadUrl, out latestVersion, out sha256, out _, isUI: true);
+                    GetDownloadUrlFromMirror(GetLocalVersion(), "MFAAvalonia", CDK(), out downloadUrl, out latestVersion, out sha256, isUI: true);
             }
             catch (Exception ex)
             {
@@ -1225,7 +1235,7 @@ public static class VersionChecker
             }
             SetProgress(progress, 100);
 
-            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, $"{Assembly.GetEntryAssembly().GetName().Name}{(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "")}",
+            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, $"MaaYuan{(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "")}",
                 Process.GetCurrentProcess().MainModule.ModuleName);
 
             Thread.Sleep(500);
@@ -1586,7 +1596,7 @@ public static class VersionChecker
     public static void GetLatestVersionAndDownloadUrlFromGithub(out string url,
         out string latestVersion,
         out string sha256,
-        string owner = "SweetSmellFox",
+        string owner = "syoius",
         string repo = "MFAAvalonia",
         bool onlyCheck = false,
         string targetVersion = "",
@@ -2161,7 +2171,6 @@ public static class VersionChecker
         return Instances.VersionUpdateSettingsUserControlModel.ResourceVersion;
     }
 
-
     private static string GetResourceID()
     {
         return MaaProcessor.Interface?.RID ?? string.Empty;
@@ -2470,7 +2479,9 @@ public static class VersionChecker
             {
                 var resourceDirectory = Path.Combine(AppContext.BaseDirectory, "resource");
                 Directory.CreateDirectory(resourceDirectory);
-                var filePath = Path.Combine(resourceDirectory, ChangelogViewModel.ChangelogFileName);
+                var announcementDir = Path.Combine(resourceDirectory, "Announcement");
+                Directory.CreateDirectory(announcementDir);
+                var filePath = Path.Combine(announcementDir, ChangelogViewModel.ChangelogFileName);
                 File.WriteAllText(filePath, bodyContent);
                 LoggerHelper.Info($"{ChangelogViewModel.ChangelogFileName} saved successfully.");
                 GlobalConfiguration.SetValue(ConfigurationKeys.DoNotShowChangelogAgain, bool.FalseString);

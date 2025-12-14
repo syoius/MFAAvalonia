@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls;
 using MaaFramework.Binding;
 using MaaFramework.Binding.Buffers;
+using MaaFramework.Binding.Interop.Native;
 using MaaFramework.Binding.Notification;
 using MaaFramework.Binding.Custom;
 using MFAAvalonia.Configuration;

@@ -27,6 +27,7 @@ using VerticalAlignment = Avalonia.Layout.VerticalAlignment;
 using Avalonia.Threading;
 using Avalonia.Xaml.Interactivity;
 using Lang.Avalonia.MarkupExtensions;
+using MFAAvalonia.ViewModels.Other;
 using Newtonsoft.Json.Linq;
 
 namespace MFAAvalonia.Views.Pages;
@@ -328,6 +329,11 @@ public partial class TaskQueueView : UserControl
 
     private void SetMarkDown(string markDown)
     {
+        // 使用TaskQueueViewModel的增强方法
+        if (DataContext is TaskQueueViewModel viewModel)
+        {
+            viewModel.SetMarkdownIntroduction(markDown);
+        }
         Introduction.Markdown = markDown;
     }
 
@@ -1524,7 +1530,7 @@ public partial class TaskQueueView : UserControl
 
         var combo = new ComboBox
         {
-            MinWidth = 120,
+            MinWidth = 170,
             Classes =
             {
                 "LimitWidth"
@@ -1704,7 +1710,7 @@ public partial class TaskQueueView : UserControl
         var textBlock = new TextBlock
         {
             FontSize = 14,
-            HorizontalAlignment = HorizontalAlignment.Left,
+            MinWidth = 150,
             VerticalAlignment = VerticalAlignment.Center,
         };
         textBlock.Bind(TextBlock.TextProperty, new ResourceBindingWithFallback(option.DisplayName, option.Name));
