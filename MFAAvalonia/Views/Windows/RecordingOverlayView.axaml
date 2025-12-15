@@ -16,26 +16,25 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     mc:Ignorable="d">
 
-    <Border
-        Background="{DynamicResource SukiGlassCardBackground}"
-        BorderBrush="{DynamicResource SukiControlBorderBrush}"
-        BorderThickness="1"
-        CornerRadius="10"
-        Padding="10">
-        <StackPanel Spacing="10">
-            <Border PointerPressed="OnDragPointerPressed">
-                <StackPanel>
-                    <TextBlock Text="录制作业悬浮窗" FontWeight="Bold" Foreground="{DynamicResource SukiText}" />
-                    <TextBlock Text="{Binding Status}" FontSize="12" Foreground="{DynamicResource SukiLowText}" />
-                </StackPanel>
-            </Border>
+	    <Border
+	        Background="{DynamicResource SukiGlassCardBackground}"
+	        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+	        BorderThickness="1"
+	        CornerRadius="10"
+	        Padding="10">
+	        <StackPanel Spacing="10">
+	            <Border PointerPressed="OnDragPointerPressed" Background="Transparent" Cursor="SizeAll">
+	                <StackPanel>
+	                    <TextBlock Text="录制作业悬浮窗" FontWeight="Bold" Foreground="{DynamicResource SukiText}" />
+	                    <TextBlock Text="{Binding Status}" FontSize="12" Foreground="{DynamicResource SukiLowText}" />
+	                </StackPanel>
+	            </Border>
 
-            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <Button Width="56" Content="上一" Command="{Binding PrevRoundCommand}" />
-                <TextBlock Text="{Binding RoundDisplay}" VerticalAlignment="Center" Foreground="{DynamicResource SukiLowText}" />
-                <Button Width="56" Content="下一" Command="{Binding NextRoundCommand}" />
-                <Button Content="+回合" Command="{Binding AddRoundCommand}" />
-            </StackPanel>
+	            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+	                <Button Width="56" Content="上一" Command="{Binding PrevRoundCommand}" />
+	                <TextBlock Text="{Binding RoundDisplay}" VerticalAlignment="Center" Foreground="{DynamicResource SukiLowText}" />
+	                <Button Width="56" Content="下一" Command="{Binding NextRoundCommand}" />
+	            </StackPanel>
 
             <ItemsControl ItemsSource="{Binding AvailableActions}">
                 <ItemsControl.ItemsPanel>

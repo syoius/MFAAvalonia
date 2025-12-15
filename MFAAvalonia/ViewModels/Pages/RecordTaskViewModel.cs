@@ -370,10 +370,18 @@ public partial class RecordTaskViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanNextRound))]
     private void NextRound()
     {
+        if (CurrentRound >= RoundCount)
+        {
+            var newRound = RoundCount + 1;
+            EnsureRoundExists(newRound);
+            RoundCount = newRound;
+        }
+
         SwitchRound(CurrentRound + 1);
     }
 
-    private bool CanNextRound => CurrentRound < RoundCount;
+    // 支持在最后一回合点击“下一回合”自动新增回合
+    private bool CanNextRound => true;
 
     [RelayCommand]
     private void AddRound()
@@ -414,6 +422,13 @@ public partial class RecordTaskViewModel : ObservableObject
 
     private void AppendStep(string actionName, DateTimeOffset triggeredAt)
     {
+        // 兼容旧配置/旧录制：“+回合”不再作为动作记录，而是直接切到下一回合（必要时自动新增）
+        if (string.Equals(actionName, "+回合", StringComparison.Ordinal))
+        {
+            NextRound();
+            return;
+        }
+
         EnsureRoundExists(CurrentRound);
         _roundSteps[CurrentRound].Add(new RecordedStepData(actionName, triggeredAt));
         RecordedSteps.Add(new RecordedStepItem(RecordedSteps.Count + 1, actionName, triggeredAt));
@@ -476,6 +491,9 @@ public partial class RecordTaskViewModel : ObservableObject
     private static string ToSavedStepToken(string actionName)
     {
         if (string.IsNullOrWhiteSpace(actionName))
+            return string.Empty;
+
+        if (string.Equals(actionName, "+回合", StringComparison.Ordinal))
             return string.Empty;
 
         if (actionName.StartsWith("额外:", StringComparison.Ordinal))
