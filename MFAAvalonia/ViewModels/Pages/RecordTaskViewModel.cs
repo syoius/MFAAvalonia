@@ -46,11 +46,32 @@ public partial class RecordTaskViewModel : ObservableObject
 
     [ObservableProperty] private RecordingFileItem? _selectedRecording;
     [ObservableProperty] private bool _isRecording;
+    [ObservableProperty] private bool _canSave;
     [ObservableProperty] private string _recordingName = string.Empty;
     [ObservableProperty] private string _status = string.Empty;
 
     private readonly SemaphoreSlim _actionLock = new(1, 1);
     private RecordingOverlayView? _overlay;
+    private readonly Dictionary<int, List<RecordedStepData>> _roundSteps = new();
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PrevRoundCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NextRoundCommand))]
+    private int _currentRound = 1;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(PrevRoundCommand))]
+    [NotifyCanExecuteChangedFor(nameof(NextRoundCommand))]
+    private int _roundCount = 1;
+
+    public string RoundDisplay => $"回合 {CurrentRound}/{RoundCount}";
+
+    public RecordTaskViewModel()
+    {
+        RecordedSteps.CollectionChanged += (_, _) => UpdateCanSave();
+        ResetRounds();
+        UpdateCanSave();
+    }
 
     public void Initialize()
     {
@@ -129,7 +150,7 @@ public partial class RecordTaskViewModel : ObservableObject
                 return;
             }
 
-            RecordedSteps.Clear();
+            ResetRounds();
             IsRecording = true;
             Status = "录制中";
 
@@ -238,7 +259,7 @@ public partial class RecordTaskViewModel : ObservableObject
                 }
             });
 
-            RecordedSteps.Add(new RecordedStepItem(RecordedSteps.Count + 1, actionName, triggeredAt));
+            AppendStep(actionName, triggeredAt);
         }
         catch (Exception ex)
         {
@@ -254,7 +275,7 @@ public partial class RecordTaskViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveRecordingAsync()
     {
-        if (RecordedSteps.Count == 0)
+        if (GetTotalRecordedStepCount() == 0)
         {
             ToastHelper.Warn("没有任何录制步骤");
             return;
@@ -274,9 +295,9 @@ public partial class RecordTaskViewModel : ObservableObject
 
             var path = Path.Combine(RecordingsDir, fileName);
 
-            var graph = BuildSimingGraph(RecordedSteps.ToList());
+            var payload = BuildRoundsPayload();
             var json = JsonConvert.SerializeObject(
-                graph,
+                payload,
                 new JsonSerializerSettings
                 {
                     Formatting = Formatting.Indented,
@@ -295,50 +316,146 @@ public partial class RecordTaskViewModel : ObservableObject
         }
     }
 
-    private static Dictionary<string, MaaNode> BuildSimingGraph(IReadOnlyList<RecordedStepItem> steps)
+    [RelayCommand(CanExecute = nameof(CanPrevRound))]
+    private void PrevRound()
     {
-        var graph = new Dictionary<string, MaaNode>(StringComparer.Ordinal);
-        if (steps.Count == 0)
-            return graph;
+        SwitchRound(CurrentRound - 1);
+    }
 
-        var firstActionKey = "回合1行动1";
-        graph["检测回合1"] = new MaaNode
+    private bool CanPrevRound => CurrentRound > 1;
+
+    [RelayCommand(CanExecute = nameof(CanNextRound))]
+    private void NextRound()
+    {
+        SwitchRound(CurrentRound + 1);
+    }
+
+    private bool CanNextRound => CurrentRound < RoundCount;
+
+    [RelayCommand]
+    private void AddRound()
+    {
+        var newRound = RoundCount + 1;
+        EnsureRoundExists(newRound);
+        RoundCount = newRound;
+        SwitchRound(newRound);
+    }
+
+    private void SwitchRound(int round)
+    {
+        if (round < 1 || round > RoundCount)
+            return;
+
+        CurrentRound = round;
+        RefreshRecordedStepsForCurrentRound();
+    }
+
+    private void RefreshRecordedStepsForCurrentRound()
+    {
+        RecordedSteps.Clear();
+
+        if (!_roundSteps.TryGetValue(CurrentRound, out var steps) || steps.Count == 0)
         {
-            Recognition = "DirectHit",
-            Action = "DoNothing",
-            Next = [firstActionKey]
-        };
+            UpdateCanSave();
+            return;
+        }
 
         for (var i = 0; i < steps.Count; i++)
         {
             var step = steps[i];
-            if (!ActionTemplates.TryGetValue(step.ActionName, out var template))
-                continue;
-
-            var key = $"回合1行动{i + 1}";
-            var nextKey = i + 1 < steps.Count ? $"回合1行动{i + 2}" : null;
-
-            var postDelayMs = 0u;
-            if (i + 1 < steps.Count)
-            {
-                var delta = steps[i + 1].TriggeredAt - step.TriggeredAt;
-                var ms = (int)Math.Round(delta.TotalMilliseconds);
-                postDelayMs = (uint)Math.Clamp(ms, 0, 600_000);
-            }
-
-            var node = new MaaNode
-            {
-                Recognition = "DirectHit",
-                Action = template.Kind == FightActionKind.Click ? "Click" : "Swipe",
-                PostDelay = postDelayMs,
-                Next = nextKey == null ? null : [nextKey],
-            };
-
-            template.ApplyTo(node);
-            graph[key] = node;
+            RecordedSteps.Add(new RecordedStepItem(i + 1, step.ActionName, step.TriggeredAt));
         }
 
-        return graph;
+        UpdateCanSave();
+    }
+
+    private void AppendStep(string actionName, DateTimeOffset triggeredAt)
+    {
+        EnsureRoundExists(CurrentRound);
+        _roundSteps[CurrentRound].Add(new RecordedStepData(actionName, triggeredAt));
+        RecordedSteps.Add(new RecordedStepItem(RecordedSteps.Count + 1, actionName, triggeredAt));
+        UpdateCanSave();
+    }
+
+    private void ResetRounds()
+    {
+        _roundSteps.Clear();
+        _roundSteps[1] = new List<RecordedStepData>();
+        RoundCount = 1;
+        CurrentRound = 1;
+        RefreshRecordedStepsForCurrentRound();
+    }
+
+    private void EnsureRoundExists(int round)
+    {
+        if (!_roundSteps.ContainsKey(round))
+            _roundSteps[round] = new List<RecordedStepData>();
+    }
+
+    private int GetTotalRecordedStepCount() => _roundSteps.Values.Sum(static s => s.Count);
+
+    private void UpdateCanSave()
+    {
+        CanSave = GetTotalRecordedStepCount() > 0;
+        OnPropertyChanged(nameof(RoundDisplay));
+    }
+
+    partial void OnCurrentRoundChanged(int value)
+    {
+        OnPropertyChanged(nameof(RoundDisplay));
+    }
+
+    partial void OnRoundCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(RoundDisplay));
+    }
+
+    private Dictionary<string, List<List<string>>> BuildRoundsPayload()
+    {
+        var payload = new Dictionary<string, List<List<string>>>(StringComparer.Ordinal);
+
+        for (var round = 1; round <= RoundCount; round++)
+        {
+            var items = new List<List<string>>();
+            if (_roundSteps.TryGetValue(round, out var steps) && steps.Count > 0)
+            {
+                items.Capacity = steps.Count;
+                foreach (var step in steps)
+                    items.Add([ToSavedStepToken(step.ActionName)]);
+            }
+
+            payload[round.ToString()] = items;
+        }
+
+        return payload;
+    }
+
+    private static string ToSavedStepToken(string actionName)
+    {
+        if (string.IsNullOrWhiteSpace(actionName))
+            return string.Empty;
+
+        if (actionName.StartsWith("额外:", StringComparison.Ordinal))
+            return actionName;
+
+        var idx = actionName.IndexOf("号位", StringComparison.Ordinal);
+        if (idx > 0)
+        {
+            var posText = actionName[..idx];
+            if (int.TryParse(posText, out var pos) && pos is >= 1 and <= 5)
+            {
+                if (actionName.Contains("普攻", StringComparison.Ordinal))
+                    return $"{pos}普";
+                if (actionName.Contains("上拉", StringComparison.Ordinal))
+                    return $"{pos}上";
+                if (actionName.Contains("下拉", StringComparison.Ordinal))
+                    return $"{pos}下";
+                if (actionName.Contains("大招", StringComparison.Ordinal) || actionName.Contains("大", StringComparison.Ordinal))
+                    return $"{pos}大";
+            }
+        }
+
+        return actionName;
     }
 
     private static string SanitizeFileName(string name)
@@ -352,6 +469,8 @@ public partial class RecordTaskViewModel : ObservableObject
         return string.IsNullOrWhiteSpace(result) ? "recording.json" : result;
     }
 }
+
+internal readonly record struct RecordedStepData(string ActionName, DateTimeOffset TriggeredAt);
 
 public sealed class RecordingFileItem
 {

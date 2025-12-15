@@ -33,7 +33,7 @@
                             <TextBlock Text="结束录制" />
                         </StackPanel>
                     </Button>
-                    <Button Command="{Binding SaveRecordingCommand}" IsEnabled="{Binding IsRecording}">
+                    <Button Command="{Binding SaveRecordingCommand}" IsEnabled="{Binding CanSave}">
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <ContentControl Content="{fluent:FluentIcon Icon=Save, IconSize=Size16, IconVariant=Regular}" />
                             <TextBlock Text="保存" />
