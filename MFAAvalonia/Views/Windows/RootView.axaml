@@ -215,24 +215,29 @@
                 <!--         </Style> -->
                 <!--     </Style> -->
                 <!-- </suki:SukiSideMenu.Styles> -->
-                <suki:SukiSideMenu.Items>
-                    <suki:SukiSideMenuItem IsContentMovable="False"
-                                           Header="{markup:I18n {x:Static helper:LangKeys.Home}}"
-                                           Icon="{fluent:FluentIcon Icon=TasksApp,
-                                                       IconVariant=Regular}"
-                                       PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:TaskQueueView}}" />
-                    <!-- Copilot Tab: 抄作业 -->
-                    <suki:SukiSideMenuItem IsContentMovable="False"
-                                        Header="自动战斗"
-                                        Icon="{fluent:FluentIcon Icon=Games,
-                                                        IconVariant=Regular}"
-                                        PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CopilotView}}" />
-                    <suki:SukiSideMenuItem IsContentMovable="False"
-                                        Header="{markup:I18n {x:Static helper:LangKeys.ScreenshotPage}}"
-                                        Icon="{fluent:FluentIcon Icon=Screenshot,
-                                                        IconVariant=Regular}"
-                                            PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ScreenshotView}}" />
-                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                <suki:SukiSideMenu.Items>
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                                           Header="{markup:I18n {x:Static helper:LangKeys.Home}}"
+	                                           Icon="{fluent:FluentIcon Icon=TasksApp,
+	                                                       IconVariant=Regular}"
+	                                       PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:TaskQueueView}}" />
+	                    <!-- Copilot Tab: 抄作业 -->
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                                        Header="自动战斗"
+	                                        Icon="{fluent:FluentIcon Icon=Games,
+	                                                        IconVariant=Regular}"
+	                                        PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CopilotView}}" />
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                                           Header="录制作业"
+	                                           Icon="{fluent:FluentIcon Icon=Clipboard,
+	                                                       IconVariant=Regular}"
+	                                           PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:RecordTaskView}}" />
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                                        Header="{markup:I18n {x:Static helper:LangKeys.ScreenshotPage}}"
+	                                        Icon="{fluent:FluentIcon Icon=Screenshot,
+	                                                        IconVariant=Regular}"
+	                                            PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ScreenshotView}}" />
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
                                            Header="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
                                            Icon="{fluent:FluentIcon Icon=Apps,
                                                        IconVariant=Regular}"
