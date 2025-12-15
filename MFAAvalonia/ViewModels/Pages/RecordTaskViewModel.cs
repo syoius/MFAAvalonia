@@ -22,21 +22,49 @@ public partial class RecordTaskViewModel : ObservableObject
     private static readonly IReadOnlyDictionary<string, FightActionTemplate> ActionTemplates =
         new Dictionary<string, FightActionTemplate>(StringComparer.Ordinal)
         {
-            // 来源：MaaYuan-Share-frontend/src/features/auto-fight-gen/config.ts
-            ["1号位普攻"] = FightActionTemplate.Click(target: [56, 960, 58, 62]),
-            ["2号位普攻"] = FightActionTemplate.Click(target: [180, 959, 76, 83]),
-            ["3号位普攻"] = FightActionTemplate.Click(target: [357, 975, 10, 10]),
-            ["4号位普攻"] = FightActionTemplate.Click(target: [496, 980, 10, 10]),
-            ["5号位普攻"] = FightActionTemplate.Click(target: [646, 987, 10, 10]),
-            ["1号位上拉"] = FightActionTemplate.Swipe(begin: [77, 991, 10, 1], end: [77, 670, 10, 1], durationMs: 800),
-            ["1号位下拉"] = FightActionTemplate.Swipe(begin: [73, 985, 1, 1], end: [73, 1258, 1, 1], durationMs: 800),
-            ["2号位上拉"] = FightActionTemplate.Swipe(begin: [220, 996, 1, 1], end: [225, 668, 1, 1], durationMs: 800),
-            ["2号位下拉"] = FightActionTemplate.Swipe(begin: [221, 975, 1, 1], end: [221, 1251, 1, 1], durationMs: 800),
+            // 来源：MaaYuanCopilot_自己自定义一下吧.json（actions 内含 action + text_doc 的节点）
+            // 说明：忽略“检测回合xx / 回合x行动x”的 actionKey，仅使用 text_doc 作为按钮名/录制 token。
+            ["1普"] = FightActionTemplate.Click(target: [56, 1060, 5, 5]),
+            ["1大"] = FightActionTemplate.Swipe(begin: [77, 1060, 10, 1], end: [77, 670, 10, 1], durationMs: 800),
+            ["1下"] = FightActionTemplate.Swipe(begin: [73, 1060, 1, 1], end: [73, 1258, 1, 1], durationMs: 800),
+            ["2普"] = FightActionTemplate.Click(target: [180, 1060, 5, 5]),
+            ["2大"] = FightActionTemplate.Swipe(begin: [220, 1060, 1, 1], end: [225, 668, 1, 1], durationMs: 800),
+            ["2下"] = FightActionTemplate.Swipe(begin: [221, 1060, 1, 1], end: [221, 1251, 1, 1], durationMs: 800),
+            ["3普"] = FightActionTemplate.Click(target: [357, 1060, 5, 5]),
+            ["3大"] = FightActionTemplate.Swipe(begin: [357, 1060, 1, 1], end: [357, 714, 1, 1], durationMs: 800),
+            ["3下"] = FightActionTemplate.Swipe(begin: [357, 1060, 1, 1], end: [357, 1237, 1, 1], durationMs: 800),
+            ["4普"] = FightActionTemplate.Click(target: [496, 1060, 5, 5]),
+            ["4大"] = FightActionTemplate.Swipe(begin: [496, 1060, 1, 1], end: [496, 679, 1, 1], durationMs: 800),
+            ["4下"] = FightActionTemplate.Swipe(begin: [496, 1060, 1, 1], end: [496, 1258, 1, 1], durationMs: 800),
+            ["5普"] = FightActionTemplate.Click(target: [646, 1060, 5, 5]),
+            ["5大"] = FightActionTemplate.Swipe(begin: [646, 1060, 1, 1], end: [642, 700, 1, 1], durationMs: 800),
+            ["5下"] = FightActionTemplate.Swipe(begin: [646, 1060, 1, 1], end: [646, 1258, 1, 1], durationMs: 800),
+            ["左侧目标"] = FightActionTemplate.Click(target: [154, 648, 1, 1]),
+            ["右侧目标"] = FightActionTemplate.Click(target: [603, 413, 18, 21]),
+            ["吕布"] = FightActionTemplate.RecordOnly(),
+            ["额外:史子眇sp"] = FightActionTemplate.RecordOnly(),
+
+            // 兼容旧显示名（不会出现在按钮列表中）
+            ["1号位普攻"] = FightActionTemplate.Click(target: [56, 1060, 5, 5]),
+            ["2号位普攻"] = FightActionTemplate.Click(target: [180, 1060, 5, 5]),
+            ["3号位普攻"] = FightActionTemplate.Click(target: [357, 1060, 5, 5]),
+            ["4号位普攻"] = FightActionTemplate.Click(target: [496, 1060, 5, 5]),
+            ["5号位普攻"] = FightActionTemplate.Click(target: [646, 1060, 5, 5]),
+            ["1号位下拉"] = FightActionTemplate.Swipe(begin: [73, 1060, 1, 1], end: [73, 1258, 1, 1], durationMs: 800),
+            ["2号位下拉"] = FightActionTemplate.Swipe(begin: [221, 1060, 1, 1], end: [221, 1251, 1, 1], durationMs: 800),
         };
 
-    private static readonly IReadOnlyList<string> SortedActionNames = ActionTemplates.Keys
-        .OrderBy(k => k, StringComparer.Ordinal)
-        .ToList();
+    private static readonly IReadOnlyList<string> SortedActionNames =
+    [
+        "1普", "1大", "1下",
+        "2普", "2大", "2下",
+        "3普", "3大", "3下",
+        "4普", "4大", "4下",
+        "5普", "5大", "5下",
+        "左侧目标", "右侧目标",
+        "吕布",
+        "额外:史子眇sp"
+    ];
 
     private static string RecordingsDir => Path.Combine(MaaProcessor.Resource, "copilot-cache", "recordings");
 
@@ -78,13 +106,22 @@ public partial class RecordTaskViewModel : ObservableObject
         EnsureDirs();
         if (AvailableActions.Count == 0)
         {
-            foreach (var name in SortedActionNames)
-                AvailableActions.Add(new ActionButtonItem(name, ExecuteActionCommand));
+            foreach (var token in SortedActionNames)
+                AvailableActions.Add(new ActionButtonItem(displayName: GetActionDisplayName(token), token: token, command: ExecuteActionCommand));
         }
         if (string.IsNullOrWhiteSpace(RecordingName))
             RecordingName = $"录制作业-{DateTime.Now:yyyyMMdd-HHmmss}";
         _ = RefreshAsync();
     }
+
+    private static string GetActionDisplayName(string token) =>
+        token switch
+        {
+            "左侧目标" => "左",
+            "右侧目标" => "右",
+            "额外:史子眇sp" => "史SP",
+            _ => token
+        };
 
     private static void EnsureDirs()
     {
@@ -235,6 +272,12 @@ public partial class RecordTaskViewModel : ObservableObject
             }
 
             var triggeredAt = DateTimeOffset.Now;
+            if (template.Kind == FightActionKind.RecordOnly)
+            {
+                AppendStep(actionName, triggeredAt);
+                return;
+            }
+
             var tasker = await MaaProcessor.Instance.GetTaskerAsync();
             if (tasker == null)
             {
@@ -504,22 +547,24 @@ public sealed class RecordedStepItem
 
 public sealed class ActionButtonItem
 {
-    public ActionButtonItem(string name, ICommand command)
+    public ActionButtonItem(string displayName, string token, ICommand command)
     {
-        Name = name;
+        DisplayName = displayName;
+        Token = token;
         Command = command;
-        CommandParameter = name;
     }
 
-    public string Name { get; }
+    public string DisplayName { get; }
+    public string Token { get; }
     public ICommand Command { get; }
-    public object CommandParameter { get; }
+    public object CommandParameter => Token;
 }
 
 internal enum FightActionKind
 {
     Click,
-    Swipe
+    Swipe,
+    RecordOnly
 }
 
 internal sealed class FightActionTemplate
@@ -551,6 +596,9 @@ internal sealed class FightActionTemplate
 
     public static FightActionTemplate Swipe(int[] begin, int[] end, int durationMs) =>
         new(FightActionKind.Swipe, target: null, begin: begin, end: end, durationMs: durationMs);
+
+    public static FightActionTemplate RecordOnly() =>
+        new(FightActionKind.RecordOnly, target: null, begin: null, end: null, durationMs: 0);
 
     public (int X, int Y) GetClickPoint()
     {
@@ -587,6 +635,8 @@ internal sealed class FightActionTemplate
                 node.Begin = Begin;
                 node.End = End;
                 node.Duration = (uint)(DurationMs <= 0 ? 800 : DurationMs);
+                break;
+            case FightActionKind.RecordOnly:
                 break;
         }
     }

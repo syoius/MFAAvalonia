@@ -1,7 +1,7 @@
 <Window
     x:Class="MFAAvalonia.Views.Windows.RecordingOverlayView"
     x:DataType="vm:RecordTaskViewModel"
-    Width="260"
+    Width="400"
     CanResize="False"
     ShowInTaskbar="False"
     SizeToContent="Height"
@@ -35,15 +35,16 @@
             <ItemsControl ItemsSource="{Binding AvailableActions}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <WrapPanel ItemWidth="118" ItemHeight="38" />
+                        <WrapPanel ItemWidth="74" ItemHeight="34" />
                     </ItemsPanelTemplate>
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:ActionButtonItem">
                         <Button
-                            Content="{Binding Name}"
+                            Content="{Binding DisplayName}"
                             Command="{Binding Command}"
-                            CommandParameter="{Binding CommandParameter}" />
+                            CommandParameter="{Binding CommandParameter}"
+                            Padding="6,0" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
