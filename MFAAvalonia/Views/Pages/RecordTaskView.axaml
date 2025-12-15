@@ -1,0 +1,83 @@
+<UserControl
+    x:Class="MFAAvalonia.Views.Pages.RecordTaskView"
+    x:DataType="vm:RecordTaskViewModel"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent.Markup;assembly=FluentIcons.Avalonia.Fluent"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="15" RowDefinitions="Auto,*" ColumnDefinitions="*">
+        <Border CornerRadius="8" Padding="10">
+            <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" RowDefinitions="Auto" ColumnSpacing="10">
+                <Button Command="{Binding RefreshCommand}" Content="刷新" />
+                <Button Grid.Column="1" Command="{Binding OpenRecordingsDirCommand}" Content="打开文件夹" />
+
+                <TextBlock Grid.Column="2" Text="作业名" VerticalAlignment="Center" />
+                <TextBox Grid.Column="3" Width="220" Text="{Binding RecordingName}" Watermark="录制作业-..." />
+
+                <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="8">
+                    <Button Command="{Binding StartRecordingCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ContentControl Content="{fluent:FluentIcon Icon=Play, IconSize=Size16, IconVariant=Regular}" />
+                            <TextBlock Text="开始录制" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding StopRecordingCommand}" IsEnabled="{Binding IsRecording}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ContentControl Content="{fluent:FluentIcon Icon=Stop, IconSize=Size16, IconVariant=Regular}" />
+                            <TextBlock Text="结束录制" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding SaveRecordingCommand}" IsEnabled="{Binding IsRecording}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ContentControl Content="{fluent:FluentIcon Icon=Save, IconSize=Size16, IconVariant=Regular}" />
+                            <TextBlock Text="保存" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <TextBlock Grid.Column="6" Text="{Binding Status}" VerticalAlignment="Center" Opacity="0.7" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,12,0,0">
+            <Border BorderThickness="1" BorderBrush="{DynamicResource SukiControlBorderBrush}" CornerRadius="8" Padding="10">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="已录制作业" FontWeight="Bold" />
+                    <ListBox ItemsSource="{Binding RecordingFiles}" SelectedItem="{Binding SelectedRecording}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RecordingFileItem">
+                                <StackPanel Margin="4,6">
+                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock Text="{Binding UpdatedAtLocal}" FontSize="12" Opacity="0.7" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" BorderThickness="1" BorderBrush="{DynamicResource SukiControlBorderBrush}" CornerRadius="8" Padding="10">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="当前录制（点击悬浮窗按钮生成步骤）" FontWeight="Bold" />
+                    <ListBox ItemsSource="{Binding RecordedSteps}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RecordedStepItem">
+                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,6">
+                                    <TextBlock Grid.Column="0" Text="{Binding Index}" Width="34" />
+                                    <TextBlock Grid.Column="1" Text="{Binding ActionName}" />
+                                    <TextBlock Grid.Column="2" Text="{Binding TimeLocal}" Opacity="0.7" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
