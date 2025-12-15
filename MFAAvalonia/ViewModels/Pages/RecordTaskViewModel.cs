@@ -56,11 +56,11 @@ public partial class RecordTaskViewModel : ObservableObject
 
     private static readonly IReadOnlyList<string> SortedActionNames =
     [
-        "1普", "1大", "1下",
-        "2普", "2大", "2下",
-        "3普", "3大", "3下",
-        "4普", "4大", "4下",
-        "5普", "5大", "5下",
+        "1A", "2A", "3A",
+        "4A", "5A", "1↑",
+        "2↑", "3↑", "4↑",
+        "5↑", "1↓", "2↓",
+        "3↓", "4↓", "5↓",
         "左侧目标", "右侧目标",
         "吕布",
         "额外:史子眇sp"
