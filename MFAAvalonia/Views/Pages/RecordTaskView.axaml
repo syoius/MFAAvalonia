@@ -50,25 +50,13 @@
                     <StackPanel Spacing="8" Margin="8,4,8,8">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock VerticalAlignment="Center" Text="作业名" />
-                            <TextBox Width="220" Text="{Binding RecordingName}" Watermark="录制作业-..." />
+                            <TextBox Width="180" Text="{Binding RecordingName}" Watermark="录制作业-..." />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Button Command="{Binding StartRecordingCommand}">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <fluent:FluentIcon Icon="Play" IconSize="Size16" IconVariant="Regular" />
                                     <TextBlock Text="开始录制" />
-                                </StackPanel>
-                            </Button>
-                            <Button Command="{Binding StopRecordingCommand}" IsEnabled="{Binding IsRecording}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <fluent:FluentIcon Icon="Stop" IconSize="Size16" IconVariant="Regular" />
-                                    <TextBlock Text="结束录制" />
-                                </StackPanel>
-                            </Button>
-                            <Button Command="{Binding SaveRecordingCommand}" IsEnabled="{Binding CanSave}">
-                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                    <fluent:FluentIcon Icon="Save" IconSize="Size16" IconVariant="Regular" />
-                                    <TextBlock Text="保存" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>

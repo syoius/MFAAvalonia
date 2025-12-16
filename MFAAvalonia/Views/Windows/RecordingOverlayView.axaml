@@ -94,7 +94,7 @@
 	            <Separator />
 
 	            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-	                <Button Content="保存" Command="{Binding SaveRecordingCommand}" IsEnabled="{Binding CanSave}" />
+	                <Button Content="保存并结束" Command="{Binding SaveAndStopRecordingCommand}" IsEnabled="{Binding CanSave}" />
 	                <Button Content="结束" Command="{Binding StopRecordingCommand}" />
 	            </StackPanel>
         </StackPanel>

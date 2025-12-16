@@ -373,6 +373,17 @@ public partial class RecordTaskViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveRecordingAsync()
     {
+        await TrySaveRecordingAsync(stopAfterSave: false);
+    }
+
+    [RelayCommand]
+    private async Task SaveAndStopRecordingAsync()
+    {
+        await TrySaveRecordingAsync(stopAfterSave: true);
+    }
+
+    private async Task TrySaveRecordingAsync(bool stopAfterSave)
+    {
         if (GetTotalRecordedStepCount() == 0)
         {
             ToastHelper.Warn("没有任何录制步骤");
@@ -411,6 +422,9 @@ public partial class RecordTaskViewModel : ObservableObject
                         ?? RecordingFiles.FirstOrDefault(f => string.Equals(f.Name, fileName, StringComparison.OrdinalIgnoreCase));
             if (saved != null)
                 SelectedRecording = saved;
+
+            if (stopAfterSave)
+                await StopRecordingAsync();
         }
         catch (Exception ex)
         {
