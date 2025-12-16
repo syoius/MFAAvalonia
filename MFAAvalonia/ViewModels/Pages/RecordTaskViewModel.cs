@@ -1,3 +1,4 @@
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Extensions.MaaFW;
@@ -76,6 +77,7 @@ public partial class RecordTaskViewModel : ObservableObject
     public ObservableCollection<RecordingFileItem> RecordingFiles { get; } = new();
     public ObservableCollection<RecordedStepItem> RecordedSteps { get; } = new();
     public ObservableCollection<RecordedRoundGroupItem> RecordedStepGroups { get; } = new();
+    public ObservableCollection<RecordedRoundTableRowItem> RecordedRoundTableRows { get; } = new();
 	    public ObservableCollection<ActionButtonItem> AvailableActions { get; } = new();
 	
 	    [ObservableProperty] private RecordingFileItem? _selectedRecording;
@@ -525,12 +527,14 @@ public partial class RecordTaskViewModel : ObservableObject
 	                group.Steps.Add(new RecordedStepItem(round, i + 1, step.ActionName, step.TriggeredAt));
 	            }
 
-            RecordedStepGroups.Add(group);
-        }
-    }
+	            RecordedStepGroups.Add(group);
+	        }
 
-    private void AppendStep(string actionName, DateTimeOffset triggeredAt)
-    {
+	        RefreshRecordedRoundTableRows();
+	    }
+
+	    private void AppendStep(string actionName, DateTimeOffset triggeredAt)
+	    {
         // 兼容旧配置/旧录制：“+回合”不再作为动作记录，而是直接切到下一回合（必要时自动新增）
         if (string.Equals(actionName, "+回合", StringComparison.Ordinal))
         {
@@ -540,9 +544,110 @@ public partial class RecordTaskViewModel : ObservableObject
 
 	        EnsureRoundExists(CurrentRound);
 	        _roundSteps[CurrentRound].Add(new RecordedStepData(actionName, triggeredAt));
-	        RecordedSteps.Add(new RecordedStepItem(CurrentRound, RecordedSteps.Count + 1, actionName, triggeredAt));
-	        RefreshRecordedStepGroups();
-	        UpdateCanSave();
+		        RecordedSteps.Add(new RecordedStepItem(CurrentRound, RecordedSteps.Count + 1, actionName, triggeredAt));
+		        RefreshRecordedStepGroups();
+		        UpdateCanSave();
+		    }
+
+	    private void RefreshRecordedRoundTableRows()
+	    {
+	        RecordedRoundTableRows.Clear();
+
+	        for (var round = 1; round <= RoundCount; round++)
+	        {
+	            _roundSteps.TryGetValue(round, out var steps);
+	            steps ??= [];
+
+	            var slot1 = new List<RecordedRoundTablePillItem>();
+	            var slot2 = new List<RecordedRoundTablePillItem>();
+	            var slot3 = new List<RecordedRoundTablePillItem>();
+	            var slot4 = new List<RecordedRoundTablePillItem>();
+	            var slot5 = new List<RecordedRoundTablePillItem>();
+	            var extra = new List<RecordedRoundTablePillItem>();
+
+	            for (var i = 0; i < steps.Count; i++)
+	            {
+	                var index = i + 1;
+	                var actionName = steps[i].ActionName;
+	                if (TryParseSlotActionToken(actionName, out var slot, out var actionToken, out var kind))
+	                {
+	                    var pill = new RecordedRoundTablePillItem($"{index}{actionToken}", kind);
+	                    switch (slot)
+	                    {
+	                        case 1: slot1.Add(pill); break;
+	                        case 2: slot2.Add(pill); break;
+	                        case 3: slot3.Add(pill); break;
+	                        case 4: slot4.Add(pill); break;
+	                        case 5: slot5.Add(pill); break;
+	                        default: extra.Add(pill); break;
+	                    }
+
+	                    continue;
+	                }
+
+	                extra.Add(new RecordedRoundTablePillItem($"{index}{actionName}", RecordedActionPillKind.Extra));
+	            }
+
+	            RecordedRoundTableRows.Add(new RecordedRoundTableRowItem(
+	                round: round,
+	                totalActions: steps.Count,
+	                slot1: slot1,
+	                slot2: slot2,
+	                slot3: slot3,
+	                slot4: slot4,
+	                slot5: slot5,
+	                extra: extra));
+	        }
+	    }
+
+	    private static bool TryParseSlotActionToken(
+	        string actionName,
+	        out int slot,
+	        out string actionToken,
+	        out RecordedActionPillKind kind)
+	    {
+	        slot = 0;
+	        actionToken = string.Empty;
+	        kind = RecordedActionPillKind.Other;
+
+	        if (string.IsNullOrWhiteSpace(actionName))
+	            return false;
+
+	        var ch0 = actionName[0];
+	        if (ch0 is < '1' or > '5')
+	            return false;
+
+	        slot = ch0 - '0';
+
+	        if (actionName.Length >= 2 && actionName[1] is 'A' or '↑' or '↓')
+	        {
+	            actionToken = actionName.Substring(1);
+	        }
+	        else if (actionName.Length >= 3 && actionName[1] == '号')
+	        {
+	            if (actionName.Contains("普攻", StringComparison.Ordinal))
+	                actionToken = "A";
+	            else if (actionName.Contains("上拉", StringComparison.Ordinal))
+	                actionToken = "↑";
+	            else if (actionName.Contains("下拉", StringComparison.Ordinal))
+	                actionToken = "↓";
+	            else
+	                actionToken = actionName;
+	        }
+	        else
+	        {
+	            actionToken = actionName.Length > 1 ? actionName.Substring(1) : actionName;
+	        }
+
+	        kind = actionToken switch
+	        {
+	            "A" => RecordedActionPillKind.Attack,
+	            "↑" => RecordedActionPillKind.Up,
+	            "↓" => RecordedActionPillKind.Down,
+	            _ => RecordedActionPillKind.Other
+	        };
+
+	        return true;
 	    }
 
 	    [RelayCommand(CanExecute = nameof(CanDeleteRecordedStep))]
@@ -954,10 +1059,10 @@ public sealed class RecordingFileItem
     public string UpdatedAtLocal => LastWriteTimeUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 }
 
-	public sealed class RecordedStepItem
-	{
-	    public RecordedStepItem(int round, int index, string actionName, DateTimeOffset triggeredAt)
-	    {
+		public sealed class RecordedStepItem
+		{
+		    public RecordedStepItem(int round, int index, string actionName, DateTimeOffset triggeredAt)
+		    {
 	        Round = round;
 	        Index = index;
 	        ActionName = actionName;
@@ -972,14 +1077,99 @@ public sealed class RecordingFileItem
 	    public int Round { get; }
 	    public int Index { get; }
 	    public string ActionName { get; }
-	    public DateTimeOffset TriggeredAt { get; }
-	    public string TimeLocal => TriggeredAt.ToLocalTime().ToString("HH:mm:ss.fff");
-	}
+		    public DateTimeOffset TriggeredAt { get; }
+		    public string TimeLocal => TriggeredAt.ToLocalTime().ToString("HH:mm:ss.fff");
+		}
 
-public sealed class ActionButtonItem
+public enum RecordedActionPillKind
 {
-    public ActionButtonItem(string displayName, string token, ICommand command)
+    Attack,
+    Up,
+    Down,
+    Other,
+    Extra
+}
+
+public sealed class RecordedRoundTableRowItem
+{
+    public RecordedRoundTableRowItem(
+        int round,
+        int totalActions,
+        IReadOnlyList<RecordedRoundTablePillItem> slot1,
+        IReadOnlyList<RecordedRoundTablePillItem> slot2,
+        IReadOnlyList<RecordedRoundTablePillItem> slot3,
+        IReadOnlyList<RecordedRoundTablePillItem> slot4,
+        IReadOnlyList<RecordedRoundTablePillItem> slot5,
+        IReadOnlyList<RecordedRoundTablePillItem> extra)
     {
+        Round = round;
+        TotalActions = totalActions;
+        Slot1 = slot1;
+        Slot2 = slot2;
+        Slot3 = slot3;
+        Slot4 = slot4;
+        Slot5 = slot5;
+        Extra = extra;
+    }
+
+    public int Round { get; }
+    public int TotalActions { get; }
+    public string RoundTitle => Round.ToString();
+    public string Summary => $"共 {TotalActions} 个动作";
+
+    public IReadOnlyList<RecordedRoundTablePillItem> Slot1 { get; }
+    public IReadOnlyList<RecordedRoundTablePillItem> Slot2 { get; }
+    public IReadOnlyList<RecordedRoundTablePillItem> Slot3 { get; }
+    public IReadOnlyList<RecordedRoundTablePillItem> Slot4 { get; }
+    public IReadOnlyList<RecordedRoundTablePillItem> Slot5 { get; }
+
+    public IReadOnlyList<RecordedRoundTablePillItem> Extra { get; }
+    public bool HasExtra => Extra.Count > 0;
+}
+
+public sealed class RecordedRoundTablePillItem
+{
+    private static readonly IBrush AttackBrush = new SolidColorBrush(Color.Parse("#F59E0B"));
+    private static readonly IBrush AttackBg = new SolidColorBrush(Color.Parse("#14F59E0B"));
+    private static readonly IBrush UpBrush = new SolidColorBrush(Color.Parse("#EF4444"));
+    private static readonly IBrush UpBg = new SolidColorBrush(Color.Parse("#14EF4444"));
+    private static readonly IBrush DownBrush = new SolidColorBrush(Color.Parse("#3B82F6"));
+    private static readonly IBrush DownBg = new SolidColorBrush(Color.Parse("#143B82F6"));
+    private static readonly IBrush OtherBrush = new SolidColorBrush(Color.Parse("#94A3B8"));
+    private static readonly IBrush OtherBg = new SolidColorBrush(Color.Parse("#1494A3B8"));
+
+    public RecordedRoundTablePillItem(string text, RecordedActionPillKind kind)
+    {
+        Text = text;
+        Kind = kind;
+    }
+
+    public string Text { get; }
+    public RecordedActionPillKind Kind { get; }
+
+    public IBrush BorderBrush => Kind switch
+    {
+        RecordedActionPillKind.Attack => AttackBrush,
+        RecordedActionPillKind.Up => UpBrush,
+        RecordedActionPillKind.Down => DownBrush,
+        _ => OtherBrush
+    };
+
+    public IBrush Background => Kind switch
+    {
+        RecordedActionPillKind.Attack => AttackBg,
+        RecordedActionPillKind.Up => UpBg,
+        RecordedActionPillKind.Down => DownBg,
+        _ => OtherBg
+    };
+
+    public IBrush Foreground => BorderBrush;
+}
+
+	public sealed class ActionButtonItem
+	{
+	    public ActionButtonItem(string displayName, string token, ICommand command)
+	    {
         DisplayName = displayName;
         Token = token;
         Command = command;

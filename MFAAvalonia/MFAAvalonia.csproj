@@ -127,6 +127,7 @@
         <ProjectReference Include="../LazyStaticGenerator/LazyStaticGenerator.csproj" OutputItemType="Analyzer" ExcludeAssets="runtime;build;native;contentfiles" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="../SukiUI/SukiUI.csproj"/>
         <ProjectReference Include="../Markdown.Avalonia/Markdown.Avalonia.csproj"/>
+        <ProjectReference Include="../Markdown.Avalonia.SyntaxHigh/Markdown.Avalonia.SyntaxHigh.csproj"/>
     </ItemGroup>
     <PropertyGroup>
         <LazyStaticGeneratedDir>$(BaseIntermediateOutputPath)\LazyStaticGenerated</LazyStaticGeneratedDir>
