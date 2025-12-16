@@ -540,7 +540,7 @@ public partial class RecordTaskViewModel : ObservableObject
 	    }
 
 	    private bool CanDeleteRecordedStep(RecordedStepItem? step) =>
-	        !IsRecording && step is { Round: >= 1 };
+	        step is { Round: >= 1 };
 	
 	    private void ResetRounds()
 	    {

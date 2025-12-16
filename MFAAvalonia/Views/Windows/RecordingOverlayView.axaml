@@ -12,6 +12,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:suki="https://github.com/kikipoulet/SukiUI"
     xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     mc:Ignorable="d">
@@ -31,9 +32,9 @@
 	            </Border>
 
 	            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-	                <Button Width="56" Content="上一" Command="{Binding PrevRoundCommand}" />
+	                <Button Width="140" Content="上一回合" Command="{Binding PrevRoundCommand}" />
 	                <TextBlock Text="{Binding RoundDisplay}" VerticalAlignment="Center" Foreground="{DynamicResource SukiLowText}" />
-	                <Button Width="56" Content="下一" Command="{Binding NextRoundCommand}" />
+	                <Button Width="140" Content="下一回合" Command="{Binding NextRoundCommand}" />
 	            </StackPanel>
 
             <ItemsControl ItemsSource="{Binding AvailableActions}">
@@ -53,12 +54,49 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Separator />
+	            <Separator />
 
-            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
-                <Button Content="保存" Command="{Binding SaveRecordingCommand}" IsEnabled="{Binding CanSave}" />
-                <Button Content="结束" Command="{Binding StopRecordingCommand}" />
-            </StackPanel>
+	            <suki:GroupBox>
+	                <suki:GroupBox.Header>
+	                    <StackPanel Orientation="Horizontal" Spacing="8">
+	                        <TextBlock FontSize="11"
+	                                   FontWeight="Bold"
+	                                   Foreground="{DynamicResource SukiLowText}"
+	                                   Margin="2,0,0,0"
+	                                   Text="当前录制"
+	                                   VerticalAlignment="Center" />
+	                        <TextBlock Text="{Binding RoundDisplay}"
+	                                   FontSize="11"
+	                                   Foreground="{DynamicResource SukiLowText}"
+	                                   Opacity="0.8"
+	                                   VerticalAlignment="Center" />
+	                    </StackPanel>
+	                </suki:GroupBox.Header>
+	                <ListBox ItemsSource="{Binding RecordedSteps}" MaxHeight="260">
+	                    <ListBox.ItemTemplate>
+	                        <DataTemplate x:DataType="vm:RecordedStepItem">
+	                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,2,0,2">
+	                                <TextBlock Grid.Column="0" Text="{Binding Index}" Width="34" Opacity="0.8" />
+	                                <TextBlock Grid.Column="1" Text="{Binding ActionName}" />
+	                                <Button Grid.Column="2"
+	                                        x:CompileBindings="False"
+	                                        Content="删除"
+	                                        Margin="8,0,0,0"
+	                                        Padding="8,0"
+	                                        Command="{Binding DataContext.DeleteRecordedStepCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+	                                        CommandParameter="{Binding}" />
+	                            </Grid>
+	                        </DataTemplate>
+	                    </ListBox.ItemTemplate>
+	                </ListBox>
+	            </suki:GroupBox>
+
+	            <Separator />
+
+	            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+	                <Button Content="保存" Command="{Binding SaveRecordingCommand}" IsEnabled="{Binding CanSave}" />
+	                <Button Content="结束" Command="{Binding StopRecordingCommand}" />
+	            </StackPanel>
         </StackPanel>
     </Border>
 </Window>
