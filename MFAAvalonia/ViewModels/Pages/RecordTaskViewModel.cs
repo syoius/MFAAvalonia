@@ -5,6 +5,7 @@ using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
 using MFAAvalonia.Views.Windows;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -82,7 +83,10 @@ public partial class RecordTaskViewModel : ObservableObject
 	    [ObservableProperty] private string _recordingName = string.Empty;
 	    [ObservableProperty] private string _status = string.Empty;
 
+    public bool IsNotRecording => !IsRecording;
+
     private readonly SemaphoreSlim _actionLock = new(1, 1);
+    private readonly SemaphoreSlim _selectionLoadLock = new(1, 1);
     private RecordingOverlayView? _overlay;
     private readonly Dictionary<int, List<RecordedStepData>> _roundSteps = new();
 
@@ -127,6 +131,22 @@ public partial class RecordTaskViewModel : ObservableObject
         UpdateCanSave();
     }
 
+    partial void OnIsRecordingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsNotRecording));
+
+        if (value)
+            SelectedRecording = null;
+    }
+
+    partial void OnSelectedRecordingChanged(RecordingFileItem? value)
+    {
+        if (IsRecording || value == null)
+            return;
+
+        _ = LoadSelectedRecordingAsync(value);
+    }
+
     public void Initialize()
     {
         EnsureDirs();
@@ -157,6 +177,7 @@ public partial class RecordTaskViewModel : ObservableObject
     [RelayCommand]
     private async Task RefreshAsync()
     {
+        var selectedPath = SelectedRecording?.FullPath;
         try
         {
             EnsureDirs();
@@ -170,6 +191,14 @@ public partial class RecordTaskViewModel : ObservableObject
             RecordingFiles.Clear();
             foreach (var item in files)
                 RecordingFiles.Add(item);
+
+            if (!IsRecording && !string.IsNullOrWhiteSpace(selectedPath))
+            {
+                var nextSelected = RecordingFiles.FirstOrDefault(f =>
+                    string.Equals(f.FullPath, selectedPath, StringComparison.OrdinalIgnoreCase));
+                if (nextSelected != null)
+                    SelectedRecording = nextSelected;
+            }
         }
         catch (Exception ex)
         {
@@ -377,6 +406,11 @@ public partial class RecordTaskViewModel : ObservableObject
             await File.WriteAllTextAsync(path, json, new UTF8Encoding(false));
             ToastHelper.Success($"已保存：{fileName}");
             await RefreshAsync();
+
+            var saved = RecordingFiles.FirstOrDefault(f => string.Equals(f.FullPath, path, StringComparison.OrdinalIgnoreCase))
+                        ?? RecordingFiles.FirstOrDefault(f => string.Equals(f.Name, fileName, StringComparison.OrdinalIgnoreCase));
+            if (saved != null)
+                SelectedRecording = saved;
         }
         catch (Exception ex)
         {
@@ -515,6 +549,109 @@ public partial class RecordTaskViewModel : ObservableObject
         RoundCount = 1;
         CurrentRound = 1;
         RefreshRecordedStepsForCurrentRound();
+    }
+
+    private async Task LoadSelectedRecordingAsync(RecordingFileItem item)
+    {
+        await _selectionLoadLock.WaitAsync();
+        try
+        {
+            if (IsRecording)
+                return;
+
+            if (!string.Equals(SelectedRecording?.FullPath, item.FullPath, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (!File.Exists(item.FullPath))
+                return;
+
+            var json = await File.ReadAllTextAsync(item.FullPath);
+            var payload = TryParseRoundsPayload(json);
+            if (payload == null)
+            {
+                ToastHelper.Warn("无法解析录制作业内容");
+                return;
+            }
+
+            var updatedAtUtc = DateTime.SpecifyKind(item.LastWriteTimeUtc, DateTimeKind.Utc);
+            var triggeredAt = new DateTimeOffset(updatedAtUtc);
+            LoadRoundsPayload(payload, triggeredAt);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("加载录制作业失败");
+        }
+        finally
+        {
+            _selectionLoadLock.Release();
+        }
+    }
+
+    private void LoadRoundsPayload(Dictionary<string, List<List<string>>> payload, DateTimeOffset triggeredAt)
+    {
+        _roundSteps.Clear();
+
+        var maxRound = 1;
+        foreach (var key in payload.Keys)
+        {
+            if (int.TryParse(key, out var round) && round > maxRound)
+                maxRound = round;
+        }
+
+        if (maxRound < 1)
+            maxRound = 1;
+
+        RoundCount = maxRound;
+
+        for (var round = 1; round <= maxRound; round++)
+        {
+            _roundSteps[round] = new List<RecordedStepData>();
+            if (!payload.TryGetValue(round.ToString(), out var steps) || steps == null)
+                continue;
+
+            foreach (var stepTokens in steps)
+            {
+                var actionName = stepTokens?.FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(actionName))
+                    continue;
+
+                _roundSteps[round].Add(new RecordedStepData(actionName, triggeredAt));
+            }
+        }
+
+        CurrentRound = 1;
+        RefreshRecordedStepsForCurrentRound();
+    }
+
+    private static Dictionary<string, List<List<string>>>? TryParseRoundsPayload(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        try
+        {
+            var direct = JsonConvert.DeserializeObject<Dictionary<string, List<List<string>>>>(json);
+            if (direct != null && direct.Count > 0)
+                return direct;
+        }
+        catch
+        {
+            // ignore
+        }
+
+        try
+        {
+            var root = JObject.Parse(json);
+            if (root.TryGetValue("rounds", StringComparison.OrdinalIgnoreCase, out var roundsToken))
+                return roundsToken.ToObject<Dictionary<string, List<List<string>>>>();
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
     }
 
     private void EnsureRoundExists(int round)

@@ -116,7 +116,9 @@
                         </Grid>
                     </suki:GroupBox.Header>
 
-                    <ListBox ItemsSource="{Binding RecordingFiles}" SelectedItem="{Binding SelectedRecording}">
+                    <ListBox ItemsSource="{Binding RecordingFiles}"
+                             SelectedItem="{Binding SelectedRecording}"
+                             IsEnabled="{Binding IsNotRecording}">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:RecordingFileItem">
                                 <StackPanel Margin="4,6">
