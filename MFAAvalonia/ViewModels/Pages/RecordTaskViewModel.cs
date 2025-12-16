@@ -72,7 +72,8 @@ public partial class RecordTaskViewModel : ObservableObject
 
     private const string SimingExportApiUrl = "https://share.maayuan.top/simingapi/api/export";
     private static string CopilotCacheDir => Path.Combine(MaaProcessor.Resource, "copilot-cache");
-    private static string RecordingsDir => Path.Combine(CopilotCacheDir, "recordings");
+    private static string RecordingsDir => Path.Combine(MaaProcessor.Resource, "recordings");
+    private static string LegacyRecordingsDir => Path.Combine(CopilotCacheDir, "recordings");
 
     public ObservableCollection<RecordingFileItem> RecordingFiles { get; } = new();
     public ObservableCollection<RecordedStepItem> RecordedSteps { get; } = new();
@@ -178,6 +179,35 @@ public partial class RecordTaskViewModel : ObservableObject
     private static void EnsureDirs()
     {
         Directory.CreateDirectory(RecordingsDir);
+        if (!Directory.Exists(LegacyRecordingsDir))
+            return;
+
+        try
+        {
+            foreach (var source in Directory.EnumerateFiles(LegacyRecordingsDir, "*", SearchOption.AllDirectories))
+            {
+                var relative = Path.GetRelativePath(LegacyRecordingsDir, source);
+                var dest = Path.Combine(RecordingsDir, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+
+                if (!File.Exists(dest))
+                    File.Move(source, dest);
+            }
+
+            foreach (var dir in Directory.EnumerateDirectories(LegacyRecordingsDir, "*", SearchOption.AllDirectories)
+                         .OrderByDescending(d => d.Length))
+            {
+                if (!Directory.EnumerateFileSystemEntries(dir).Any())
+                    Directory.Delete(dir);
+            }
+
+            if (!Directory.EnumerateFileSystemEntries(LegacyRecordingsDir).Any())
+                Directory.Delete(LegacyRecordingsDir);
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Warning($"迁移 recordings 失败: {ex.Message}");
+        }
     }
 
     [RelayCommand]
