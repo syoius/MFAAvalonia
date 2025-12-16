@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
+using MFAAvalonia.ViewModels.Other;
 using MFAAvalonia.Views.Windows;
 using Newtonsoft.Json;
 using System;
@@ -93,6 +94,28 @@ public partial class RecordTaskViewModel : ObservableObject
     private int _roundCount = 1;
 
     public string RoundDisplay => $"回合 {CurrentRound}/{RoundCount}";
+
+    #region 右侧列（日志）- 与 CopilotView 右栏对齐
+    // 说明：为复用 Copilot/TaskQueue 的右侧“日志”UI，本 ViewModel 补齐必要的同名属性/命令，
+    // 直接转发到 Instances.TaskQueueViewModel，避免重复逻辑。
+
+    public ObservableCollection<LogItemViewModel> LogItemViewModels =>
+        Instances.TaskQueueViewModel.LogItemViewModels;
+
+    [RelayCommand]
+    private void Clear()
+    {
+        try { Instances.TaskQueueViewModel.ClearCommand?.Execute(null); }
+        catch (Exception ex) { LoggerHelper.Error(ex); }
+    }
+
+    [RelayCommand]
+    private void Export()
+    {
+        try { Instances.TaskQueueViewModel.ExportCommand?.Execute(null); }
+        catch (Exception ex) { LoggerHelper.Error(ex); }
+    }
+    #endregion
 
     public RecordTaskViewModel()
     {
