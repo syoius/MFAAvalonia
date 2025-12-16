@@ -441,6 +441,7 @@ public partial class CopilotViewModel : ObservableObject
             return result;
 
         var subDirs = Directory.EnumerateDirectories(directory)
+            .Where(d => !string.Equals(Path.GetFileName(d), "recordings", StringComparison.OrdinalIgnoreCase))
             .OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase);
 
         foreach (var dir in subDirs)
