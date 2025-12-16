@@ -178,14 +178,29 @@
                                    Text="当前录制"
                                    VerticalAlignment="Center" />
                     </suki:GroupBox.Header>
-                    <ListBox ItemsSource="{Binding RecordedSteps}">
+                    <ListBox ItemsSource="{Binding RecordedStepGroups}">
                         <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="vm:RecordedStepItem">
-                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,6">
-                                    <TextBlock Grid.Column="0" Text="{Binding Index}" Width="34" />
-                                    <TextBlock Grid.Column="1" Text="{Binding ActionName}" />
-                                    <TextBlock Grid.Column="2" Text="{Binding TimeLocal}" Opacity="0.7" />
-                                </Grid>
+                            <DataTemplate x:DataType="vm:RecordedRoundGroupItem">
+                                <StackPanel Margin="4,6" Spacing="4">
+                                    <TextBlock Text="{Binding Header}" FontWeight="Bold" Opacity="0.85" />
+                                    <ItemsControl ItemsSource="{Binding Steps}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:RecordedStepItem">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,2,0,2">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Index}" Width="34" Opacity="0.8" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding ActionName}" />
+	                                                    <Button Grid.Column="2"
+	                                                            x:CompileBindings="False"
+	                                                            Content="删除"
+	                                                            Margin="8,0,0,0"
+	                                                            Padding="8,0"
+	                                                            Command="{Binding DataContext.DeleteRecordedStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+	                                                            CommandParameter="{Binding}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

@@ -71,13 +71,16 @@ public partial class RecordTaskViewModel : ObservableObject
 
     public ObservableCollection<RecordingFileItem> RecordingFiles { get; } = new();
     public ObservableCollection<RecordedStepItem> RecordedSteps { get; } = new();
-    public ObservableCollection<ActionButtonItem> AvailableActions { get; } = new();
-
-    [ObservableProperty] private RecordingFileItem? _selectedRecording;
-    [ObservableProperty] private bool _isRecording;
-    [ObservableProperty] private bool _canSave;
-    [ObservableProperty] private string _recordingName = string.Empty;
-    [ObservableProperty] private string _status = string.Empty;
+    public ObservableCollection<RecordedRoundGroupItem> RecordedStepGroups { get; } = new();
+	    public ObservableCollection<ActionButtonItem> AvailableActions { get; } = new();
+	
+	    [ObservableProperty] private RecordingFileItem? _selectedRecording;
+	    [ObservableProperty]
+	    [NotifyCanExecuteChangedFor(nameof(DeleteRecordedStepCommand))]
+	    private bool _isRecording;
+	    [ObservableProperty] private bool _canSave;
+	    [ObservableProperty] private string _recordingName = string.Empty;
+	    [ObservableProperty] private string _status = string.Empty;
 
     private readonly SemaphoreSlim _actionLock = new(1, 1);
     private RecordingOverlayView? _overlay;
@@ -428,19 +431,37 @@ public partial class RecordTaskViewModel : ObservableObject
     {
         RecordedSteps.Clear();
 
-        if (!_roundSteps.TryGetValue(CurrentRound, out var steps) || steps.Count == 0)
-        {
-            UpdateCanSave();
-            return;
-        }
+	        if (_roundSteps.TryGetValue(CurrentRound, out var steps) && steps.Count > 0)
+	        {
+	            for (var i = 0; i < steps.Count; i++)
+	            {
+	                var step = steps[i];
+	                RecordedSteps.Add(new RecordedStepItem(CurrentRound, i + 1, step.ActionName, step.TriggeredAt));
+	            }
+	        }
 
-        for (var i = 0; i < steps.Count; i++)
-        {
-            var step = steps[i];
-            RecordedSteps.Add(new RecordedStepItem(i + 1, step.ActionName, step.TriggeredAt));
-        }
-
+        RefreshRecordedStepGroups();
         UpdateCanSave();
+    }
+
+    private void RefreshRecordedStepGroups()
+    {
+        RecordedStepGroups.Clear();
+
+        for (var round = 1; round <= RoundCount; round++)
+        {
+            if (!_roundSteps.TryGetValue(round, out var steps) || steps.Count == 0)
+                continue;
+
+	            var group = new RecordedRoundGroupItem(round);
+	            for (var i = 0; i < steps.Count; i++)
+	            {
+	                var step = steps[i];
+	                group.Steps.Add(new RecordedStepItem(round, i + 1, step.ActionName, step.TriggeredAt));
+	            }
+
+            RecordedStepGroups.Add(group);
+        }
     }
 
     private void AppendStep(string actionName, DateTimeOffset triggeredAt)
@@ -452,16 +473,45 @@ public partial class RecordTaskViewModel : ObservableObject
             return;
         }
 
-        EnsureRoundExists(CurrentRound);
-        _roundSteps[CurrentRound].Add(new RecordedStepData(actionName, triggeredAt));
-        RecordedSteps.Add(new RecordedStepItem(RecordedSteps.Count + 1, actionName, triggeredAt));
-        UpdateCanSave();
-    }
+	        EnsureRoundExists(CurrentRound);
+	        _roundSteps[CurrentRound].Add(new RecordedStepData(actionName, triggeredAt));
+	        RecordedSteps.Add(new RecordedStepItem(CurrentRound, RecordedSteps.Count + 1, actionName, triggeredAt));
+	        RefreshRecordedStepGroups();
+	        UpdateCanSave();
+	    }
 
-    private void ResetRounds()
-    {
-        _roundSteps.Clear();
-        _roundSteps[1] = new List<RecordedStepData>();
+	    [RelayCommand(CanExecute = nameof(CanDeleteRecordedStep))]
+	    private void DeleteRecordedStep(RecordedStepItem? step)
+	    {
+	        if (step == null || step.Round < 1)
+	            return;
+
+	        if (!_roundSteps.TryGetValue(step.Round, out var steps) || steps.Count == 0)
+	            return;
+
+	        var index0 = step.Index - 1;
+	        if (index0 < 0 || index0 >= steps.Count)
+	            return;
+
+	        steps.RemoveAt(index0);
+
+	        if (step.Round == CurrentRound)
+	        {
+	            RefreshRecordedStepsForCurrentRound();
+	            return;
+	        }
+
+	        RefreshRecordedStepGroups();
+	        UpdateCanSave();
+	    }
+
+	    private bool CanDeleteRecordedStep(RecordedStepItem? step) =>
+	        !IsRecording && step is { Round: >= 1 };
+	
+	    private void ResetRounds()
+	    {
+	        _roundSteps.Clear();
+	        _roundSteps[1] = new List<RecordedStepData>();
         RoundCount = 1;
         CurrentRound = 1;
         RefreshRecordedStepsForCurrentRound();
@@ -556,6 +606,19 @@ public partial class RecordTaskViewModel : ObservableObject
 
 internal readonly record struct RecordedStepData(string ActionName, DateTimeOffset TriggeredAt);
 
+public sealed class RecordedRoundGroupItem
+{
+    public RecordedRoundGroupItem(int round)
+    {
+        Round = round;
+        Steps = new ObservableCollection<RecordedStepItem>();
+    }
+
+    public int Round { get; }
+    public ObservableCollection<RecordedStepItem> Steps { get; }
+    public string Header => $"回合 {Round}";
+}
+
 public sealed class RecordingFileItem
 {
     public RecordingFileItem(string name, string fullPath, DateTime lastWriteTimeUtc)
@@ -571,20 +634,27 @@ public sealed class RecordingFileItem
     public string UpdatedAtLocal => LastWriteTimeUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 }
 
-public sealed class RecordedStepItem
-{
-    public RecordedStepItem(int index, string actionName, DateTimeOffset triggeredAt)
-    {
-        Index = index;
-        ActionName = actionName;
-        TriggeredAt = triggeredAt;
-    }
+	public sealed class RecordedStepItem
+	{
+	    public RecordedStepItem(int round, int index, string actionName, DateTimeOffset triggeredAt)
+	    {
+	        Round = round;
+	        Index = index;
+	        ActionName = actionName;
+	        TriggeredAt = triggeredAt;
+	    }
 
-    public int Index { get; }
-    public string ActionName { get; }
-    public DateTimeOffset TriggeredAt { get; }
-    public string TimeLocal => TriggeredAt.ToLocalTime().ToString("HH:mm:ss.fff");
-}
+	    public RecordedStepItem(int index, string actionName, DateTimeOffset triggeredAt)
+	        : this(round: 0, index: index, actionName: actionName, triggeredAt: triggeredAt)
+	    {
+	    }
+
+	    public int Round { get; }
+	    public int Index { get; }
+	    public string ActionName { get; }
+	    public DateTimeOffset TriggeredAt { get; }
+	    public string TimeLocal => TriggeredAt.ToLocalTime().ToString("HH:mm:ss.fff");
+	}
 
 public sealed class ActionButtonItem
 {
