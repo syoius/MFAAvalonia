@@ -42,9 +42,9 @@ public partial class RecordTaskViewModel : ObservableObject
             ["5A"] = FightActionTemplate.Click(target: [646, 1060, 5, 5]),
             ["5↑"] = FightActionTemplate.Swipe(begin: [646, 1060, 1, 1], end: [642, 700, 1, 1], durationMs: 800),
             ["5↓"] = FightActionTemplate.Swipe(begin: [646, 1060, 1, 1], end: [646, 1258, 1, 1], durationMs: 800),
-            ["左侧目标"] = FightActionTemplate.Click(target: [154, 648, 1, 1]),
-            ["右侧目标"] = FightActionTemplate.Click(target: [603, 413, 18, 21]),
-            ["吕布"] = FightActionTemplate.RecordOnly(),
+            ["额外:左侧目标"] = FightActionTemplate.Click(target: [154, 648, 1, 1]),
+            ["额外:右侧目标"] = FightActionTemplate.Click(target: [603, 413, 18, 21]),
+            ["额外:吕布"] = FightActionTemplate.RecordOnly(),
             ["额外:史子眇sp"] = FightActionTemplate.RecordOnly(),
 
             // 兼容旧显示名（不会出现在按钮列表中）
@@ -64,8 +64,8 @@ public partial class RecordTaskViewModel : ObservableObject
         "2↑", "3↑", "4↑",
         "5↑", "1↓", "2↓",
         "3↓", "4↓", "5↓",
-        "左侧目标", "右侧目标",
-        "吕布",
+        "额外:左侧目标", "额外:右侧目标",
+        "额外:吕布",
         "额外:史子眇sp"
     ];
 
@@ -166,8 +166,9 @@ public partial class RecordTaskViewModel : ObservableObject
     private static string GetActionDisplayName(string token) =>
         token switch
         {
-            "左侧目标" => "左",
-            "右侧目标" => "右",
+            "额外:左侧目标" => "左",
+            "额外:右侧目标" => "右",
+            "额外:吕布" =>"吕布",
             "额外:史子眇sp" => "史SP",
             _ => token
         };
