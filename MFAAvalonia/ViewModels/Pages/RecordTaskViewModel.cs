@@ -1,6 +1,7 @@
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MaaFramework.Binding;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
@@ -45,8 +46,8 @@ public partial class RecordTaskViewModel : ObservableObject
             ["5↓"] = FightActionTemplate.Swipe(begin: [646, 1060, 1, 1], end: [646, 1258, 1, 1], durationMs: 800),
             ["额外:左侧目标"] = FightActionTemplate.Click(target: [154, 648, 1, 1]),
             ["额外:右侧目标"] = FightActionTemplate.Click(target: [603, 413, 18, 21]),
-            ["额外:吕布"] = FightActionTemplate.RecordOnly(),
-            ["额外:史子眇sp"] = FightActionTemplate.RecordOnly(),
+            ["额外:吕布"] = FightActionTemplate.PipelineTask("录制_吕布切换形态"),
+            ["额外:史子眇sp"] = FightActionTemplate.PipelineTask("录制_史子眇sp技能"),
 
             // 兼容旧显示名（不会出现在按钮列表中）
             ["1号位普攻"] = FightActionTemplate.Click(target: [56, 1060, 5, 5]),
@@ -387,6 +388,37 @@ public partial class RecordTaskViewModel : ObservableObject
                     case FightActionKind.Swipe:
                         var args = template.GetSwipeArgs();
                         tasker.Swipe(args.StartX, args.StartY, args.EndX, args.EndY, args.DurationMs);
+                        break;
+                    case FightActionKind.TemplateMatch:
+                        // 先识别模板位置，再点击匹配位置
+                        var matchNode = new MaaNode
+                        {
+                            Name = $"TemplateMatch_{Guid.NewGuid():N}",
+                            Recognition = "TemplateMatch",
+                            Template = template.Templates?.ToList(),
+                            Roi = template.TemplateRoi?.ToList(),
+                            Threshold = template.Threshold
+                        };
+                        var matchJob = tasker.AppendTask(matchNode);
+                        if (matchJob.WaitFor(MaaJobStatus.Succeeded) != null)
+                        {
+                            var detail = matchJob.QueryRecognitionDetail();
+                            if (detail?.Hit == true && detail.HitBox is { Width: > 0, Height: > 0 })
+                            {
+                                // 点击匹配区域中心
+                                var clickX = detail.HitBox.X + detail.HitBox.Width / 2;
+                                var clickY = detail.HitBox.Y + detail.HitBox.Height / 2;
+                                tasker.Click(clickX, clickY);
+                            }
+                        }
+                        break;
+                    case FightActionKind.PipelineTask:
+                        // 直接调用已注册的 pipeline task
+                        if (!string.IsNullOrWhiteSpace(template.TaskName))
+                        {
+                            var pipelineJob = tasker.AppendTask(template.TaskName);
+                            pipelineJob.WaitFor(MaaJobStatus.Succeeded);
+                        }
                         break;
                     default:
                         throw new NotSupportedException($"Unknown action kind: {template.Kind}");
@@ -1215,7 +1247,9 @@ internal enum FightActionKind
 {
     Click,
     Swipe,
-    RecordOnly
+    RecordOnly,
+    TemplateMatch,
+    PipelineTask
 }
 
 internal sealed class FightActionTemplate
@@ -1227,13 +1261,21 @@ internal sealed class FightActionTemplate
         int[]? target,
         int[]? begin,
         int[]? end,
-        int durationMs)
+        int durationMs,
+        string[]? templates = null,
+        int[]? templateRoi = null,
+        double threshold = 0.8,
+        string? taskName = null)
     {
         Kind = kind;
         Target = target;
         Begin = begin;
         End = end;
         DurationMs = durationMs;
+        Templates = templates;
+        TemplateRoi = templateRoi;
+        Threshold = threshold;
+        TaskName = taskName;
     }
 
     public FightActionKind Kind { get; }
@@ -1241,6 +1283,10 @@ internal sealed class FightActionTemplate
     public int[]? Begin { get; }
     public int[]? End { get; }
     public int DurationMs { get; }
+    public string[]? Templates { get; }
+    public int[]? TemplateRoi { get; }
+    public double Threshold { get; }
+    public string? TaskName { get; }
 
     public static FightActionTemplate Click(int[] target) =>
         new(FightActionKind.Click, target: target, begin: null, end: null, durationMs: 0);
@@ -1250,6 +1296,14 @@ internal sealed class FightActionTemplate
 
     public static FightActionTemplate RecordOnly() =>
         new(FightActionKind.RecordOnly, target: null, begin: null, end: null, durationMs: 0);
+
+    public static FightActionTemplate TemplateMatch(string[] templates, int[] roi, double threshold = 0.8) =>
+        new(FightActionKind.TemplateMatch, target: null, begin: null, end: null, durationMs: 0,
+            templates: templates, templateRoi: roi, threshold: threshold);
+
+    public static FightActionTemplate PipelineTask(string taskName) =>
+        new(FightActionKind.PipelineTask, target: null, begin: null, end: null, durationMs: 0,
+            taskName: taskName);
 
     public (int X, int Y) GetClickPoint()
     {
