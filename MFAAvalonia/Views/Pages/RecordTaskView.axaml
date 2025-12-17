@@ -59,6 +59,14 @@
                                     <TextBlock Text="开始录制" />
                                 </StackPanel>
                             </Button>
+                            <Button Command="{Binding SaveToCopilotCacheCommand}"
+                                    IsEnabled="{Binding CanSave}"
+                                    ToolTip.Tip="将录制保存为可用作业">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="DocumentArrowUp" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text="保存到作业列表" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                         <TextBlock Text="{Binding Status}" Opacity="0.7" />
                     </StackPanel>
@@ -161,12 +169,47 @@
             <suki:GlassCard Margin="0,15,0,25">
                 <suki:GroupBox>
                     <suki:GroupBox.Header>
-                        <TextBlock FontSize="11"
-                                   FontWeight="Bold"
-                                   Foreground="{DynamicResource SukiLowText}"
-                                   Margin="2,0,0,0"
-                                   Text="当前录制"
-                                   VerticalAlignment="Center" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock FontSize="11"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource SukiLowText}"
+                                           Margin="2,0,0,0"
+                                           Text="当前录制" />
+                                <TextBlock FontSize="10"
+                                           Foreground="{DynamicResource SukiErrorColor}"
+                                           Margin="4,0,0,0"
+                                           Text="（已修改）"
+                                           IsVisible="{Binding IsDirty}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        IsVisible="{Binding IsDirty}">
+                                <Button Classes="Basic Round"
+                                        Command="{Binding SaveModificationsCommand}"
+                                        Height="17"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="保存修改"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18" Icon="Save" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                                <Button Classes="Basic Round"
+                                        Command="{Binding DiscardModificationsCommand}"
+                                        Height="17"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="放弃修改"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18" Icon="Dismiss" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
                     </suki:GroupBox.Header>
                     <ListBox ItemsSource="{Binding RecordedStepGroups}">
                         <ListBox.ItemTemplate>

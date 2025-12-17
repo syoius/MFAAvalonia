@@ -251,6 +251,10 @@
 	            <Separator />
 
 	            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+	                <Button Content="保存到作业列表"
+	                        Command="{Binding SaveToCopilotCacheCommand}"
+	                        IsEnabled="{Binding CanSave}"
+	                        ToolTip.Tip="将录制保存为可用作业" />
 	                <Button Content="保存并结束" Command="{Binding SaveAndStopRecordingCommand}" IsEnabled="{Binding CanSave}" />
 	                <Button Content="结束" Command="{Binding StopRecordingCommand}" />
 	            </StackPanel>

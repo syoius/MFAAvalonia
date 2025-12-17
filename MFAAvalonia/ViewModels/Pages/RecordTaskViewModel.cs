@@ -6,6 +6,7 @@ using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
 using MFAAvalonia.Views.Windows;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -85,6 +86,11 @@ public partial class RecordTaskViewModel : ObservableObject
     [ObservableProperty] private bool _canSave;
     [ObservableProperty] private string _recordingName = string.Empty;
     [ObservableProperty] private string _status = string.Empty;
+
+    // 修改跟踪相关属性
+    [ObservableProperty] private bool _isDirty;
+    [ObservableProperty] private string? _currentLoadedFilePath;
+    private string? _originalRecordingName;
 
     public bool IsNotRecording => !IsRecording;
 
@@ -279,6 +285,11 @@ public partial class RecordTaskViewModel : ObservableObject
             IsRecording = true;
             Status = "录制中";
 
+            // 重置加载状态，开始新录制
+            CurrentLoadedFilePath = null;
+            _originalRecordingName = null;
+            IsDirty = false;
+
             if (string.IsNullOrWhiteSpace(RecordingName))
                 RecordingName = $"录制作业-{DateTime.Now:yyyyMMdd-HHmmss}";
 
@@ -421,6 +432,116 @@ public partial class RecordTaskViewModel : ObservableObject
     private async Task SaveAndStopRecordingAsync()
     {
         await TrySaveRecordingAsync(stopAfterSave: true);
+    }
+
+    /// <summary>
+    /// 保存对已加载录制文件的修改
+    /// </summary>
+    [RelayCommand]
+    private async Task SaveModificationsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(CurrentLoadedFilePath))
+        {
+            ToastHelper.Warn("没有加载的录制文件，无法保存修改");
+            return;
+        }
+
+        try
+        {
+            var roundsPayload = BuildRoundsPayload();
+            var exportRequest = BuildSimingExportRequest(RecordingName, roundsPayload);
+            var requestJson = exportRequest.ToString(Formatting.Indented);
+
+            await File.WriteAllTextAsync(CurrentLoadedFilePath, requestJson, new UTF8Encoding(false));
+
+            _originalRecordingName = RecordingName;
+            IsDirty = false;
+            ToastHelper.Success("修改已保存");
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("保存修改失败");
+        }
+    }
+
+    /// <summary>
+    /// 放弃当前修改，重新加载原始文件
+    /// </summary>
+    [RelayCommand]
+    private async Task DiscardModificationsAsync()
+    {
+        if (SelectedRecording == null)
+        {
+            ToastHelper.Warn("没有加载的录制文件");
+            return;
+        }
+
+        try
+        {
+            // 重新加载原始文件
+            await LoadSelectedRecordingAsync(SelectedRecording);
+            ToastHelper.Info("已放弃修改");
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("放弃修改失败");
+        }
+    }
+
+    /// <summary>
+    /// 保存到作业列表（copilot-cache），不依赖录制状态
+    /// </summary>
+    [RelayCommand]
+    private async Task SaveToCopilotCacheAsync()
+    {
+        if (GetTotalRecordedStepCount() == 0)
+        {
+            ToastHelper.Warn("没有任何录制步骤");
+            return;
+        }
+
+        try
+        {
+            EnsureDirs();
+            Directory.CreateDirectory(CopilotCacheDir);
+
+            var baseName = string.IsNullOrWhiteSpace(RecordingName)
+                ? $"录制作业-{DateTime.Now:yyyyMMdd-HHmmss}"
+                : RecordingName;
+
+            var roundsPayload = BuildRoundsPayload();
+            var exportRequest = BuildSimingExportRequest(baseName, roundsPayload);
+
+            // 调用 API 转换格式
+            var result = await CallSimingExportAsync(exportRequest.ToString(Formatting.None));
+            var jobJson = BuildCopilotCacheJobJson(baseName, result.Actions);
+
+            var jobFileName = SanitizeJobFileName(result.FileName, baseName);
+            var jobPath = UniquePath(Path.Combine(CopilotCacheDir, jobFileName));
+
+            await File.WriteAllTextAsync(jobPath, jobJson.ToString(Formatting.Indented), new UTF8Encoding(false));
+
+            ToastHelper.Success($"已保存到作业列表：{Path.GetFileName(jobPath)}");
+
+            // 方案 A：主动刷新 CopilotViewModel
+            try
+            {
+                var copilotVm = App.Services.GetRequiredService<CopilotViewModel>();
+                await copilotVm.RefreshAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.Warning($"刷新作业列表失败: {ex.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("保存到作业列表失败");
+        }
     }
 
     private async Task TrySaveRecordingAsync(bool stopAfterSave)
@@ -704,6 +825,10 @@ public partial class RecordTaskViewModel : ObservableObject
 
         steps.RemoveAt(index0);
 
+        // 标记为已修改（仅在加载已保存录制后）
+        if (CurrentLoadedFilePath != null)
+            IsDirty = true;
+
         if (step.Round == CurrentRound)
         {
             RefreshRecordedStepsForCurrentRound();
@@ -748,9 +873,18 @@ public partial class RecordTaskViewModel : ObservableObject
                 return;
             }
 
+            // 尝试从 JSON 中提取作业名
+            var loadedName = TryExtractLevelName(json) ?? Path.GetFileNameWithoutExtension(item.Name);
+
             var updatedAtUtc = DateTime.SpecifyKind(item.LastWriteTimeUtc, DateTimeKind.Utc);
             var triggeredAt = new DateTimeOffset(updatedAtUtc);
             LoadRoundsPayload(payload, triggeredAt);
+
+            // 设置加载状态
+            RecordingName = loadedName;
+            _originalRecordingName = loadedName;
+            CurrentLoadedFilePath = item.FullPath;
+            IsDirty = false;
         }
         catch (Exception ex)
         {
@@ -761,6 +895,26 @@ public partial class RecordTaskViewModel : ObservableObject
         {
             _selectionLoadLock.Release();
         }
+    }
+
+    private static string? TryExtractLevelName(string json)
+    {
+        try
+        {
+            var root = JObject.Parse(json);
+            if (root.TryGetValue("level_name", StringComparison.OrdinalIgnoreCase, out var nameToken))
+            {
+                var name = nameToken.Value<string>();
+                if (!string.IsNullOrWhiteSpace(name))
+                    return name;
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
     }
 
     private void LoadRoundsPayload(Dictionary<string, List<List<string>>> payload, DateTimeOffset triggeredAt)
@@ -853,6 +1007,18 @@ public partial class RecordTaskViewModel : ObservableObject
     partial void OnRoundCountChanged(int value)
     {
         OnPropertyChanged(nameof(RoundDisplay));
+    }
+
+    partial void OnRecordingNameChanged(string value)
+    {
+        // 方案 A：作业名修改触发 IsDirty（仅在加载已保存录制后才检测）
+        if (!IsRecording && CurrentLoadedFilePath != null && _originalRecordingName != null)
+        {
+            if (!string.Equals(value, _originalRecordingName, StringComparison.Ordinal))
+            {
+                IsDirty = true;
+            }
+        }
     }
 
     private Dictionary<string, List<List<string>>> BuildRoundsPayload()
