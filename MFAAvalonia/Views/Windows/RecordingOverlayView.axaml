@@ -126,23 +126,14 @@
                                         <Border BorderBrush="{DynamicResource SukiControlBorderBrush}"
                                                 BorderThickness="0,0,0,1"
                                                 Padding="2,6">
-                                            <Grid ColumnDefinitions="34,62,62,62,62,62">
-                                                <StackPanel Grid.Column="0"
-                                                            Spacing="2"
-                                                            Margin="2,0,2,0">
-                                                    <TextBlock Text="{Binding RoundTitle}"
+                                            <StackPanel Spacing="4">
+                                                <Grid ColumnDefinitions="34,62,62,62,62,62">
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding RoundTitle}"
                                                                FontWeight="Bold"
+                                                               Margin="2,0,2,0"
+                                                               VerticalAlignment="Center"
                                                                Foreground="{DynamicResource SukiText}" />
-                                                    <ItemsControl ItemsSource="{Binding Extra}"
-                                                                  ItemTemplate="{StaticResource RecordedPillTemplate}"
-                                                                  IsVisible="{Binding HasExtra}">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <WrapPanel />
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                    </ItemsControl>
-                                                </StackPanel>
 
                                                 <Border Grid.Column="1"
                                                         BorderBrush="{DynamicResource SukiControlBorderBrush}"
@@ -227,7 +218,28 @@
                                                         </ItemsControl.ItemsPanel>
                                                     </ItemsControl>
                                                 </Border>
-                                            </Grid>
+                                                </Grid>
+
+                                                <!-- Extra 独立行 -->
+                                                <StackPanel Orientation="Horizontal"
+                                                            Spacing="6"
+                                                            Margin="2,2,0,0"
+                                                            IsVisible="{Binding HasExtra}">
+                                                    <TextBlock Text="额外动作:"
+                                                               FontSize="11"
+                                                               FontWeight="SemiBold"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource SukiLowText}" />
+                                                    <ItemsControl ItemsSource="{Binding Extra}"
+                                                                  ItemTemplate="{StaticResource RecordedPillTemplate}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </StackPanel>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

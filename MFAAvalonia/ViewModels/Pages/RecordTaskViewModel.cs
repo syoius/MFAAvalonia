@@ -61,14 +61,10 @@ public partial class RecordTaskViewModel : ObservableObject
 
     private static readonly IReadOnlyList<string> SortedActionNames =
     [
-        "1A", "2A", "3A",
-        "4A", "5A", "1↑",
-        "2↑", "3↑", "4↑",
-        "5↑", "1↓", "2↓",
-        "3↓", "4↓", "5↓",
-        "额外:左侧目标", "额外:右侧目标",
-        "额外:吕布",
-        "额外:史子眇sp"
+        "1↑","2↑", "3↑", "4↑","5↑",
+        "1A", "2A", "3A","4A", "5A",
+        "1↓", "2↓","3↓", "4↓", "5↓",
+        "额外:左侧目标", "额外:右侧目标","额外:吕布","额外:史子眇sp"
     ];
 
     private const string SimingExportApiUrl = "https://share.maayuan.top/simingapi/api/export";
@@ -80,15 +76,15 @@ public partial class RecordTaskViewModel : ObservableObject
     public ObservableCollection<RecordedStepItem> RecordedSteps { get; } = new();
     public ObservableCollection<RecordedRoundGroupItem> RecordedStepGroups { get; } = new();
     public ObservableCollection<RecordedRoundTableRowItem> RecordedRoundTableRows { get; } = new();
-	    public ObservableCollection<ActionButtonItem> AvailableActions { get; } = new();
-	
-	    [ObservableProperty] private RecordingFileItem? _selectedRecording;
-	    [ObservableProperty]
-	    [NotifyCanExecuteChangedFor(nameof(DeleteRecordedStepCommand))]
-	    private bool _isRecording;
-	    [ObservableProperty] private bool _canSave;
-	    [ObservableProperty] private string _recordingName = string.Empty;
-	    [ObservableProperty] private string _status = string.Empty;
+    public ObservableCollection<ActionButtonItem> AvailableActions { get; } = new();
+
+    [ObservableProperty] private RecordingFileItem? _selectedRecording;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(DeleteRecordedStepCommand))]
+    private bool _isRecording;
+    [ObservableProperty] private bool _canSave;
+    [ObservableProperty] private string _recordingName = string.Empty;
+    [ObservableProperty] private string _status = string.Empty;
 
     public bool IsNotRecording => !IsRecording;
 
@@ -172,7 +168,7 @@ public partial class RecordTaskViewModel : ObservableObject
         {
             "额外:左侧目标" => "左",
             "额外:右侧目标" => "右",
-            "额外:吕布" =>"吕布",
+            "额外:吕布" => "吕布",
             "额外:史子眇sp" => "史SP",
             _ => token
         };
@@ -427,65 +423,65 @@ public partial class RecordTaskViewModel : ObservableObject
         await TrySaveRecordingAsync(stopAfterSave: true);
     }
 
-	    private async Task TrySaveRecordingAsync(bool stopAfterSave)
-	    {
-	        if (GetTotalRecordedStepCount() == 0)
-	        {
+    private async Task TrySaveRecordingAsync(bool stopAfterSave)
+    {
+        if (GetTotalRecordedStepCount() == 0)
+        {
             ToastHelper.Warn("没有任何录制步骤");
             return;
         }
 
-	        try
-	        {
-	            EnsureDirs();
+        try
+        {
+            EnsureDirs();
 
-	            var baseName = string.IsNullOrWhiteSpace(RecordingName)
-	                ? $"录制作业-{DateTime.Now:yyyyMMdd-HHmmss}"
-	                : RecordingName;
+            var baseName = string.IsNullOrWhiteSpace(RecordingName)
+                ? $"录制作业-{DateTime.Now:yyyyMMdd-HHmmss}"
+                : RecordingName;
 
-	            var fileName = SanitizeFileName(baseName);
-	            if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-	                fileName += ".json";
+            var fileName = SanitizeFileName(baseName);
+            if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                fileName += ".json";
 
-	            var path = Path.Combine(RecordingsDir, fileName);
+            var path = Path.Combine(RecordingsDir, fileName);
 
-	            var roundsPayload = BuildRoundsPayload();
-	            var exportRequest = BuildSimingExportRequest(baseName, roundsPayload);
-	            var requestJson = exportRequest.ToString(Formatting.Indented);
+            var roundsPayload = BuildRoundsPayload();
+            var exportRequest = BuildSimingExportRequest(baseName, roundsPayload);
+            var requestJson = exportRequest.ToString(Formatting.Indented);
 
-	            // 1) 先保存“可直接 curl 调用 export 的请求体”到 recordings，便于复用/二次编辑
-	            await File.WriteAllTextAsync(path, requestJson, new UTF8Encoding(false));
-	            ToastHelper.Success($"已保存：{fileName}");
-	            await RefreshAsync();
+            // 1) 先保存“可直接 curl 调用 export 的请求体”到 recordings，便于复用/二次编辑
+            await File.WriteAllTextAsync(path, requestJson, new UTF8Encoding(false));
+            ToastHelper.Success($"已保存：{fileName}");
+            await RefreshAsync();
 
-	            var saved = RecordingFiles.FirstOrDefault(f => string.Equals(f.FullPath, path, StringComparison.OrdinalIgnoreCase))
-	                        ?? RecordingFiles.FirstOrDefault(f => string.Equals(f.Name, fileName, StringComparison.OrdinalIgnoreCase));
-	            if (saved != null)
-	                SelectedRecording = saved;
+            var saved = RecordingFiles.FirstOrDefault(f => string.Equals(f.FullPath, path, StringComparison.OrdinalIgnoreCase))
+                        ?? RecordingFiles.FirstOrDefault(f => string.Equals(f.Name, fileName, StringComparison.OrdinalIgnoreCase));
+            if (saved != null)
+                SelectedRecording = saved;
 
-	            // 2) 将保存的 JSON 调用 export API，拿到 actions 结果并补齐为 copilot-cache 作业文件
-	            try
-	            {
-	                var result = await CallSimingExportAsync(exportRequest.ToString(Formatting.None));
-	                var jobJson = BuildCopilotCacheJobJson(baseName, result.Actions);
+            // 2) 将保存的 JSON 调用 export API，拿到 actions 结果并补齐为 copilot-cache 作业文件
+            try
+            {
+                var result = await CallSimingExportAsync(exportRequest.ToString(Formatting.None));
+                var jobJson = BuildCopilotCacheJobJson(baseName, result.Actions);
 
-	                var jobFileName = SanitizeJobFileName(result.FileName, baseName);
-	                var jobPath = UniquePath(Path.Combine(CopilotCacheDir, jobFileName));
+                var jobFileName = SanitizeJobFileName(result.FileName, baseName);
+                var jobPath = UniquePath(Path.Combine(CopilotCacheDir, jobFileName));
 
-	                await File.WriteAllTextAsync(jobPath, jobJson.ToString(Formatting.Indented), new UTF8Encoding(false));
-	                ToastHelper.Success($"已生成作业：{Path.GetFileName(jobPath)}");
-	            }
-	            catch (Exception ex)
-	            {
-	                LoggerHelper.Error(ex);
-	                ToastHelper.Error("调用 export API 失败，已保留录制作业 JSON");
-	            }
+                await File.WriteAllTextAsync(jobPath, jobJson.ToString(Formatting.Indented), new UTF8Encoding(false));
+                ToastHelper.Success($"已生成作业：{Path.GetFileName(jobPath)}");
+            }
+            catch (Exception ex)
+            {
+                LoggerHelper.Error(ex);
+                ToastHelper.Error("调用 export API 失败，已保留录制作业 JSON");
+            }
 
-	            if (stopAfterSave)
-	                await StopRecordingAsync();
-	        }
-	        catch (Exception ex)
-	        {
+            if (stopAfterSave)
+                await StopRecordingAsync();
+        }
+        catch (Exception ex)
+        {
             LoggerHelper.Error(ex);
             ToastHelper.Error("保存失败");
         }
@@ -537,14 +533,14 @@ public partial class RecordTaskViewModel : ObservableObject
     {
         RecordedSteps.Clear();
 
-	        if (_roundSteps.TryGetValue(CurrentRound, out var steps) && steps.Count > 0)
-	        {
-	            for (var i = 0; i < steps.Count; i++)
-	            {
-	                var step = steps[i];
-	                RecordedSteps.Add(new RecordedStepItem(CurrentRound, i + 1, step.ActionName, step.TriggeredAt));
-	            }
-	        }
+        if (_roundSteps.TryGetValue(CurrentRound, out var steps) && steps.Count > 0)
+        {
+            for (var i = 0; i < steps.Count; i++)
+            {
+                var step = steps[i];
+                RecordedSteps.Add(new RecordedStepItem(CurrentRound, i + 1, step.ActionName, step.TriggeredAt));
+            }
+        }
 
         RefreshRecordedStepGroups();
         UpdateCanSave();
@@ -559,21 +555,21 @@ public partial class RecordTaskViewModel : ObservableObject
             if (!_roundSteps.TryGetValue(round, out var steps) || steps.Count == 0)
                 continue;
 
-	            var group = new RecordedRoundGroupItem(round);
-	            for (var i = 0; i < steps.Count; i++)
-	            {
-	                var step = steps[i];
-	                group.Steps.Add(new RecordedStepItem(round, i + 1, step.ActionName, step.TriggeredAt));
-	            }
+            var group = new RecordedRoundGroupItem(round);
+            for (var i = 0; i < steps.Count; i++)
+            {
+                var step = steps[i];
+                group.Steps.Add(new RecordedStepItem(round, i + 1, step.ActionName, step.TriggeredAt));
+            }
 
-	            RecordedStepGroups.Add(group);
-	        }
+            RecordedStepGroups.Add(group);
+        }
 
-	        RefreshRecordedRoundTableRows();
-	    }
+        RefreshRecordedRoundTableRows();
+    }
 
-	    private void AppendStep(string actionName, DateTimeOffset triggeredAt)
-	    {
+    private void AppendStep(string actionName, DateTimeOffset triggeredAt)
+    {
         // 兼容旧配置/旧录制：“+回合”不再作为动作记录，而是直接切到下一回合（必要时自动新增）
         if (string.Equals(actionName, "+回合", StringComparison.Ordinal))
         {
@@ -581,146 +577,146 @@ public partial class RecordTaskViewModel : ObservableObject
             return;
         }
 
-	        EnsureRoundExists(CurrentRound);
-	        _roundSteps[CurrentRound].Add(new RecordedStepData(actionName, triggeredAt));
-		        RecordedSteps.Add(new RecordedStepItem(CurrentRound, RecordedSteps.Count + 1, actionName, triggeredAt));
-		        RefreshRecordedStepGroups();
-		        UpdateCanSave();
-		    }
+        EnsureRoundExists(CurrentRound);
+        _roundSteps[CurrentRound].Add(new RecordedStepData(actionName, triggeredAt));
+        RecordedSteps.Add(new RecordedStepItem(CurrentRound, RecordedSteps.Count + 1, actionName, triggeredAt));
+        RefreshRecordedStepGroups();
+        UpdateCanSave();
+    }
 
-	    private void RefreshRecordedRoundTableRows()
-	    {
-	        RecordedRoundTableRows.Clear();
+    private void RefreshRecordedRoundTableRows()
+    {
+        RecordedRoundTableRows.Clear();
 
-	        for (var round = 1; round <= RoundCount; round++)
-	        {
-	            _roundSteps.TryGetValue(round, out var steps);
-	            steps ??= [];
+        for (var round = 1; round <= RoundCount; round++)
+        {
+            _roundSteps.TryGetValue(round, out var steps);
+            steps ??= [];
 
-	            var slot1 = new List<RecordedRoundTablePillItem>();
-	            var slot2 = new List<RecordedRoundTablePillItem>();
-	            var slot3 = new List<RecordedRoundTablePillItem>();
-	            var slot4 = new List<RecordedRoundTablePillItem>();
-	            var slot5 = new List<RecordedRoundTablePillItem>();
-	            var extra = new List<RecordedRoundTablePillItem>();
+            var slot1 = new List<RecordedRoundTablePillItem>();
+            var slot2 = new List<RecordedRoundTablePillItem>();
+            var slot3 = new List<RecordedRoundTablePillItem>();
+            var slot4 = new List<RecordedRoundTablePillItem>();
+            var slot5 = new List<RecordedRoundTablePillItem>();
+            var extra = new List<RecordedRoundTablePillItem>();
 
-	            for (var i = 0; i < steps.Count; i++)
-	            {
-	                var index = i + 1;
-	                var actionName = steps[i].ActionName;
-	                if (TryParseSlotActionToken(actionName, out var slot, out var actionToken, out var kind))
-	                {
-	                    var pill = new RecordedRoundTablePillItem($"{index}{actionToken}", kind);
-	                    switch (slot)
-	                    {
-	                        case 1: slot1.Add(pill); break;
-	                        case 2: slot2.Add(pill); break;
-	                        case 3: slot3.Add(pill); break;
-	                        case 4: slot4.Add(pill); break;
-	                        case 5: slot5.Add(pill); break;
-	                        default: extra.Add(pill); break;
-	                    }
+            for (var i = 0; i < steps.Count; i++)
+            {
+                var index = i + 1;
+                var actionName = steps[i].ActionName;
+                if (TryParseSlotActionToken(actionName, out var slot, out var actionToken, out var kind))
+                {
+                    var pill = new RecordedRoundTablePillItem($"{index}{actionToken}", kind);
+                    switch (slot)
+                    {
+                        case 1: slot1.Add(pill); break;
+                        case 2: slot2.Add(pill); break;
+                        case 3: slot3.Add(pill); break;
+                        case 4: slot4.Add(pill); break;
+                        case 5: slot5.Add(pill); break;
+                        default: extra.Add(pill); break;
+                    }
 
-	                    continue;
-	                }
+                    continue;
+                }
 
-	                extra.Add(new RecordedRoundTablePillItem($"{index}{actionName}", RecordedActionPillKind.Extra));
-	            }
+                extra.Add(new RecordedRoundTablePillItem($"{index}{actionName}", RecordedActionPillKind.Extra));
+            }
 
-	            RecordedRoundTableRows.Add(new RecordedRoundTableRowItem(
-	                round: round,
-	                totalActions: steps.Count,
-	                slot1: slot1,
-	                slot2: slot2,
-	                slot3: slot3,
-	                slot4: slot4,
-	                slot5: slot5,
-	                extra: extra));
-	        }
-	    }
+            RecordedRoundTableRows.Add(new RecordedRoundTableRowItem(
+                round: round,
+                totalActions: steps.Count,
+                slot1: slot1,
+                slot2: slot2,
+                slot3: slot3,
+                slot4: slot4,
+                slot5: slot5,
+                extra: extra));
+        }
+    }
 
-	    private static bool TryParseSlotActionToken(
-	        string actionName,
-	        out int slot,
-	        out string actionToken,
-	        out RecordedActionPillKind kind)
-	    {
-	        slot = 0;
-	        actionToken = string.Empty;
-	        kind = RecordedActionPillKind.Other;
+    private static bool TryParseSlotActionToken(
+        string actionName,
+        out int slot,
+        out string actionToken,
+        out RecordedActionPillKind kind)
+    {
+        slot = 0;
+        actionToken = string.Empty;
+        kind = RecordedActionPillKind.Other;
 
-	        if (string.IsNullOrWhiteSpace(actionName))
-	            return false;
+        if (string.IsNullOrWhiteSpace(actionName))
+            return false;
 
-	        var ch0 = actionName[0];
-	        if (ch0 is < '1' or > '5')
-	            return false;
+        var ch0 = actionName[0];
+        if (ch0 is < '1' or > '5')
+            return false;
 
-	        slot = ch0 - '0';
+        slot = ch0 - '0';
 
-	        if (actionName.Length >= 2 && actionName[1] is 'A' or '↑' or '↓')
-	        {
-	            actionToken = actionName.Substring(1);
-	        }
-	        else if (actionName.Length >= 3 && actionName[1] == '号')
-	        {
-	            if (actionName.Contains("普攻", StringComparison.Ordinal))
-	                actionToken = "A";
-	            else if (actionName.Contains("上拉", StringComparison.Ordinal))
-	                actionToken = "↑";
-	            else if (actionName.Contains("下拉", StringComparison.Ordinal))
-	                actionToken = "↓";
-	            else
-	                actionToken = actionName;
-	        }
-	        else
-	        {
-	            actionToken = actionName.Length > 1 ? actionName.Substring(1) : actionName;
-	        }
+        if (actionName.Length >= 2 && actionName[1] is 'A' or '↑' or '↓')
+        {
+            actionToken = actionName.Substring(1);
+        }
+        else if (actionName.Length >= 3 && actionName[1] == '号')
+        {
+            if (actionName.Contains("普攻", StringComparison.Ordinal))
+                actionToken = "A";
+            else if (actionName.Contains("上拉", StringComparison.Ordinal))
+                actionToken = "↑";
+            else if (actionName.Contains("下拉", StringComparison.Ordinal))
+                actionToken = "↓";
+            else
+                actionToken = actionName;
+        }
+        else
+        {
+            actionToken = actionName.Length > 1 ? actionName.Substring(1) : actionName;
+        }
 
-	        kind = actionToken switch
-	        {
-	            "A" => RecordedActionPillKind.Attack,
-	            "↑" => RecordedActionPillKind.Up,
-	            "↓" => RecordedActionPillKind.Down,
-	            _ => RecordedActionPillKind.Other
-	        };
+        kind = actionToken switch
+        {
+            "A" => RecordedActionPillKind.Attack,
+            "↑" => RecordedActionPillKind.Up,
+            "↓" => RecordedActionPillKind.Down,
+            _ => RecordedActionPillKind.Other
+        };
 
-	        return true;
-	    }
+        return true;
+    }
 
-	    [RelayCommand(CanExecute = nameof(CanDeleteRecordedStep))]
-	    private void DeleteRecordedStep(RecordedStepItem? step)
-	    {
-	        if (step == null || step.Round < 1)
-	            return;
+    [RelayCommand(CanExecute = nameof(CanDeleteRecordedStep))]
+    private void DeleteRecordedStep(RecordedStepItem? step)
+    {
+        if (step == null || step.Round < 1)
+            return;
 
-	        if (!_roundSteps.TryGetValue(step.Round, out var steps) || steps.Count == 0)
-	            return;
+        if (!_roundSteps.TryGetValue(step.Round, out var steps) || steps.Count == 0)
+            return;
 
-	        var index0 = step.Index - 1;
-	        if (index0 < 0 || index0 >= steps.Count)
-	            return;
+        var index0 = step.Index - 1;
+        if (index0 < 0 || index0 >= steps.Count)
+            return;
 
-	        steps.RemoveAt(index0);
+        steps.RemoveAt(index0);
 
-	        if (step.Round == CurrentRound)
-	        {
-	            RefreshRecordedStepsForCurrentRound();
-	            return;
-	        }
+        if (step.Round == CurrentRound)
+        {
+            RefreshRecordedStepsForCurrentRound();
+            return;
+        }
 
-	        RefreshRecordedStepGroups();
-	        UpdateCanSave();
-	    }
+        RefreshRecordedStepGroups();
+        UpdateCanSave();
+    }
 
-	    private bool CanDeleteRecordedStep(RecordedStepItem? step) =>
-	        step is { Round: >= 1 };
-	
-	    private void ResetRounds()
-	    {
-	        _roundSteps.Clear();
-	        _roundSteps[1] = new List<RecordedStepData>();
+    private bool CanDeleteRecordedStep(RecordedStepItem? step) =>
+        step is { Round: >= 1 };
+
+    private void ResetRounds()
+    {
+        _roundSteps.Clear();
+        _roundSteps[1] = new List<RecordedStepData>();
         RoundCount = 1;
         CurrentRound = 1;
         RefreshRecordedStepsForCurrentRound();
@@ -763,9 +759,9 @@ public partial class RecordTaskViewModel : ObservableObject
         }
     }
 
-	    private void LoadRoundsPayload(Dictionary<string, List<List<string>>> payload, DateTimeOffset triggeredAt)
-	    {
-	        _roundSteps.Clear();
+    private void LoadRoundsPayload(Dictionary<string, List<List<string>>> payload, DateTimeOffset triggeredAt)
+    {
+        _roundSteps.Clear();
 
         var maxRound = 1;
         foreach (var key in payload.Keys)
@@ -785,24 +781,24 @@ public partial class RecordTaskViewModel : ObservableObject
             if (!payload.TryGetValue(round.ToString(), out var steps) || steps == null)
                 continue;
 
-	            foreach (var stepTokens in steps)
-	            {
-	                var actionName = stepTokens?.FirstOrDefault();
-	                if (string.IsNullOrWhiteSpace(actionName))
-	                    continue;
+            foreach (var stepTokens in steps)
+            {
+                var actionName = stepTokens?.FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(actionName))
+                    continue;
 
-	                _roundSteps[round].Add(new RecordedStepData(FromSavedStepToken(actionName), triggeredAt));
-	            }
-	        }
+                _roundSteps[round].Add(new RecordedStepData(FromSavedStepToken(actionName), triggeredAt));
+            }
+        }
 
         CurrentRound = 1;
         RefreshRecordedStepsForCurrentRound();
     }
 
-	    private static Dictionary<string, List<List<string>>>? TryParseRoundsPayload(string json)
-	    {
-	        if (string.IsNullOrWhiteSpace(json))
-	            return null;
+    private static Dictionary<string, List<List<string>>>? TryParseRoundsPayload(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
 
         try
         {
@@ -815,16 +811,16 @@ public partial class RecordTaskViewModel : ObservableObject
             // ignore
         }
 
-	        try
-	        {
-	            var root = JObject.Parse(json);
-	            if (root.TryGetValue("actions", StringComparison.OrdinalIgnoreCase, out var actionsToken))
-	                return actionsToken.ToObject<Dictionary<string, List<List<string>>>>();
-	            if (root.TryGetValue("rounds", StringComparison.OrdinalIgnoreCase, out var roundsToken))
-	                return roundsToken.ToObject<Dictionary<string, List<List<string>>>>();
-	        }
-	        catch
-	        {
+        try
+        {
+            var root = JObject.Parse(json);
+            if (root.TryGetValue("actions", StringComparison.OrdinalIgnoreCase, out var actionsToken))
+                return actionsToken.ToObject<Dictionary<string, List<List<string>>>>();
+            if (root.TryGetValue("rounds", StringComparison.OrdinalIgnoreCase, out var roundsToken))
+                return roundsToken.ToObject<Dictionary<string, List<List<string>>>>();
+        }
+        catch
+        {
             // ignore
         }
 
@@ -875,192 +871,192 @@ public partial class RecordTaskViewModel : ObservableObject
         return payload;
     }
 
-	    private static string ToSavedStepToken(string actionName)
-	    {
-	        if (string.IsNullOrWhiteSpace(actionName))
-	            return string.Empty;
+    private static string ToSavedStepToken(string actionName)
+    {
+        if (string.IsNullOrWhiteSpace(actionName))
+            return string.Empty;
 
         if (string.Equals(actionName, "+回合", StringComparison.Ordinal))
             return string.Empty;
 
-	        if (actionName.StartsWith("额外:", StringComparison.Ordinal))
-	            return actionName;
+        if (actionName.StartsWith("额外:", StringComparison.Ordinal))
+            return actionName;
 
-	        // 统一录制 token：内部按钮为 1A/1↑/1↓，保存时转为 1普/1大/1下（更贴近 export 示例）
-	        if (actionName.Length == 2 && actionName[0] is >= '1' and <= '5')
-	        {
-	            var pos = actionName[0];
-	            return actionName[1] switch
-	            {
-	                'A' => $"{pos}普",
-	                '↑' => $"{pos}大",
-	                '↓' => $"{pos}下",
-	                _ => actionName
-	            };
-	        }
+        // 统一录制 token：内部按钮为 1A/1↑/1↓，保存时转为 1普/1大/1下（更贴近 export 示例）
+        if (actionName.Length == 2 && actionName[0] is >= '1' and <= '5')
+        {
+            var pos = actionName[0];
+            return actionName[1] switch
+            {
+                'A' => $"{pos}普",
+                '↑' => $"{pos}大",
+                '↓' => $"{pos}下",
+                _ => actionName
+            };
+        }
 
-	        var idx = actionName.IndexOf("号位", StringComparison.Ordinal);
-	        if (idx > 0)
-	        {
-	            var posText = actionName[..idx];
-	            if (int.TryParse(posText, out var pos) && pos is >= 1 and <= 5)
-	            {
-	                if (actionName.Contains("普攻", StringComparison.Ordinal))
-	                    return $"{pos}普";
-	                if (actionName.Contains("上拉", StringComparison.Ordinal))
-	                    return $"{pos}大";
-	                if (actionName.Contains("下拉", StringComparison.Ordinal))
-	                    return $"{pos}下";
-	                if (actionName.Contains("大招", StringComparison.Ordinal) || actionName.Contains("大", StringComparison.Ordinal))
-	                    return $"{pos}大";
+        var idx = actionName.IndexOf("号位", StringComparison.Ordinal);
+        if (idx > 0)
+        {
+            var posText = actionName[..idx];
+            if (int.TryParse(posText, out var pos) && pos is >= 1 and <= 5)
+            {
+                if (actionName.Contains("普攻", StringComparison.Ordinal))
+                    return $"{pos}普";
+                if (actionName.Contains("上拉", StringComparison.Ordinal))
+                    return $"{pos}大";
+                if (actionName.Contains("下拉", StringComparison.Ordinal))
+                    return $"{pos}下";
+                if (actionName.Contains("大招", StringComparison.Ordinal) || actionName.Contains("大", StringComparison.Ordinal))
+                    return $"{pos}大";
             }
         }
 
-	        return actionName;
-	    }
+        return actionName;
+    }
 
-	    private static string FromSavedStepToken(string token)
-	    {
-	        if (string.IsNullOrWhiteSpace(token))
-	            return string.Empty;
+    private static string FromSavedStepToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return string.Empty;
 
-	        if (token.StartsWith("额外:", StringComparison.Ordinal))
-	            return token;
+        if (token.StartsWith("额外:", StringComparison.Ordinal))
+            return token;
 
-	        if (token.Length == 2 && token[0] is >= '1' and <= '5')
-	        {
-	            var pos = token[0];
-	            return token[1] switch
-	            {
-	                '普' => $"{pos}A",
-	                '大' => $"{pos}↑",
-	                '下' => $"{pos}↓",
-	                '上' => $"{pos}↑", // 兼容旧文件
-	                _ => token
-	            };
-	        }
+        if (token.Length == 2 && token[0] is >= '1' and <= '5')
+        {
+            var pos = token[0];
+            return token[1] switch
+            {
+                '普' => $"{pos}A",
+                '大' => $"{pos}↑",
+                '下' => $"{pos}↓",
+                '上' => $"{pos}↑", // 兼容旧文件
+                _ => token
+            };
+        }
 
-	        return token;
-	    }
+        return token;
+    }
 
-	    private static JObject BuildSimingExportRequest(string levelName, Dictionary<string, List<List<string>>> roundsPayload)
-	    {
-	        // 说明：除 actions 外，其余字段为 export API 所需的补齐项；默认值参考用户提供的 curl 示例
-	        return new JObject
-	        {
-	            ["level_name"] = levelName ?? string.Empty,
-	            ["level_type"] = string.Empty,
-	            ["level_recognition_name"] = string.Empty,
-	            ["difficulty"] = string.Empty,
-	            ["cave_type"] = string.Empty,
-	            ["lantai_nav"] = string.Empty,
-	            ["attack_delay"] = "3000",
-	            ["ult_delay"] = "5000",
-	            ["defense_delay"] = "3000",
-	            ["actions"] = JToken.FromObject(roundsPayload)
-	        };
-	    }
+    private static JObject BuildSimingExportRequest(string levelName, Dictionary<string, List<List<string>>> roundsPayload)
+    {
+        // 说明：除 actions 外，其余字段为 export API 所需的补齐项；默认值参考用户提供的 curl 示例
+        return new JObject
+        {
+            ["level_name"] = levelName ?? string.Empty,
+            ["level_type"] = string.Empty,
+            ["level_recognition_name"] = string.Empty,
+            ["difficulty"] = string.Empty,
+            ["cave_type"] = string.Empty,
+            ["lantai_nav"] = string.Empty,
+            ["attack_delay"] = "3000",
+            ["ult_delay"] = "5000",
+            ["defense_delay"] = "3000",
+            ["actions"] = JToken.FromObject(roundsPayload)
+        };
+    }
 
-	    private sealed record SimingExportResult(string FileName, JObject Actions);
+    private sealed record SimingExportResult(string FileName, JObject Actions);
 
-	    private static async Task<SimingExportResult> CallSimingExportAsync(string requestJson)
-	    {
-	        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
-	        using var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
-	        using var resp = await http.PostAsync(SimingExportApiUrl, content);
-	        var body = await resp.Content.ReadAsStringAsync();
-	        if (!resp.IsSuccessStatusCode)
-	        {
-	            var snippet = body.Length > 512 ? body[..512] + "..." : body;
-	            throw new HttpRequestException($"simingapi/export failed: {(int)resp.StatusCode} {resp.StatusCode}; body={snippet}");
-	        }
+    private static async Task<SimingExportResult> CallSimingExportAsync(string requestJson)
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
+        using var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+        using var resp = await http.PostAsync(SimingExportApiUrl, content);
+        var body = await resp.Content.ReadAsStringAsync();
+        if (!resp.IsSuccessStatusCode)
+        {
+            var snippet = body.Length > 512 ? body[..512] + "..." : body;
+            throw new HttpRequestException($"simingapi/export failed: {(int)resp.StatusCode} {resp.StatusCode}; body={snippet}");
+        }
 
-	        var root = JObject.Parse(body);
-	        var contentStr = root.Value<string>("content");
-	        if (string.IsNullOrWhiteSpace(contentStr))
-	            throw new InvalidOperationException("simingapi/export 返回缺少 content");
+        var root = JObject.Parse(body);
+        var contentStr = root.Value<string>("content");
+        if (string.IsNullOrWhiteSpace(contentStr))
+            throw new InvalidOperationException("simingapi/export 返回缺少 content");
 
-	        var actionsToken = JToken.Parse(contentStr);
-	        if (actionsToken is not JObject actionsObj)
-	            throw new InvalidOperationException("simingapi/export content 不是 JSON 对象");
+        var actionsToken = JToken.Parse(contentStr);
+        if (actionsToken is not JObject actionsObj)
+            throw new InvalidOperationException("simingapi/export content 不是 JSON 对象");
 
-	        var filename = root.Value<string>("filename") ?? string.Empty;
-	        return new SimingExportResult(filename, actionsObj);
-	    }
+        var filename = root.Value<string>("filename") ?? string.Empty;
+        return new SimingExportResult(filename, actionsObj);
+    }
 
-	    private static JObject BuildCopilotCacheJobJson(string title, JObject actions)
-	    {
-	        var safeTitle = string.IsNullOrWhiteSpace(title) ? "录制作业" : title.Trim();
-	        var stageName = Path.GetFileNameWithoutExtension(SanitizeFileName(safeTitle));
+    private static JObject BuildCopilotCacheJobJson(string title, JObject actions)
+    {
+        var safeTitle = string.IsNullOrWhiteSpace(title) ? "录制作业" : title.Trim();
+        var stageName = Path.GetFileNameWithoutExtension(SanitizeFileName(safeTitle));
 
-	        return new JObject
-	        {
-	            ["version"] = 3,
-	            ["stage_name"] = stageName,
-	            ["difficulty"] = 0,
-	            ["level_meta"] = new JObject
-	            {
-	                ["stage_id"] = stageName,
-	                ["level_id"] = $"record/{stageName}",
-	                ["name"] = safeTitle,
-	                ["cat_one"] = "录制",
-	                ["cat_two"] = safeTitle,
-	                ["cat_three"] = "无",
-	                ["width"] = 0,
-	                ["height"] = 0
-	            },
-	            ["doc"] = new JObject
-	            {
-	                ["title"] = safeTitle,
-	                ["details"] = safeTitle
-	            },
-	            ["opers"] = new JArray(),
-	            ["actions"] = actions
-	        };
-	    }
+        return new JObject
+        {
+            ["version"] = 3,
+            ["stage_name"] = stageName,
+            ["difficulty"] = 0,
+            ["level_meta"] = new JObject
+            {
+                ["stage_id"] = stageName,
+                ["level_id"] = $"record/{stageName}",
+                ["name"] = safeTitle,
+                ["cat_one"] = "录制",
+                ["cat_two"] = safeTitle,
+                ["cat_three"] = "无",
+                ["width"] = 0,
+                ["height"] = 0
+            },
+            ["doc"] = new JObject
+            {
+                ["title"] = safeTitle,
+                ["details"] = safeTitle
+            },
+            ["opers"] = new JArray(),
+            ["actions"] = actions
+        };
+    }
 
-	    private static string SanitizeJobFileName(string apiFileName, string fallbackBaseName)
-	    {
-	        var name = apiFileName;
-	        if (string.IsNullOrWhiteSpace(name) || string.Equals(name.Trim(), ".json", StringComparison.OrdinalIgnoreCase))
-	        {
-	            name = fallbackBaseName;
-	        }
+    private static string SanitizeJobFileName(string apiFileName, string fallbackBaseName)
+    {
+        var name = apiFileName;
+        if (string.IsNullOrWhiteSpace(name) || string.Equals(name.Trim(), ".json", StringComparison.OrdinalIgnoreCase))
+        {
+            name = fallbackBaseName;
+        }
 
-	        name = SanitizeFileName(name);
-	        if (!name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-	            name += ".json";
+        name = SanitizeFileName(name);
+        if (!name.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            name += ".json";
 
-	        return name;
-	    }
+        return name;
+    }
 
-	    private static string UniquePath(string path)
-	    {
-	        if (!File.Exists(path))
-	            return path;
+    private static string UniquePath(string path)
+    {
+        if (!File.Exists(path))
+            return path;
 
-	        var dir = Path.GetDirectoryName(path);
-	        if (string.IsNullOrWhiteSpace(dir))
-	            dir = ".";
+        var dir = Path.GetDirectoryName(path);
+        if (string.IsNullOrWhiteSpace(dir))
+            dir = ".";
 
-	        var name = Path.GetFileNameWithoutExtension(path);
-	        var ext = Path.GetExtension(path);
+        var name = Path.GetFileNameWithoutExtension(path);
+        var ext = Path.GetExtension(path);
 
-	        for (var i = 1; i <= 999; i++)
-	        {
-	            var candidate = Path.Combine(dir, $"{name} ({i}){ext}");
-	            if (!File.Exists(candidate))
-	                return candidate;
-	        }
+        for (var i = 1; i <= 999; i++)
+        {
+            var candidate = Path.Combine(dir, $"{name} ({i}){ext}");
+            if (!File.Exists(candidate))
+                return candidate;
+        }
 
-	        return Path.Combine(dir, $"{name}-{DateTime.Now:yyyyMMdd-HHmmssfff}{ext}");
-	    }
+        return Path.Combine(dir, $"{name}-{DateTime.Now:yyyyMMdd-HHmmssfff}{ext}");
+    }
 
-	    private static string SanitizeFileName(string name)
-	    {
-	        var invalids = Path.GetInvalidFileNameChars();
-	        var sb = new StringBuilder(name.Length);
-	        foreach (var ch in name)
+    private static string SanitizeFileName(string name)
+    {
+        var invalids = Path.GetInvalidFileNameChars();
+        var sb = new StringBuilder(name.Length);
+        foreach (var ch in name)
             sb.Append(invalids.Contains(ch) ? '_' : ch);
 
         var result = sb.ToString().Trim().Trim('.');
@@ -1098,27 +1094,27 @@ public sealed class RecordingFileItem
     public string UpdatedAtLocal => LastWriteTimeUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 }
 
-		public sealed class RecordedStepItem
-		{
-		    public RecordedStepItem(int round, int index, string actionName, DateTimeOffset triggeredAt)
-		    {
-	        Round = round;
-	        Index = index;
-	        ActionName = actionName;
-	        TriggeredAt = triggeredAt;
-	    }
+public sealed class RecordedStepItem
+{
+    public RecordedStepItem(int round, int index, string actionName, DateTimeOffset triggeredAt)
+    {
+        Round = round;
+        Index = index;
+        ActionName = actionName;
+        TriggeredAt = triggeredAt;
+    }
 
-	    public RecordedStepItem(int index, string actionName, DateTimeOffset triggeredAt)
-	        : this(round: 0, index: index, actionName: actionName, triggeredAt: triggeredAt)
-	    {
-	    }
+    public RecordedStepItem(int index, string actionName, DateTimeOffset triggeredAt)
+        : this(round: 0, index: index, actionName: actionName, triggeredAt: triggeredAt)
+    {
+    }
 
-	    public int Round { get; }
-	    public int Index { get; }
-	    public string ActionName { get; }
-		    public DateTimeOffset TriggeredAt { get; }
-		    public string TimeLocal => TriggeredAt.ToLocalTime().ToString("HH:mm:ss.fff");
-		}
+    public int Round { get; }
+    public int Index { get; }
+    public string ActionName { get; }
+    public DateTimeOffset TriggeredAt { get; }
+    public string TimeLocal => TriggeredAt.ToLocalTime().ToString("HH:mm:ss.fff");
+}
 
 public enum RecordedActionPillKind
 {
@@ -1205,10 +1201,10 @@ public sealed class RecordedRoundTablePillItem
     public IBrush Foreground => BorderBrush;
 }
 
-	public sealed class ActionButtonItem
-	{
-	    public ActionButtonItem(string displayName, string token, ICommand command)
-	    {
+public sealed class ActionButtonItem
+{
+    public ActionButtonItem(string displayName, string token, ICommand command)
+    {
         DisplayName = displayName;
         Token = token;
         Command = command;
