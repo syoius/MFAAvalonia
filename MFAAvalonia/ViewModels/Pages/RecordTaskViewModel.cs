@@ -389,29 +389,6 @@ public partial class RecordTaskViewModel : ObservableObject
                         var args = template.GetSwipeArgs();
                         tasker.Swipe(args.StartX, args.StartY, args.EndX, args.EndY, args.DurationMs);
                         break;
-                    case FightActionKind.TemplateMatch:
-                        // 先识别模板位置，再点击匹配位置
-                        var matchNode = new MaaNode
-                        {
-                            Name = $"TemplateMatch_{Guid.NewGuid():N}",
-                            Recognition = "TemplateMatch",
-                            Template = template.Templates?.ToList(),
-                            Roi = template.TemplateRoi?.ToList(),
-                            Threshold = template.Threshold
-                        };
-                        var matchJob = tasker.AppendTask(matchNode);
-                        if (matchJob.WaitFor(MaaJobStatus.Succeeded) != null)
-                        {
-                            var detail = matchJob.QueryRecognitionDetail();
-                            if (detail?.Hit == true && detail.HitBox is { Width: > 0, Height: > 0 })
-                            {
-                                // 点击匹配区域中心
-                                var clickX = detail.HitBox.X + detail.HitBox.Width / 2;
-                                var clickY = detail.HitBox.Y + detail.HitBox.Height / 2;
-                                tasker.Click(clickX, clickY);
-                            }
-                        }
-                        break;
                     case FightActionKind.PipelineTask:
                         // 直接调用已注册的 pipeline task
                         if (!string.IsNullOrWhiteSpace(template.TaskName))
@@ -1248,7 +1225,6 @@ internal enum FightActionKind
     Click,
     Swipe,
     RecordOnly,
-    TemplateMatch,
     PipelineTask
 }
 
@@ -1262,9 +1238,6 @@ internal sealed class FightActionTemplate
         int[]? begin,
         int[]? end,
         int durationMs,
-        string[]? templates = null,
-        int[]? templateRoi = null,
-        double threshold = 0.8,
         string? taskName = null)
     {
         Kind = kind;
@@ -1272,9 +1245,6 @@ internal sealed class FightActionTemplate
         Begin = begin;
         End = end;
         DurationMs = durationMs;
-        Templates = templates;
-        TemplateRoi = templateRoi;
-        Threshold = threshold;
         TaskName = taskName;
     }
 
@@ -1283,9 +1253,6 @@ internal sealed class FightActionTemplate
     public int[]? Begin { get; }
     public int[]? End { get; }
     public int DurationMs { get; }
-    public string[]? Templates { get; }
-    public int[]? TemplateRoi { get; }
-    public double Threshold { get; }
     public string? TaskName { get; }
 
     public static FightActionTemplate Click(int[] target) =>
@@ -1296,10 +1263,6 @@ internal sealed class FightActionTemplate
 
     public static FightActionTemplate RecordOnly() =>
         new(FightActionKind.RecordOnly, target: null, begin: null, end: null, durationMs: 0);
-
-    public static FightActionTemplate TemplateMatch(string[] templates, int[] roi, double threshold = 0.8) =>
-        new(FightActionKind.TemplateMatch, target: null, begin: null, end: null, durationMs: 0,
-            templates: templates, templateRoi: roi, threshold: threshold);
 
     public static FightActionTemplate PipelineTask(string taskName) =>
         new(FightActionKind.PipelineTask, target: null, begin: null, end: null, durationMs: 0,
