@@ -620,7 +620,11 @@ public partial class RecordTaskViewModel : ObservableObject
                     continue;
                 }
 
-                extra.Add(new RecordedRoundTablePillItem($"{index}{actionName}", RecordedActionPillKind.Extra));
+                // 去掉 "额外:" 前缀，简化显示
+                var displayName = actionName.StartsWith("额外:", StringComparison.Ordinal)
+                    ? actionName[3..]
+                    : actionName;
+                extra.Add(new RecordedRoundTablePillItem($"{index}{displayName}", RecordedActionPillKind.Extra));
             }
 
             RecordedRoundTableRows.Add(new RecordedRoundTableRowItem(
