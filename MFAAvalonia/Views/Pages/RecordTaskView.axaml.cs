@@ -235,6 +235,15 @@ public partial class RecordTaskView : UserControl
         });
     }
 
+    // 删除选中的录制文件
+    private void OnDeleteSelectedRecording(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is RecordTaskViewModel vm)
+        {
+            vm.DeleteSelectedRecordingCommand.Execute(null);
+        }
+    }
+
     private void InitializeComponent()
     {
         AvaloniaXamlLoader.Load(this);

@@ -249,6 +249,43 @@ public partial class RecordTaskViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private async Task DeleteSelectedRecordingAsync()
+    {
+        if (SelectedRecording == null)
+            return;
+
+        try
+        {
+            var path = SelectedRecording.FullPath;
+            var name = SelectedRecording.Name;
+
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+                ToastHelper.Success($"已删除：{name}");
+            }
+
+            // 清空当前加载状态
+            if (string.Equals(CurrentLoadedFilePath, path, StringComparison.OrdinalIgnoreCase))
+            {
+                CurrentLoadedFilePath = null;
+                _originalRecordingName = null;
+                IsDirty = false;
+                ResetRounds();
+                RecordingName = $"录制作业-{DateTime.Now:yyyyMMdd-HHmmss}";
+            }
+
+            SelectedRecording = null;
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("删除失败");
+        }
+    }
+
+    [RelayCommand]
     private async Task OpenRecordingsDirAsync()
     {
         try
