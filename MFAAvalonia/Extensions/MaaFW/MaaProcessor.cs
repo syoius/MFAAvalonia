@@ -1952,6 +1952,9 @@ public class MaaProcessor
         {
             var optionName = selectOption.Name ?? string.Empty;
 
+            // 调试日志：记录选项处理情况
+            LoggerHelper.Info($"[ProcessOptions] Option: {optionName}, Index: {selectOption.Index?.ToString() ?? "null"}");
+
             // 避免重复处理同一个 option
             if (processedOptions.Contains(optionName))
                 continue;

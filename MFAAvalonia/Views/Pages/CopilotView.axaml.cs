@@ -685,6 +685,14 @@ public partial class CopilotView : UserControl
 
     private Grid CopilotCreateToggleControl(MaaInterface.MaaInterfaceSelectOption option, int yesValue, int noValue, MaaInterface.MaaInterfaceOption interfaceOption, DragItemViewModel source)
     {
+        // 如果 option.Index 为 null，根据当前状态初始化
+        // 开关默认显示为关闭状态（当 Index 为 null 时），所以应该设置为 noValue
+        if (option.Index == null)
+        {
+            option.Index = noValue;
+            CopilotSaveConfiguration();
+        }
+        
         var button = new ToggleSwitch
         {
             IsChecked = option.Index == yesValue,
@@ -727,6 +735,13 @@ public partial class CopilotView : UserControl
 
     private Grid CopilotCreateComboBoxControl(MaaInterface.MaaInterfaceSelectOption option, MaaInterface.MaaInterfaceOption interfaceOption, DragItemViewModel source)
     {
+        // 如果 option.Index 为 null，初始化为默认值 0
+        if (option.Index == null)
+        {
+            option.Index = 0;
+            CopilotSaveConfiguration();
+        }
+        
         var grid = new Grid
         {
             ColumnDefinitions = { new ColumnDefinition { Width = new GridLength(7, GridUnitType.Star) }, new ColumnDefinition { Width = new GridLength(4, GridUnitType.Star), MinWidth = 180 } },

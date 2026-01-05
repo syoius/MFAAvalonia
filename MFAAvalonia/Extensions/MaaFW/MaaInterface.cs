@@ -480,7 +480,12 @@ public partial class MaaInterface
         public string? Name { get; set; }
 
         /// <summary>用于 select/switch 类型的选项索引</summary>
-        [JsonProperty("index")]
+        /// <remarks>
+        /// 使用 DefaultValueHandling.Include 确保即使 Index 为 0 也能被正确序列化。
+        /// 这对于 Clone() 方法中的深拷贝至关重要，因为 MaaInterfaceTask.ToString() 
+        /// 使用了 DefaultValueHandling.Ignore，如果不特别声明，Index=0 会被忽略。
+        /// </remarks>
+        [JsonProperty("index", DefaultValueHandling = DefaultValueHandling.Include)]
         public int? Index { get; set; }
 
         /// <summary>用于 input 类型的字段数据（key: 字段名, value: 用户输入值）</summary>
