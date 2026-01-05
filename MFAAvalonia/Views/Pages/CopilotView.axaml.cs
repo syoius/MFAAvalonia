@@ -334,9 +334,6 @@ public partial class CopilotView : UserControl
 
         try
         {
-            // 确保任务源已初始化
-            try { MaaProcessor.Instance.InitializeData(); } catch { }
-
             var items = Instances.TaskQueueViewModel.TaskItemViewModels;
             if (items == null || items.Count == 0) return;
 
