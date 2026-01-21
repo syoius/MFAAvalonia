@@ -984,7 +984,8 @@
                                      ExpandedRowSpan="2">
                 <dashboard:DashboardCard.TitleContent>
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <TextBlock FontSize="11"
+                        <TextBlock FontSize="12"
+                                   FontWeight="SemiBold"
                                    Foreground="{DynamicResource SukiLowText}"
                                    Text="MaaYuan自动化任务" VerticalAlignment="Center" />
                     </StackPanel>
