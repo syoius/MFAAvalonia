@@ -920,7 +920,6 @@ public partial class MaaInterface
     /// </summary>
     [JsonProperty("languages")]
     public Dictionary<string, string>? Languages { get; set; }
-
     [JsonProperty("mirrorchyan_rid")]
     public string? RID { get; set; }
 

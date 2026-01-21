@@ -16,6 +16,8 @@ public partial class RootViewModel : ViewModelBase
     protected override void Initialize()
     {
         CheckDebug();
+        ConfigurationManager.ConfigurationSwitched -= OnConfigurationSwitched;
+        ConfigurationManager.ConfigurationSwitched += OnConfigurationSwitched;
     }
 
     [ObservableProperty] private bool _idle = true;
@@ -57,13 +59,15 @@ public partial class RootViewModel : ViewModelBase
 
     [ObservableProperty] private bool _lockController;
 
-    [ObservableProperty] private bool _isDebugMode = ConfigurationManager.Maa.GetValue(ConfigurationKeys.Recording, false)
+    [ObservableProperty]
+    private bool _isDebugMode = ConfigurationManager.Maa.GetValue(ConfigurationKeys.Recording, false)
         || ConfigurationManager.Maa.GetValue(ConfigurationKeys.SaveDraw, false)
         || ConfigurationManager.Maa.GetValue(ConfigurationKeys.ShowHitDraw, false);
     private bool _shouldTip = true;
     [ObservableProperty] private bool _isUpdating;
     [ObservableProperty] private bool _isConfigSwitching;
     [ObservableProperty] private double _configSwitchProgress;
+    [ObservableProperty] private string? _currentConfiguration = ConfigurationManager.GetCurrentConfiguration();
 
     partial void OnIsConfigSwitchingChanging(bool value)
     {
@@ -82,6 +86,20 @@ public partial class RootViewModel : ViewModelBase
     public void SetConfigSwitchProgress(double progress)
     {
         ConfigSwitchProgress = Math.Clamp(progress, 0, 100);
+    }
+
+    partial void OnCurrentConfigurationChanged(string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value)
+            && !value.Equals(ConfigurationManager.GetCurrentConfiguration(), StringComparison.OrdinalIgnoreCase))
+        {
+            ConfigurationManager.SwitchConfiguration(value);
+        }
+    }
+
+    private void OnConfigurationSwitched(string name)
+    {
+        CurrentConfiguration = name;
     }
     
     [RelayCommand]

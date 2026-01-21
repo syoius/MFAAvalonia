@@ -2621,16 +2621,10 @@ public partial class TaskQueueView : UserControl
     {
         var deviceVisible = DeviceSelectorPanel?.IsVisible == true || DeviceSelectorPanelCompact?.IsVisible == true;
 
-        if (TopToolbarWide?.ColumnDefinitions.Count >= 6)
+        if (TopToolbarWide?.ColumnDefinitions.Count >= 7)
         {
-            TopToolbarWide.ColumnDefinitions[3].Width = deviceVisible ? GridLength.Auto : new GridLength(0);
             TopToolbarWide.ColumnDefinitions[5].Width = deviceVisible ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
             TopToolbarWide.ColumnDefinitions[4].Width = deviceVisible ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
-        }
-
-        if (Spliter2 != null)
-        {
-            Spliter2.IsVisible = deviceVisible;
         }
 
         if (TopToolbarCompactRow2?.ColumnDefinitions.Count >= 3)

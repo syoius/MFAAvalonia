@@ -1,0 +1,525 @@
+<UserControl
+    x:Class="MFAAvalonia.Views.Pages.RecordTaskView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    xmlns:helper="clr-namespace:MFAAvalonia.Helper"
+    xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    xmlns:markup="https://codewf.com"
+    xmlns:suki="https://github.com/kikipoulet/SukiUI"
+    xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
+    xmlns:maa="clr-namespace:MFAAvalonia.Extensions.MaaFW"
+    xmlns:converters="clr-namespace:MFAAvalonia.Helper.Converters"
+    xmlns:calcBinding="clr-namespace:CalcBinding;assembly=CalcBindingAva"
+    xmlns:binding="clr-namespace:MaaFramework.Binding;assembly=MaaFramework.Binding"
+    xmlns:ex="clr-namespace:MFAAvalonia.Extensions"
+    xmlns:controls="clr-namespace:MFAAvalonia.Views.UserControls"
+    d:DesignWidth="1200"
+    d:DesignHeight="800"
+    x:DataType="vm:RecordTaskViewModel"
+    mc:Ignorable="d">
+
+    <!-- 三列布局，复刻 CopilotView 格局 -->
+    <Grid ClipToBounds="False" Margin="0,0,0,0" x:Name="MainGrid">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MinWidth="200" />
+            <ColumnDefinition Width="15" />
+            <ColumnDefinition Width="*" MinWidth="200" />
+            <ColumnDefinition Width="15" />
+            <ColumnDefinition Width="*" MinWidth="200" />
+        </Grid.ColumnDefinitions>
+
+        <!-- 左侧列：录制控制 + 录制列表 -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 录制控制（上半部分） -->
+            <suki:GlassCard Grid.Row="0" Margin="15,15,0,0">
+                <suki:GroupBox>
+                    <suki:GroupBox.Header>
+                        <TextBlock FontSize="11" FontWeight="Bold" Foreground="{DynamicResource SukiLowText}"
+                                   Margin="2,0,0,0" Text="录制" />
+                    </suki:GroupBox.Header>
+                    <StackPanel Spacing="8" Margin="8,4,8,8">
+                        <!-- 作业名输入区域：使用 Grid 实现自适应宽度 -->
+                        <Grid ColumnDefinitions="Auto,*">
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="作业名" Margin="0,0,8,0" />
+                            <TextBox Grid.Column="1" Text="{Binding RecordingName}" Watermark="录制作业-..." MinWidth="100" />
+                        </Grid>
+                        <!-- 按钮区域：使用 WrapPanel 实现自动换行 -->
+                        <WrapPanel Orientation="Horizontal">
+                            <Button Command="{Binding StartRecordingCommand}" Margin="0,0,8,4">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="Play" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text="开始录制" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding SaveToCopilotCacheCommand}"
+                                    IsEnabled="{Binding CanSave}"
+                                    ToolTip.Tip="将录制保存为可用作业"
+                                    Margin="0,0,0,4">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <fluent:FluentIcon Icon="DocumentArrowUp" IconSize="Size16" IconVariant="Regular" />
+                                    <TextBlock Text="保存到作业列表" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                        <TextBlock Text="{Binding Status}" Opacity="0.7" />
+                    </StackPanel>
+                </suki:GroupBox>
+            </suki:GlassCard>
+
+            <!-- 录制列表（下半部分） -->
+            <suki:GlassCard Grid.Row="1" Margin="15,5,0,25">
+                <suki:GroupBox>
+                    <suki:GroupBox.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource SukiLowText}"
+                                       Margin="2,0,0,0"
+                                       Text="录制列表（已录制作业）不可上传作业站"
+                                       VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Classes="Basic Round"
+                                        Command="{Binding RefreshCommand}"
+                                        Height="17"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="刷新"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18" Icon="ArrowSync" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                                <Button Classes="Basic Round"
+                                        Command="{Binding OpenRecordingsDirCommand}"
+                                        Height="17"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="打开文件夹"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18" Icon="FolderOpen" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </suki:GroupBox.Header>
+
+                    <ListBox ItemsSource="{Binding RecordingFiles}"
+                             SelectedItem="{Binding SelectedRecording}"
+                             IsEnabled="{Binding IsNotRecording}">
+                        <ListBox.Styles>
+                            <Style Selector="ListBoxItem">
+                                <Setter Property="ContextMenu">
+                                    <ContextMenu>
+                                        <MenuItem Header="删除" Click="OnDeleteSelectedRecording" />
+                                    </ContextMenu>
+                                </Setter>
+                            </Style>
+                        </ListBox.Styles>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RecordingFileItem">
+                                <StackPanel Margin="4,6">
+                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock Text="{Binding UpdatedAtLocal}" FontSize="12" Opacity="0.7" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </suki:GroupBox>
+            </suki:GlassCard>
+        </Grid>
+
+        <!-- 分隔条1 -->
+        <GridSplitter Grid.Column="1"
+                      Background="Transparent"
+                      Margin="0"
+                      Width="15"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch" DragCompleted="GridSplitter_DragCompleted"
+                      x:Name="Splitter1">
+            <GridSplitter.Template>
+                <ControlTemplate>
+                    <Border Background="Transparent"
+                            VerticalAlignment="Stretch"
+                            HorizontalAlignment="Stretch"
+                            Cursor="SizeWestEast">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Spacing="3">
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </GridSplitter.Template>
+        </GridSplitter>
+
+        <!-- 中间列：当前录制 -->
+        <Grid Grid.Column="2">
+            <suki:GlassCard Margin="0,15,0,25">
+                <suki:GroupBox>
+                    <suki:GroupBox.Header>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock FontSize="11"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource SukiLowText}"
+                                           Margin="2,0,0,0"
+                                           Text="当前录制" />
+                                <TextBlock FontSize="10"
+                                           Foreground="{DynamicResource SukiErrorColor}"
+                                           Margin="4,0,0,0"
+                                           Text="（已修改）"
+                                           IsVisible="{Binding IsDirty}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        HorizontalAlignment="Right">
+                                <Button Classes="Basic Round"
+                                        Command="{Binding DeleteSelectedRecordingCommand}"
+                                        IsVisible="{Binding SelectedRecording, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                        Height="17"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="删除当前录制文件"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18" Icon="Delete" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                                <Button Classes="Basic Round"
+                                        Command="{Binding SaveModificationsCommand}"
+                                        IsVisible="{Binding IsDirty}"
+                                        Height="17"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="保存修改"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18" Icon="Save" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                                <Button Classes="Basic Round"
+                                        Command="{Binding DiscardModificationsCommand}"
+                                        IsVisible="{Binding IsDirty}"
+                                        Height="17"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="放弃修改"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18" Icon="Dismiss" IconSize="Size16" IconVariant="Regular" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </suki:GroupBox.Header>
+                    <ListBox ItemsSource="{Binding RecordedStepGroups}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RecordedRoundGroupItem">
+                                <StackPanel Margin="4,6" Spacing="4">
+                                    <TextBlock Text="{Binding Header}" FontWeight="Bold" Opacity="0.85" />
+                                    <ItemsControl ItemsSource="{Binding Steps}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:RecordedStepItem">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,2,0,2">
+                                                    <TextBlock Grid.Column="0" Text="{Binding Index}" Width="34" Opacity="0.8" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding ActionName}" />
+	                                                    <Button Grid.Column="2"
+	                                                            x:CompileBindings="False"
+	                                                            Content="删除"
+	                                                            Margin="8,0,0,0"
+	                                                            Padding="8,0"
+	                                                            Command="{Binding DataContext.DeleteRecordedStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+	                                                            CommandParameter="{Binding}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </suki:GroupBox>
+            </suki:GlassCard>
+        </Grid>
+
+        <!-- 分隔条2 -->
+        <GridSplitter Grid.Column="3"
+                      Background="Transparent" DragCompleted="GridSplitter_DragCompleted"
+                      Margin="0"
+                      Width="15"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      x:Name="Splitter2">
+            <GridSplitter.Template>
+                <ControlTemplate>
+                    <Border Background="Transparent"
+                            VerticalAlignment="Stretch"
+                            HorizontalAlignment="Stretch"
+                            Cursor="SizeWestEast">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Spacing="3">
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                            <Ellipse Width="4" Height="4" Fill="{DynamicResource SukiControlBorderBrush}" />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </GridSplitter.Template>
+        </GridSplitter>
+        <!-- 右侧列：连接 + 日志（原样复用） -->
+        <Grid Grid.Column="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <suki:GlassCard Grid.Row="0" Margin="0,15,15,8">
+                <suki:GroupBox DataContext="{x:Static helper:Instances.TaskQueueViewModel}"
+                               x:DataType="pages:TaskQueueViewModel">
+                    <suki:GroupBox.Header>
+                        <Grid>
+                            <TextBlock FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="{DynamicResource SukiLowText}"
+                                       HorizontalAlignment="Left"
+                                       Margin="2,0,0,0"
+                                       Text="{markup:I18n {x:Static helper:LangKeys.Connection}}"
+                                       VerticalAlignment="Center" />
+
+                            <StackPanel HorizontalAlignment="Right"
+                                        Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                <StackPanel.Resources>
+                                    <markup:IfConditionConverter x:Key="ConnectedConditionConverter">
+                                        <markup:IfConditionConverter.True>
+                                            <Path Data="{StaticResource ConnectedGeometry}"
+                                                  Fill="LimeGreen"
+                                                  Height="11"
+                                                  Margin="3,2,4,0"
+                                                  Stretch="Uniform"
+                                                  ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Connected}}" />
+                                        </markup:IfConditionConverter.True>
+                                        <markup:IfConditionConverter.False>
+                                            <Path Data="{StaticResource UnconnectedGeometry}"
+                                                  Fill="Red"
+                                                  Height="16"
+                                                  Margin="3,3,4,0"
+                                                  Stretch="Uniform"
+                                                  ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Unconnected}}"
+                                                  VerticalAlignment="Center" />
+                                        </markup:IfConditionConverter.False>
+                                    </markup:IfConditionConverter>
+                                </StackPanel.Resources>
+                                <Button Classes="Basic Round" ClipToBounds="False"
+                                        Command="{Binding CustomAdbCommand}"
+                                        IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                        IsVisible="{calcBinding:Binding 'CurrentController == maa:MaaControllerTypes.Adb'}"
+                                        Margin="3,0,2,0"
+                                        Padding="0"
+                                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.Custom}}">
+                                    <fluent:FluentIcon Height="18"
+                                                       Icon="DesktopEdit"
+                                                       IconSize="Size16"
+                                                       IconVariant="Regular" />
+                                </Button>
+                                <Button Classes="Basic Round" ClipToBounds="False"
+                                        Command="{Binding RefreshCommand}"
+                                        IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                        Margin="3,0,3,0"
+                                        Padding="0"
+                                        ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipRefresh}}"
+                                        VerticalAlignment="Center">
+                                    <fluent:FluentIcon Height="18"
+                                                       Icon="ArrowSync"
+                                                       IconSize="Size16"
+                                                       IconVariant="Regular" />
+                                </Button>
+                                <ContentControl
+                                    Content="{Binding IsConnected, Converter={StaticResource ConnectedConditionConverter}, Source={x:Static helper:Instances.TaskQueueViewModel}}" />
+                            </StackPanel>
+                        </Grid>
+                    </suki:GroupBox.Header>
+                    <Grid x:Name="ConnectionGrid"
+                          HorizontalAlignment="Stretch">
+                        <!-- 控制器类型选择 -->
+                        <RadioButton x:Name="AdbRadioButton"
+                                     Classes="GigaChips"
+                                     FontSize="12"
+                                     GroupName="Controller"
+                                     IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Adb}, Mode=TwoWay}"
+                                     IsVisible="{calcBinding:Binding 'ShouldShow != 1'}"
+                                     IsEnabled="{calcBinding:Binding '!LockController and Idle',
+                        &#xA;                                                                                    Source={x:Static helper:Instances.RootViewModel}}"
+                                     Margin="0,0,8,0"
+                                     MinWidth="110">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <controls:DisplayIcon IconSource="{Binding AdbIcon}"
+                                                      IconSize="24"
+                                                      IsVisible="{Binding HasAdbIcon}"
+                                                      VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Adb}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <RadioButton x:Name="Win32RadioButton"
+                                     Classes="GigaChips"
+                                     FontSize="12"
+                                     GroupName="Controller"
+                                     IsChecked="{Binding CurrentController, Converter={converters:UniversalEqualityConverter}, ConverterParameter={x:Static maa:MaaControllerTypes.Win32}, Mode=TwoWay}"
+                                     IsVisible="{calcBinding:Binding 'ShouldShow != 2'}"
+                                     IsEnabled="{calcBinding:Binding '!LockController and Idle',
+                        &#xA;                                                                                    Source={x:Static helper:Instances.RootViewModel}}"
+                                     Margin="0,0,8,0"
+                                     MinWidth="110">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <controls:DisplayIcon IconSource="{Binding Win32Icon}"
+                                                      IconSize="24"
+                                                      IsVisible="{Binding HasWin32Icon}"
+                                                      VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Win32}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </RadioButton>
+                        <!-- 设备选择器 -->
+                        <Grid x:Name="DeviceSelectorPanel"
+                              HorizontalAlignment="Stretch"
+                              MinWidth="200">
+                            <TextBlock x:Name="DeviceSelectorLabel"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource SukiLowText}"
+                                       Text="{markup:I18n {x:Static helper:LangKeys.CurrentController}}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,2,8,0" />
+                            <ComboBox x:Name="DeviceComboBox"
+                                      ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
+                                      Classes="LimitWidth"
+                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      ItemsSource="{Binding Devices}"
+                                      MinWidth="100"
+                                      HorizontalAlignment="Stretch"
+                                      SelectedValue="{Binding CurrentDevice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                <ToolTip.Tip>
+                                    <TextBlock
+                                        Text="{Binding CurrentDevice, Converter={converters:DeviceDisplayConverter}}" />
+                                </ToolTip.Tip>
+                                <ComboBox.DataTemplates>
+                                    <DataTemplate DataType="binding:AdbDeviceInfo">
+                                        <TextBlock HorizontalAlignment="Left"
+                                                   Text="{Binding Converter={converters:DeviceDisplayConverter}}" />
+                                    </DataTemplate>
+                                    <DataTemplate DataType="binding:DesktopWindowInfo">
+                                        <TextBlock HorizontalAlignment="Left"
+                                                   Text="{Binding Name}" />
+                                    </DataTemplate>
+                                </ComboBox.DataTemplates>
+                            </ComboBox>
+                        </Grid>
+                    </Grid>
+                </suki:GroupBox>
+            </suki:GlassCard>
+            <suki:GlassCard Grid.Row="1" Margin="0,8,15,25">
+                <suki:GroupBox>
+                    <suki:GroupBox.Header>
+                        <Grid>
+
+                            <TextBlock
+                                FontSize="11"
+                                FontWeight="Bold"
+                                Foreground="{DynamicResource SukiLowText}"
+                                HorizontalAlignment="Left"
+                                Margin="2,0,0,0"
+                                Text="{markup:I18n {x:Static helper:LangKeys.LogRecord}}"
+                                VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button
+                                    Classes="Basic Round"
+                                    Command="{Binding ExportCommand}"
+                                    Height="17"
+                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                    Margin="3,0,3,0"
+                                    Padding="0"
+
+                                    ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ExportLog}}"
+                                    VerticalAlignment="Center">
+
+                                    <fluent:FluentIcon
+                                        Height="18"
+                                        Icon="ArrowExport"
+                                        IconSize="Size16"
+                                        IconVariant="Regular" />
+                                </Button>
+                                <Button
+                                    Classes="Basic Round"
+                                    Command="{Binding ClearCommand}"
+                                    Height="17"
+                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                    Margin="3,0,3,0"
+                                    Padding="0"
+
+                                    ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ButtonClear}}"
+                                    VerticalAlignment="Center">
+
+                                    <fluent:FluentIcon
+                                        Height="18"
+                                        Icon="ArrowSync"
+                                        IconSize="Size16"
+                                        IconVariant="Regular" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                    </suki:GroupBox.Header>
+                    <ScrollViewer
+                        BorderBrush="LightGray"
+                        BorderThickness="1"
+                        ClipToBounds="False"
+                        Margin="15,8,10,5"
+                        VerticalAlignment="Top"
+                        VerticalContentAlignment="Top"
+                        ex:ScrollViewerExtensions.AutoScroll="True"
+                        ex:ScrollViewerExtensions.PanningMode="VerticalOnly">
+                        <ItemsControl ItemsSource="{Binding Path=LogItemViewModels}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            FontSize="12"
+                                            Foreground="{DynamicResource SukiDisabledText}"
+                                            Grid.Column="0"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,5,2,0"
+                                            MinWidth="55"
+                                            Text="{Binding Time}"
+                                            TextWrapping="Wrap"
+                                            VerticalAlignment="Stretch" />
+                                        <TextBlock
+                                            FontSize="12"
+                                            FontWeight="{Binding Weight}"
+                                            Foreground="{Binding Color}"
+                                            Grid.Column="1"
+                                            HorizontalAlignment="Stretch"
+                                            Margin="0,5" TextWrapping="WrapWithOverflow"
+                                            Text="{Binding Content}"
+                                            VerticalAlignment="Stretch" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </suki:GroupBox>
+            </suki:GlassCard>
+        </Grid>
+    </Grid>
+</UserControl>

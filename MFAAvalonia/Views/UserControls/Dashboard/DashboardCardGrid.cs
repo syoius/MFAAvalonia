@@ -118,6 +118,7 @@ public sealed class DashboardCardGrid : Panel
     private Thumb? _activeRowSplitterThumb;
     private bool _isSplitterDragging;
     private bool _isRowSplitterDragging;
+    private string? _activeConfiguration;
 
     public DashboardCardGrid()
     {
@@ -136,6 +137,9 @@ public sealed class DashboardCardGrid : Panel
     protected override void OnLoaded(RoutedEventArgs e)
     {
         base.OnLoaded(e);
+        _activeConfiguration = ConfigurationManager.GetCurrentConfiguration();
+        ConfigurationManager.ConfigurationSwitched -= OnConfigurationSwitched;
+        ConfigurationManager.ConfigurationSwitched += OnConfigurationSwitched;
         AttachToAllCards();
         EnsureLayoutsLoaded();
         EnsureMaximizedCardState();
@@ -171,7 +175,48 @@ public sealed class DashboardCardGrid : Panel
     protected override void OnUnloaded(RoutedEventArgs e)
     {
         base.OnUnloaded(e);
+        ConfigurationManager.ConfigurationSwitched -= OnConfigurationSwitched;
         DetachFromAllCards();
+    }
+
+    private void OnConfigurationSwitched(string name)
+    {
+        if (string.Equals(_activeConfiguration, name, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _activeConfiguration = name;
+
+        if (!IsLoaded)
+        {
+            _layoutLoaded = false;
+            return;
+        }
+
+        ReloadLayoutsForConfiguration();
+    }
+
+    private void ReloadLayoutsForConfiguration()
+    {
+        _layoutLoaded = false;
+        _hiddenCards.Clear();
+        _maximizedCard = null;
+        _maximizedLayout = null;
+
+        foreach (var card in Children.OfType<DashboardCard>())
+        {
+            card.IsMaximized = false;
+        }
+
+        EnsureLayoutsLoaded();
+        EnsureMaximizedCardState();
+        EnsureDragPreviewHost();
+        EnsureSplitters();
+        EnsureRowSplitters();
+        EnsureSplitterHost();
+        InvalidateMeasure();
+        InvalidateArrange();
     }
 
     private void OnChildrenCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -741,6 +786,10 @@ public sealed class DashboardCardGrid : Panel
         var layouts = LoadConfigLayouts(defaults, key, out var hasConfigLayouts);
         var layoutMeta = LoadLayoutMeta();
         var resourceLayout = TryLoadResourceLayout(out var resourceLayoutHash);
+        if (resourceLayout == null)
+        {
+            EnsureResourceLayoutFile(defaults);
+        }
         var layoutHashKey = GetResourceLayoutHashKey();
         var storedLayoutHash = ConfigurationManager.Current.GetValue(layoutHashKey, string.Empty);
         var resourceLayoutChanged = !string.IsNullOrWhiteSpace(resourceLayoutHash)

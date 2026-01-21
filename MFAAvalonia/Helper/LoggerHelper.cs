@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using Serilog;
 using SharpHook.Data;
 using System;

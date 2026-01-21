@@ -91,7 +91,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="other:ThemeItemViewModel">
-                    <RadioButton
+                    <RadioButton 
                         Classes="GigaChips"
                         CornerRadius="50"
                         GroupName="RadioColorTheme"
@@ -109,13 +109,13 @@
         <suki:GlassCard Margin="0,25,0,0" Padding="25">
             <StackPanel Spacing="20">
                 <DockPanel>
-                    <Button
-                        Command="{Binding CreateCustomThemeCommand}"
-                        Content="{markup:I18n {x:Static helper:LangKeys.Custom}}"
-                        DockPanel.Dock="Right"
-                        Height="40"
-                        Margin="0,0,4,0"
-                        Width="205" />
+                    <Button 
+                            Command="{Binding CreateCustomThemeCommand}"
+                            Content="{markup:I18n {x:Static helper:LangKeys.Custom}}"
+                            DockPanel.Dock="Right"
+                            Height="40"
+                            Margin="0,0,4,0"
+                            Width="205" />
                     <StackPanel HorizontalAlignment="Left">
                         <TextBlock
                             FontSize="16"

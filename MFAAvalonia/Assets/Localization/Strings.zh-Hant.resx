@@ -61,7 +61,7 @@
         <value>進階</value>
     </data>
     <data name="AfterTaskOption" xml:space="preserve">
-        <value>結束後操作</value>
+        <value>結束後</value>
     </data>
     <data name="AllFilter" xml:space="preserve">
         <value>所有檔案</value>
@@ -97,19 +97,19 @@
         <value>自動檢測更新</value>
     </data>
     <data name="AutomaticHide" xml:space="preserve">
-        <value>啟動 MFA 後直接隱藏</value>
+        <value>啟動 MaaYuan 後直接隱藏</value>
     </data>
     <data name="AutomaticMinimize" xml:space="preserve">
-        <value>啟動 MFA 後直接最小化</value>
+        <value>啟動 MaaYuan 後直接最小化</value>
     </data>
     <data name="AutomaticUpdateMFA" xml:space="preserve">
-        <value>自動更新軟體</value>
+        <value>自動更新 GUI</value>
     </data>
     <data name="AutomaticUpdateResource" xml:space="preserve">
         <value>自動更新資源</value>
     </data>
     <data name="AutoStartOption" xml:space="preserve">
-        <value>啟動後操作</value>
+        <value>啟動時</value>
     </data>
     <data name="BackgroundStyleDescription" xml:space="preserve">
         <value>從內建背景樣式中選擇。</value>
@@ -151,7 +151,7 @@
         <value>捕獲方式</value>
     </data>
     <data name="CheckMFA" xml:space="preserve">
-        <value>檢查軟體</value>
+        <value>檢查 GUI</value>
     </data>
     <data name="CheckResource" xml:space="preserve">
         <value>檢查資源</value>
@@ -160,16 +160,16 @@
         <value>目前剪貼簿中資料不可轉換為文字</value>
     </data>
     <data name="CloseEmulator" xml:space="preserve">
-        <value>關閉遊戲</value>
+        <value>關閉模擬器</value>
     </data>
     <data name="CloseEmulatorAndMFA" xml:space="preserve">
-        <value>關閉MFA和遊戲</value>
+        <value>關閉MaaYuan和模擬器</value>
     </data>
     <data name="CloseEmulatorAndRestartMFA" xml:space="preserve">
-        <value>重啟MFA和關閉遊戲</value>
+        <value>重啟MaaYuan並關閉模擬器</value>
     </data>
     <data name="CloseMFA" xml:space="preserve">
-        <value>關閉MFA</value>
+        <value>關閉MaaYuan</value>
     </data>
     <data name="ColorPickerTitle" xml:space="preserve">
         <value>取色器</value>
@@ -514,7 +514,7 @@
         <value>停止當前任務，重新啟動遊戲並開始新任務</value>
     </data>
     <data name="GameResourceUpdated" xml:space="preserve">
-        <value>遊戲資源已更新，請重啟軟體。</value>
+        <value>遊戲資源已更新，請重啟MaaYuan。</value>
     </data>
     <data name="General" xml:space="preserve">
         <value>通用模式</value>
@@ -526,7 +526,7 @@
         <value>正在獲取最新資源.....</value>
     </data>
     <data name="GettingLatestSoftware" xml:space="preserve">
-        <value>正在獲取最新軟體.....</value>
+        <value>正在獲取最新GUI.....</value>
     </data>
     <data name="Github" xml:space="preserve">
         <value>原始碼: GitHub</value>
@@ -568,7 +568,7 @@
         <value>快速鍵設定</value>
     </data>
     <data name="HotKeyShowGui" xml:space="preserve">
-        <value>[快速鍵] 顯示/隱藏軟體</value>
+        <value>[快速鍵] 顯示/隱藏 MaaYuan</value>
     </data>
     <data name="ImageBrowserTitle" xml:space="preserve">
         <value>圖片瀏覽器</value>
@@ -658,7 +658,7 @@
         <value>MaaTouch (實驗功能)</value>
     </data>
     <data name="MFAIsLatestVersion" xml:space="preserve">
-        <value>軟體已為最新版本！</value>
+        <value>GUI 已為最新版本！</value>
     </data>
     <data name="MinimizeToTray" xml:space="preserve">
             <value>最小化時隱藏至工作列</value>
@@ -799,7 +799,7 @@
         <value>正在嘗試重開 ADB 伺服器</value>
     </data>
     <data name="RestartMFA" xml:space="preserve">
-        <value>重啟MFA</value>
+        <value>重啟MaaYuan</value>
     </data>
     <data name="RestartPC" xml:space="preserve">
         <value>重啟電腦</value>
@@ -877,13 +877,13 @@
         <value>滑動獲取器</value>
     </data>
     <data name="SoftwarePath" xml:space="preserve">
-        <value>遊戲路徑</value>
+        <value>模擬器路徑</value>
     </data>
     <data name="SoftwareUpdate" xml:space="preserve">
-        <value>軟體更新</value>
+        <value>更新 GUI</value>
     </data>
     <data name="SoftwareVersion" xml:space="preserve">
-        <value>軟體版本</value>
+        <value>GUI 版本</value>
     </data>
     <data name="StartTask" xml:space="preserve">
         <value>開始任務</value>
@@ -898,13 +898,13 @@
         <value>啟動設定</value>
     </data>
     <data name="StartupSoftware" xml:space="preserve">
-        <value>啟動遊戲</value>
+        <value>啟動模擬器</value>
     </data>
     <data name="StartupSoftwareAndScript" xml:space="preserve">
-            <value>啟動遊戲並啟動腳本</value>
+            <value>啟動模擬器並啟動任務</value>
         </data>
     <data name="StartupScriptOnly" xml:space="preserve">
-            <value>僅啟動腳本</value>
+            <value>僅啟動任務</value>
         </data>
     <data name="Stopping" xml:space="preserve">
             <value>正在停止......</value>
@@ -952,7 +952,7 @@
         <value>任務清單</value>
     </data>
     <data name="TaskNotFoundError" xml:space="preserve">
-        <value>Pipeline檔案中任務"{0}"的{1}使用了不存在的任務:"{2}"！</value>
+        <value>Pipeline檔案中任務"的"{0}"的{1}使用了不存在的任務:"{2}"！</value>
     </data>
     <data name="TaskSettings" xml:space="preserve">
         <value>任務設定</value>
@@ -1021,10 +1021,10 @@
         <value>更新完成</value>
     </data>
     <data name="UpdateMaaFW" xml:space="preserve">
-        <value>框架更新</value>
+        <value>更新框架</value>
     </data>
     <data name="UpdateResource" xml:space="preserve">
-        <value>資源更新</value>
+        <value>更新資源</value>
     </data>
     <data name="UpdateSettings" xml:space="preserve">
         <value>更新設定</value>
@@ -1033,7 +1033,7 @@
         <value>使用 GPU 加速推理</value>
     </data>
     <data name="WaitSoftware" xml:space="preserve">
-        <value>等待遊戲啟動時間(秒)</value>
+        <value>等待模擬器啟動時間(秒)</value>
     </data>
     <data name="WaitSoftwareTime" xml:space="preserve">
         <value>等待{0}啟動時間(秒): {1}(s)</value>
@@ -1142,9 +1142,15 @@
     </data>
     <data name="GlobalHotkeyServiceError" xml:space="preserve">
         <value>全域快速鍵服務載入失敗</value>
-        <data name="MultiInstanceModeGlobalHotkeyDisabled" xml:space="preserve">
+    </data>
+    <data name="MultiInstanceModeGlobalHotkeyDisabled" xml:space="preserve">
         <value>多實例模式：全域快速鍵已停用</value>
     </data>
+    <data name="Manual" xml:space="preserve">
+        <value>使用指南</value>
+   </data>
+    <data name="QQChannel" xml:space="preserve">
+        <value>交流反馈: QQ频道搜索Maa鸢</value>
     </data>
     <data name="UpcomingChanges" xml:space="preserve">
         <value>即將發生的變更</value>
@@ -1186,7 +1192,7 @@
         <value>內測版</value>
     </data>
     <data name="UIUpdateChannel" xml:space="preserve">
-        <value>UI 更新渠道</value>
+        <value>GUI 更新渠道</value>
     </data>
     <data name="ExportLog" xml:space="preserve">
         <value>導出日誌</value>
@@ -1219,10 +1225,10 @@
         <value>目前存在其他正在執行的更新任務</value>
     </data>
     <data name="RedownloadUiFullPackage" xml:space="preserve">
-        <value>重新下載 UI 全量包</value>
+        <value>重新安裝GUI</value>
     </data>
     <data name="RedownloadResourceFullPackage" xml:space="preserve">
-        <value>重新下載資源全量包</value>
+        <value>重新安裝資源</value>
     </data>
     <data name="MirrorCDKBanned" xml:space="preserve">
         <value>CDK 已被封禁</value>
@@ -1378,7 +1384,7 @@
         <value>調整背景圖片的不透明度，值越小圖片越透明。</value>
     </data>
     <data name="AgentConnectionRetry" xml:space="preserve">
-        <value>Agent 連線重試 ({0})...</value>    
+        <value>Agent 連線重試 ({0})...</value>
     </data>
     <data name="TriggerDate" xml:space="preserve">
         <value>觸發日期</value>
@@ -1452,7 +1458,6 @@
     <data name="DeviceNotSelected" xml:space="preserve">
         <value>未選擇裝置，請先選擇裝置</value>
     </data>
-
     <data name="ResourcePresetConfig" xml:space="preserve">
         <value>資源預設配置</value>
     </data>

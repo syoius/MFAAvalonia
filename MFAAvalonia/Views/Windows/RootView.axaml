@@ -157,22 +157,22 @@
             <TextBlock VerticalAlignment="Center" IsVisible="{Binding IsCustomTitleVisible}" IsHitTestVisible="False"
                        FontSize="13" Text="{Binding CustomTitle}"
                        FontWeight="Bold">
-
-                <!-- <TextBlock.Text> -->
-                <!--     <MultiBinding Converter="{converters:TitleConverter}" Mode="OneWay"> -->
-                <!--         <Binding Path="CustomTitle" /> -->
-                <!--         <Binding Path="IsCustomTitleVisible" /> -->
-                <!--         <markup:I18nBinding> -->
-                <!--             <x:Arguments> -->
-                <!--                 <x:Static Member="helper:LangKeys.AppTitle" /> -->
-                <!--             </x:Arguments> -->
-                <!--         </markup:I18nBinding> -->
-                <!--         <Binding Path="Version" /> -->
-                <!--         <Binding Path="ResourceName" /> -->
-                <!--         <Binding Path="ResourceVersion" /> -->
-                <!--         <Binding Path="IsResourceNameVisible" /> -->
-                <!--     </MultiBinding> -->
-                <!-- </TextBlock.Text> -->
+                <TextBlock.Text>
+                    <MultiBinding Converter="{converters:TitleConverter}" Mode="OneWay">
+                        <Binding Path="CustomTitle" />
+                        <Binding Path="IsCustomTitleVisible" />
+                        <markup:I18nBinding>
+                            <x:Arguments>
+                                <x:Static Member="helper:LangKeys.AppTitle" />
+                            </x:Arguments>
+                        </markup:I18nBinding>
+                        <Binding Path="Version" />
+                        <Binding Path="ResourceName" />
+                        <Binding Path="ResourceVersion" />
+                        <Binding Path="IsResourceNameVisible" />
+                        <Binding Path="CurrentConfiguration" />
+                    </MultiBinding>
+                </TextBlock.Text>
             </TextBlock>
             <TextBlock VerticalAlignment="Center" IsVisible="{calcBinding:Binding '!IsCustomTitleVisible' }"
                        FontSize="13" Text="{markup:I18n {x:Static helper:LangKeys.AppTitle}}" IsHitTestVisible="False"
@@ -199,6 +199,7 @@
             <Binding Path="ResourceName" />
             <Binding Path="ResourceVersion" />
             <Binding Path="IsResourceNameVisible" />
+            <Binding Path="CurrentConfiguration" />
         </MultiBinding>
     </suki:SukiWindow.Title>
     <suki:SukiWindow.RightWindowTitleBarControls>
@@ -227,6 +228,64 @@
         <suki:SukiToastHost Manager="{x:Static helper:Instances.ToastManager}" />
         <suki:SukiDialogHost Manager="{x:Static helper:Instances.DialogManager}" Name="DialogHost" />
     </suki:SukiWindow.Hosts>
-    <mobile:RootViewContent />
+    <LayoutTransformControl LayoutTransform="{Binding ScaleTransform, Source={x:Static helper:FontService.Instance}}">
+        <Grid>
+            <suki:SukiSideMenu IsMenuExpanded="False" IsSearchEnabled="False" OpenPaneLength="150">
+                <!-- <suki:SukiSideMenu.Styles> -->
+                <!--     <Style Selector="Image.AppIcon"> -->
+                <!--         <Setter Property="Transitions"> -->
+                <!--             <Transitions> -->
+                <!--                 <DoubleTransition Duration="0.1" Property="Opacity" /> -->
+                <!--             </Transitions> -->
+                <!--         </Setter> -->
+                <!--         <Style Selector="^:pointerover"> -->
+                <!--             <Setter Property="Opacity" Value="0.5" /> -->
+                <!--         </Style> -->
+                <!--     </Style> -->
+                <!-- </suki:SukiSideMenu.Styles> -->
+	                <suki:SukiSideMenu.Items>
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                                           Header="{markup:I18n {x:Static helper:LangKeys.Home}}"
+	                                           Icon="{fluent:FluentIcon Icon=TasksApp,
+	                                                       IconVariant=Regular}"
+	                                       PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:TaskQueueView}}" />
+	                    <!-- Copilot Tab: 抄作业 -->
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                                        Header="自动战斗"
+	                                        Icon="{fluent:FluentIcon Icon=Games,
+	                                                        IconVariant=Regular}"
+	                                        PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CopilotView}}" />
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                                           Header="录制作业"
+	                                           Icon="{fluent:FluentIcon Icon=Record,
+	                                                       IconVariant=Regular}"
+	                                           PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:RecordTaskView}}" />
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+	                                        Header="{markup:I18n {x:Static helper:LangKeys.ScreenshotPage}}"
+	                                        Icon="{fluent:FluentIcon Icon=Screenshot,
+	                                                        IconVariant=Regular}"
+	                                            PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ScreenshotView}}" />
+	                    <suki:SukiSideMenuItem IsContentMovable="False"
+                                           Header="{markup:I18n {x:Static helper:LangKeys.ResourceOption}}"
+                                           Icon="{fluent:FluentIcon Icon=Apps,
+                                                       IconVariant=Regular}"
+                                           IsVisible="False"
+                                           PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ResourcesView}}" />
 
+                </suki:SukiSideMenu.Items>
+
+                <suki:SukiSideMenu.HeaderContent>
+                    <!--  Header Content  -->
+                </suki:SukiSideMenu.HeaderContent>
+
+                <suki:SukiSideMenu.FooterMenuItems>
+                    <suki:SukiSideMenuItem IsContentMovable="False"
+                                           Header="{markup:I18n {x:Static helper:LangKeys.Settings}}"
+                                           Icon="{fluent:FluentIcon Icon=Settings,
+                                                           IconVariant=Regular}"
+                                           PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:SettingsView}}" />
+                </suki:SukiSideMenu.FooterMenuItems>
+            </suki:SukiSideMenu>
+        </Grid>
+    </LayoutTransformControl>
 </suki:SukiWindow>

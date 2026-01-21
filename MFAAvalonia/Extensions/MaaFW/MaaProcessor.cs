@@ -744,7 +744,6 @@ public class MaaProcessor
     private readonly Lock _screencapLogLock = new();
     private bool _screencapAbortLogPending;
     private bool _screencapDisconnectedLogPending;
-    private bool _screencapFailureLogged;
     private int _isConnecting;
 
     private IMaaController? GetScreenshotController(bool test)
@@ -2203,7 +2202,6 @@ public class MaaProcessor
         {
             _screencapAbortLogPending = false;
             _screencapDisconnectedLogPending = false;
-            _screencapFailureLogged = false;
         }
     }
 

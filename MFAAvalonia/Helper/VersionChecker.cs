@@ -158,7 +158,7 @@ public static class VersionChecker
         if (isGithub) return;
         try
         {
-            GetDownloadUrlFromMirror("v0.0.0", "MFAAvalonia", CDK(), out _, out _, out _, out _, onlyCheck: false, saveAnnouncement: false);
+            GetDownloadUrlFromMirror("v0.0.0", "YuanMFA", CDK(), out _, out _, out _, out _, onlyCheck: false, saveAnnouncement: false);
         }
         catch (Exception)
         {
@@ -273,7 +273,7 @@ public static class VersionChecker
                 sha256 = result.sha256;
             }
             else
-                GetDownloadUrlFromMirror(localVersion, "MFAAvalonia", CDK(), out _, out latestVersion, out sha256, out _, isUI: true, onlyCheck: true);
+                GetDownloadUrlFromMirror(localVersion, "YuanMFA", CDK(), out _, out latestVersion, out sha256, out _, isUI: true, onlyCheck: true);
             var mirrocS = false;
             if (IsNewVersionAvailable(latestVersion, GetMaxVersion()))
             {
@@ -405,6 +405,7 @@ public static class VersionChecker
         }
         catch (Exception ex)
         {
+            Console.WriteLine(sukiToast == null);
             Dismiss(sukiToast);
             ToastHelper.Warn($"{LangKeys.FailToGetLatestVersionInfo.ToLocalization()}", ex.Message, -1);
             Instances.RootViewModel.SetUpdating(false);
@@ -1083,7 +1084,7 @@ public static class VersionChecker
                     sha256 = result.sha256;
                 }
                 else
-                    GetDownloadUrlFromMirror(GetLocalVersion(), "MFAAvalonia", CDK(), out downloadUrl, out latestVersion, out sha256, out _, isUI: true);
+                    GetDownloadUrlFromMirror(GetLocalVersion(), "YuanMFA", CDK(), out downloadUrl, out latestVersion, out sha256, out _, isUI: true);
             }
             catch (Exception ex)
             {
@@ -1277,7 +1278,7 @@ public static class VersionChecker
             }
             SetProgress(progress, 100);
 
-            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, $"{Assembly.GetEntryAssembly().GetName().Name}{(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "")}",
+            await ApplySecureUpdate(sourceDirectory, utf8BaseDirectory, $"MaaYuan{(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ".exe" : "")}",
                 Process.GetCurrentProcess().MainModule.ModuleName);
 
             Thread.Sleep(500);
@@ -1642,7 +1643,7 @@ public static class VersionChecker
 
 
     public static async Task<(string url, string latestVersion, string sha256)> GetLatestVersionAndDownloadUrlFromGithubAsync(
-        string owner = "SweetSmellFox",
+        string owner = "syoius",
         string repo = "MFAAvalonia",
         bool onlyCheck = false,
         string targetVersion = "",
@@ -2718,7 +2719,6 @@ public static class VersionChecker
             return string.Empty;
         }
     }
-
     /// <summary>
     /// 从Content-Disposition头解析文件名（可选增强）
     /// </summary>

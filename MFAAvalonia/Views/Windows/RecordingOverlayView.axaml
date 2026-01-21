@@ -1,0 +1,263 @@
+<Window
+    x:Class="MFAAvalonia.Views.Windows.RecordingOverlayView"
+    x:DataType="vm:RecordTaskViewModel"
+    Width="400"
+    CanResize="False"
+    ShowInTaskbar="False"
+    SizeToContent="Height"
+    SystemDecorations="None"
+    Topmost="True"
+    TransparencyLevelHint="None"
+    Background="#00000000"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:suki="https://github.com/kikipoulet/SukiUI"
+    xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    mc:Ignorable="d">
+
+    <Window.Resources>
+        <DataTemplate x:Key="RecordedPillTemplate" x:DataType="vm:RecordedRoundTablePillItem">
+            <TextBlock
+                Text="{Binding Text}"
+                Foreground="{Binding Foreground}"
+                FontWeight="SemiBold"
+                FontSize="12"
+                Margin="0,0,6,4" />
+        </DataTemplate>
+    </Window.Resources>
+
+	    <Border
+	        Background="{DynamicResource SukiGlassCardBackground}"
+	        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+	        BorderThickness="1"
+	        CornerRadius="10"
+	        Padding="10">
+	        <StackPanel Spacing="10">
+	            <Border PointerPressed="OnDragPointerPressed" Background="Transparent" Cursor="SizeAll">
+	                <StackPanel>
+	                    <TextBlock Text="录制作业悬浮窗" FontWeight="Bold" Foreground="{DynamicResource SukiText}" />
+	                    <TextBlock Text="{Binding Status}" FontSize="12" Foreground="{DynamicResource SukiLowText}" />
+	                </StackPanel>
+	            </Border>
+
+	            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+	                <Button Width="140" Content="上一回合" Command="{Binding PrevRoundCommand}" />
+	                <TextBlock Text="{Binding RoundDisplay}" VerticalAlignment="Center" Foreground="{DynamicResource SukiLowText}" />
+	                <Button Width="140" Content="下一回合" Command="{Binding NextRoundCommand}" />
+	            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding AvailableActions}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel ItemWidth="74" ItemHeight="34" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ActionButtonItem">
+                        <Button
+                            Content="{Binding DisplayName}"
+                            Command="{Binding Command}"
+                            CommandParameter="{Binding CommandParameter}"
+                            Padding="6,0" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+	            <Separator />
+
+	            <suki:GroupBox>
+	                <suki:GroupBox.Header>
+	                    <StackPanel Orientation="Horizontal" Spacing="8">
+	                        <TextBlock FontSize="11"
+	                                   FontWeight="Bold"
+	                                   Foreground="{DynamicResource SukiLowText}"
+	                                   Margin="2,0,0,0"
+	                                   Text="当前录制"
+	                                   VerticalAlignment="Center" />
+	                        <TextBlock Text="{Binding RoundDisplay}"
+	                                   FontSize="11"
+	                                   Foreground="{DynamicResource SukiLowText}"
+	                                   Opacity="0.8"
+	                                   VerticalAlignment="Center" />
+	                    </StackPanel>
+	                </suki:GroupBox.Header>
+                    <ScrollViewer MaxHeight="320"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+                        <StackPanel Spacing="6">
+                            <Grid ColumnDefinitions="34,62,62,62,62,62" Margin="2,0,2,2">
+                                <TextBlock Grid.Column="1"
+                                           Text="1"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{DynamicResource SukiLowText}"
+                                           FontSize="11"
+                                           FontWeight="Bold" />
+                                <TextBlock Grid.Column="2"
+                                           Text="2"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{DynamicResource SukiLowText}"
+                                           FontSize="11"
+                                           FontWeight="Bold" />
+                                <TextBlock Grid.Column="3"
+                                           Text="3"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{DynamicResource SukiLowText}"
+                                           FontSize="11"
+                                           FontWeight="Bold" />
+                                <TextBlock Grid.Column="4"
+                                           Text="4"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{DynamicResource SukiLowText}"
+                                           FontSize="11"
+                                           FontWeight="Bold" />
+                                <TextBlock Grid.Column="5"
+                                           Text="5"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{DynamicResource SukiLowText}"
+                                           FontSize="11"
+                                           FontWeight="Bold" />
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{Binding RecordedRoundTableRows}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RecordedRoundTableRowItem">
+                                        <Border BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                                                BorderThickness="0,0,0,1"
+                                                Padding="2,6">
+                                            <StackPanel Spacing="4">
+                                                <Grid ColumnDefinitions="34,62,62,62,62,62">
+                                                    <TextBlock Grid.Column="0"
+                                                               Text="{Binding RoundTitle}"
+                                                               FontWeight="Bold"
+                                                               Margin="2,0,2,0"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource SukiText}" />
+
+                                                <Border Grid.Column="1"
+                                                        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6"
+                                                        Padding="4,4"
+                                                        Margin="0,0,2,0"
+                                                        MinHeight="36">
+                                                    <ItemsControl ItemsSource="{Binding Slot1}"
+                                                                  ItemTemplate="{StaticResource RecordedPillTemplate}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                    </ItemsControl>
+                                                </Border>
+
+                                                <Border Grid.Column="2"
+                                                        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6"
+                                                        Padding="4,4"
+                                                        Margin="0,0,2,0"
+                                                        MinHeight="36">
+                                                    <ItemsControl ItemsSource="{Binding Slot2}"
+                                                                  ItemTemplate="{StaticResource RecordedPillTemplate}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                    </ItemsControl>
+                                                </Border>
+
+                                                <Border Grid.Column="3"
+                                                        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6"
+                                                        Padding="4,4"
+                                                        Margin="0,0,2,0"
+                                                        MinHeight="36">
+                                                    <ItemsControl ItemsSource="{Binding Slot3}"
+                                                                  ItemTemplate="{StaticResource RecordedPillTemplate}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                    </ItemsControl>
+                                                </Border>
+
+                                                <Border Grid.Column="4"
+                                                        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6"
+                                                        Padding="4,4"
+                                                        Margin="0,0,2,0"
+                                                        MinHeight="36">
+                                                    <ItemsControl ItemsSource="{Binding Slot4}"
+                                                                  ItemTemplate="{StaticResource RecordedPillTemplate}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                    </ItemsControl>
+                                                </Border>
+
+                                                <Border Grid.Column="5"
+                                                        BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6"
+                                                        Padding="4,4"
+                                                        MinHeight="36">
+                                                    <ItemsControl ItemsSource="{Binding Slot5}"
+                                                                  ItemTemplate="{StaticResource RecordedPillTemplate}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                    </ItemsControl>
+                                                </Border>
+                                                </Grid>
+
+                                                <!-- Extra 独立行 -->
+                                                <StackPanel Orientation="Horizontal"
+                                                            Spacing="6"
+                                                            Margin="2,2,0,0"
+                                                            IsVisible="{Binding HasExtra}">
+                                                    <TextBlock Text="额外动作:"
+                                                               FontSize="11"
+                                                               FontWeight="SemiBold"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource SukiLowText}" />
+                                                    <ItemsControl ItemsSource="{Binding Extra}"
+                                                                  ItemTemplate="{StaticResource RecordedPillTemplate}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <WrapPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+	            </suki:GroupBox>
+
+	            <Separator />
+
+	            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+	                <Button Content="保存到作业列表"
+	                        Command="{Binding SaveToCopilotCacheCommand}"
+	                        IsEnabled="{Binding CanSave}"
+	                        ToolTip.Tip="将录制保存为可用作业" />
+	                <Button Content="保存并结束" Command="{Binding SaveAndStopRecordingCommand}" IsEnabled="{Binding CanSave}" />
+	                <Button Content="结束" Command="{Binding StopRecordingCommand}" />
+	            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

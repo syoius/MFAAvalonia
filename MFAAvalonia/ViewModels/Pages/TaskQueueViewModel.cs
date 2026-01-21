@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -179,11 +179,57 @@ public partial class TaskQueueViewModel : ViewModelBase
         return controllers;
     }
 
+    // Compatibility for legacy bindings in Copilot/RecordTask views.
+    public string Adb => GetControllerDisplayName(MaaControllerTypes.Adb);
+    public string Win32 => GetControllerDisplayName(MaaControllerTypes.Win32);
+    public string? AdbIcon => GetControllerIconPath(MaaControllerTypes.Adb);
+    public bool HasAdbIcon => !string.IsNullOrWhiteSpace(AdbIcon);
+    public string? Win32Icon => GetControllerIconPath(MaaControllerTypes.Win32);
+    public bool HasWin32Icon => !string.IsNullOrWhiteSpace(Win32Icon);
+
+    partial void OnControllerOptionsChanged(ObservableCollection<MaaInterface.MaaResourceController> value)
+    {
+        NotifyControllerDisplayChanged();
+    }
+
+    private void NotifyControllerDisplayChanged()
+    {
+        OnPropertyChanged(nameof(Adb));
+        OnPropertyChanged(nameof(Win32));
+        OnPropertyChanged(nameof(AdbIcon));
+        OnPropertyChanged(nameof(HasAdbIcon));
+        OnPropertyChanged(nameof(Win32Icon));
+        OnPropertyChanged(nameof(HasWin32Icon));
+    }
+
+    private MaaInterface.MaaResourceController? GetControllerOption(MaaControllerTypes type)
+    {
+        return ControllerOptions.FirstOrDefault(c => c.ControllerType == type);
+    }
+
+    private string GetControllerDisplayName(MaaControllerTypes type)
+    {
+        var controller = GetControllerOption(type);
+        if (!string.IsNullOrWhiteSpace(controller?.DisplayName))
+        {
+            return controller.DisplayName;
+        }
+
+        return type.ToResourceKey().ToLocalization();
+    }
+
+    private string? GetControllerIconPath(MaaControllerTypes type)
+    {
+        return GetControllerOption(type)?.ResolvedIcon;
+    }
+
     protected override void Initialize()
     {
         try
         {
             InitializeControllerOptions();
+            LanguageHelper.LanguageChanged -= OnControllerLanguageChanged;
+            LanguageHelper.LanguageChanged += OnControllerLanguageChanged;
         }
         catch (Exception e)
         {
@@ -191,10 +237,20 @@ public partial class TaskQueueViewModel : ViewModelBase
         }
     }
 
+    private void OnControllerLanguageChanged(object? sender, LanguageHelper.LanguageEventArgs e)
+    {
+        NotifyControllerDisplayChanged();
+    }
+
 
     #region 介绍
 
     [ObservableProperty] private string _introduction = string.Empty;
+
+    public void SetMarkdownIntroduction(string markdown)
+    {
+        Introduction = markdown ?? string.Empty;
+    }
 
     #endregion
 
