@@ -48,10 +48,8 @@ public partial class MFAConfiguration(string name, string fileName, Dictionary<s
     public void SetValue(string key, object? value)
     {
         if (Config == null || value == null) return;
-        if (ConfigurationManager.IsSwitching && key == ConfigurationKeys.TaskItems)
-        {
-            return;
-        }
+        // 移除配置切换时阻止 TaskItems 保存的逻辑
+        // 这会导致任务配置无法正确更新到新配置中
         Config[key] = value;
         JsonHelper.SaveConfig(FileName, Config, new MaaInterfaceSelectAdvancedConverter(false), new MaaInterfaceSelectOptionConverter(false));
     }

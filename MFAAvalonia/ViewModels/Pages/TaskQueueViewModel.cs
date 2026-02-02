@@ -1641,10 +1641,23 @@ public partial class TaskQueueViewModel : ViewModelBase
                 return;
             }
 
+            // 关键修复：在 UI 线程调用中使用 buffer，确保在使用期间不会被释放
+            // 使用 Invoke 而不是 InvokeAsync，确保同步执行完成后再释放 buffer
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
-                _liveViewImageCache[index] = WriteBgrToBitmap(rawData, width, height, buffer.Channels, _liveViewImageCache[index]);
-                LiveViewImage = _liveViewImageCache[index];
+                try
+                {
+                    // 再次验证指针有效性（防止在等待期间失效）
+                    if (rawData != IntPtr.Zero && width > 0 && height > 0)
+                    {
+                        _liveViewImageCache[index] = WriteBgrToBitmap(rawData, width, height, buffer.Channels, _liveViewImageCache[index]);
+                        LiveViewImage = _liveViewImageCache[index];
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggerHelper.Warning($"LiveView WriteBgrToBitmap failed: {ex.Message}");
+                }
             });
 
             Interlocked.Exchange(ref _liveViewImageNewestCount, count);

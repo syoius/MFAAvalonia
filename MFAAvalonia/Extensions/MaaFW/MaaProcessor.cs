@@ -1738,14 +1738,6 @@ public class MaaProcessor
                         ],
                     },
                 ],
-                Controller =
-                [
-                    new MaaInterface.MaaResourceController()
-                    {
-                        Name = "adb 默认方式",
-                        Type = "adb"
-                    },
-                ],
                 Option = new Dictionary<string, MaaInterface.MaaInterfaceOption>
                 {
                     {

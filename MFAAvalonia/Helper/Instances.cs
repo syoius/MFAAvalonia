@@ -441,6 +441,10 @@ public static partial class Instances
                     ["Light"] = Avalonia.Styling.ThemeVariant.Light
                 });
 
+                // 实际应用主题到UI
+                theme.ChangeBaseTheme(gui.BaseTheme);
+                theme.ChangeColorTheme(gui.CurrentColorTheme);
+
                 var language = ConfigurationManager.Current.GetValue(ConfigurationKeys.CurrentLanguage, LanguageHelper.SupportedLanguages[0].Key, ["zh-CN", "zh-Hant", "en-US"]);
                 gui.CurrentLanguage = language;
                 LanguageHelper.ChangeLanguage(language);
