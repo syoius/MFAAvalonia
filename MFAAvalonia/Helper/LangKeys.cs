@@ -512,4 +512,7 @@ public static class LangKeys
 	public static readonly string Reconnect = "Reconnect";
 	public static readonly string ResourceLayoutUpdatedTitle = "ResourceLayoutUpdatedTitle";
 	public static readonly string ResourceLayoutUpdatedContent = "ResourceLayoutUpdatedContent";
+	public static readonly string AdminPermissionRequired = "AdminPermissionRequired";
+	public static readonly string AdminPermissionRequiredDetail = "AdminPermissionRequiredDetail";
+
 }
