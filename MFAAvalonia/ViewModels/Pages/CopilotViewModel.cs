@@ -329,11 +329,15 @@ public partial class CopilotViewModel : ObservableObject
             if (Instances.RootViewModel.IsRunning)
                 return;
 
-            // 确保任务源存在
-            MaaProcessor.Instance.InitializeData();
-
             var vm = Instances.TaskQueueViewModel;
             var items = vm.TaskItemViewModels;
+            // Avoid forcing a full InitializeData() refresh if the task list is already present,
+            // otherwise it can drop in-memory edits made in TaskQueue.
+            if (items == null || items.Count == 0)
+            {
+                MaaProcessor.Instance.InitializeData();
+                items = vm.TaskItemViewModels;
+            }
             if (items == null || items.Count == 0)
                 return;
 
@@ -1211,7 +1215,11 @@ public partial class CopilotViewModel : ObservableObject
         try
         {
             MaaProcessor.Instance.SetTasker();
-            var ok = MaaProcessor.Instance.InitializeData();
+            // Preserve user's current task list (order/check/options) when reloading interface/resources.
+            // Otherwise InitializeData() will rebuild TaskQueue from persisted config and can drop in-memory edits.
+            var currentTasks = DispatcherHelper.RunOnMainThread(() =>
+                new Collection<DragItemViewModel>(Instances.TaskQueueViewModel.TaskItemViewModels.ToList()));
+            var ok = MaaProcessor.Instance.InitializeData(currentTasks);
             DispatcherHelper.RunOnMainThread(() =>
             {
                 if (Instances.IsResolved<MFAAvalonia.Views.Pages.TaskQueueView>())
