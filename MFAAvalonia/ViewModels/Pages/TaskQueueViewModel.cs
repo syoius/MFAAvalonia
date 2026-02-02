@@ -115,8 +115,13 @@ public partial class TaskQueueViewModel : ViewModelBase
             }
 
             // 根据当前控制器类型选择对应的控制器
-            SelectedController = ControllerOptions.FirstOrDefault(c => c.ControllerType == CurrentController)
+            // 使用 PostOnMainThread 延迟设置 SelectedController，确保 ComboBox 已完成 ItemsSource 更新
+            var targetController = ControllerOptions.FirstOrDefault(c => c.ControllerType == CurrentController)
                 ?? ControllerOptions.FirstOrDefault();
+            DispatcherHelper.PostOnMainThread(() =>
+            {
+                SelectedController = targetController;
+            });
         }
         catch (Exception e)
         {
@@ -124,7 +129,10 @@ public partial class TaskQueueViewModel : ViewModelBase
             // 出错时使用默认控制器
             var defaultControllers = CreateDefaultControllers();
             ControllerOptions = new ObservableCollection<MaaInterface.MaaResourceController>(defaultControllers);
-            SelectedController = ControllerOptions.FirstOrDefault();
+            DispatcherHelper.PostOnMainThread(() =>
+            {
+                SelectedController = ControllerOptions.FirstOrDefault();
+            });
         }
     }
 
@@ -168,6 +176,14 @@ public partial class TaskQueueViewModel : ViewModelBase
             };
             win32Controller.InitializeDisplayName();
             controllers.Add(win32Controller);
+
+            var gamePadController = new MaaInterface.MaaResourceController
+            {
+                Name = "Gamepad",
+                Type = MaaControllerTypes.Gamepad.ToJsonKey()
+            };
+            gamePadController.InitializeDisplayName();
+            controllers.Add(gamePadController);
         }
         if (OperatingSystem.IsMacOS())
         {
@@ -964,6 +980,9 @@ public partial class TaskQueueViewModel : ViewModelBase
 
     private void UpdateDeviceList(ObservableCollection<object> devices, int index)
     {
+        // 使用同步方式更新设备列表，确保在 AutoDetectDevice 返回前设备已更新
+        // 这对于 Win32 连接失败后重试时正确检测窗口至关重要
+        //DispatcherHelper.RunOnMainThread 已经是同步的（使用 Dispatcher.UIThread.Invoke）
         DispatcherHelper.RunOnMainThread(() =>
         {
             Devices = devices;
@@ -1189,11 +1208,12 @@ public partial class TaskQueueViewModel : ViewModelBase
         }
         
         if (refresh
-                || CurrentController != MaaControllerTypes.Adb
-                || !ConfigurationManager.CurrentInstance.GetValue(ConfigurationKeys.RememberAdb, true)
-                || MaaProcessor.Instance.Config.AdbDevice.AdbPath != "adb"
-                || !ConfigurationManager.CurrentInstance.TryGetValue(ConfigurationKeys.AdbDevice, out AdbDeviceInfo savedDevice1,
-                    new UniversalEnumConverter<AdbInputMethods>(), new UniversalEnumConverter<AdbScreencapMethods>())) {
+            || CurrentController != MaaControllerTypes.Adb
+            || !ConfigurationManager.CurrentInstance.GetValue(ConfigurationKeys.RememberAdb, true)
+            || MaaProcessor.Instance.Config.AdbDevice.AdbPath != "adb"
+            || !ConfigurationManager.CurrentInstance.TryGetValue(ConfigurationKeys.AdbDevice, out AdbDeviceInfo savedDevice1,
+                new UniversalEnumConverter<AdbInputMethods>(), new UniversalEnumConverter<AdbScreencapMethods>()))
+        {
             _refreshCancellationTokenSource?.Cancel();
             _refreshCancellationTokenSource = new CancellationTokenSource();
             if (inTask)
@@ -1798,7 +1818,7 @@ public partial class TaskQueueViewModel : ViewModelBase
         {
             ConfigurationManager.SwitchConfiguration(value);
         }
-    }
-}
 
-#endregion
+    }
+    #endregion
+}

@@ -110,9 +110,9 @@ public partial class RootViewModel : ViewModelBase
     
     partial void OnLockControllerChanged(bool value)
     {
-        if (value)
+        if (value && Instances.TaskQueueViewModel.SelectedController != null)
         {
-            Instances.TaskQueueViewModel.ShouldShow = (int)(MaaProcessor.Interface?.Controller?.FirstOrDefault()?.Type).ToMaaControllerTypes(Instances.TaskQueueViewModel.CurrentController);
+            Instances.TaskQueueViewModel.ShouldShow = (int)Instances.TaskQueueViewModel.SelectedController.ControllerType;
         }
     }
 

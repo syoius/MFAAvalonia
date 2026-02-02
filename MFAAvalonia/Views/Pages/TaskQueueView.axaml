@@ -415,7 +415,7 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                             <ComboBox.SelectionBoxItemTemplate>
-                                <DataTemplate>
+                                <DataTemplate x:DataType="maa:MaaInterface+MaaResourceController">
                                     <Grid ColumnDefinitions="Auto,*,Auto">
                                         <controls:DisplayIcon Grid.Column="0" IconSource="{Binding ResolvedIcon}"
                                                               IconSize="20" IsVisible="{Binding HasIcon}"

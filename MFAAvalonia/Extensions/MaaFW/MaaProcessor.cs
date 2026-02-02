@@ -1141,6 +1141,17 @@ public class MaaProcessor
                 DisposeOptions = DisposeOptions.All,
             };
 
+            // 尝试连接控制器，验证连接是否成功
+            // 这对于 Win32 控制器特别重要，因为当 HWnd 为 IntPtr.Zero 时，
+            // MaaWin32Controller 创建成功但LinkStart 会失败
+            var linkStatus = tasker.Controller?.LinkStart().Wait();
+            if (linkStatus != MaaJobStatus.Succeeded)
+            {
+                LoggerHelper.Warning($"Controller LinkStart failed with status: {linkStatus}");
+                tasker.Dispose();
+                return (null, InvalidResource, ShouldRetry);
+            }
+
             tasker.Releasing += (_, _) =>
             {
                 tasker.Callback -= HandleCallBack;
