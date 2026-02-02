@@ -420,7 +420,7 @@ public static class VersionChecker
             Dismiss(sukiToast);
             ToastHelper.Warn(LangKeys.FailToGetLatestVersionInfo.ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
-            Instances.TaskQueueViewModel.ClearDownloadProgress();
+            Instances.InstanceTabBarViewModel.ActiveTab?.TaskQueueViewModel.ClearDownloadProgress();
             return;
         }
 
@@ -429,7 +429,7 @@ public static class VersionChecker
             Dismiss(sukiToast);
             ToastHelper.Info(LangKeys.ResourcesAreLatestVersion.ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
-            Instances.TaskQueueViewModel.ClearDownloadProgress();
+            Instances.InstanceTabBarViewModel.ActiveTab?.TaskQueueViewModel.ClearDownloadProgress();
             action?.Invoke();
             return;
         }
@@ -441,10 +441,10 @@ public static class VersionChecker
             Dismiss(sukiToast);
             ToastHelper.Warn(LangKeys.FailToGetDownloadUrl.ToLocalization());
             Instances.RootViewModel.SetUpdating(false);
-            Instances.TaskQueueViewModel.ClearDownloadProgress();
+            Instances.InstanceTabBarViewModel.ActiveTab?.TaskQueueViewModel.ClearDownloadProgress();
             return;
         }
-        MaaProcessor.Instance.SetTasker();
+        MaaProcessorManager.Instance.Current.SetTasker();
         DispatcherHelper.PostOnMainThread(() => Instances.RootView.BeforeClosed(true, true));
         var tempPath = Path.Combine(AppContext.BaseDirectory, "temp_res");
         Directory.CreateDirectory(tempPath);
@@ -707,7 +707,7 @@ public static class VersionChecker
         //     }
         // });
         // var tasks = Instances.TaskQueueViewModel.TaskItemViewModels;
-        // Instances.RootView.ClearTasks(() => MaaProcessor.Instance.InitializeData(dragItem: tasks));
+        // Instances.RootView.ClearTasks(() => Instances.TaskQueueViewModel.Processor.InitializeData(dragItem: tasks));
 
         if (closeDialog)
             Dismiss(sukiToast);
@@ -2364,7 +2364,7 @@ public static class VersionChecker
             SetProgress(progressBar, 100);
             SetDownloadInfo(downloadSizeTextBlock, downloadSpeedTextBlock, totalBytesRead, totalBytes ?? totalBytesRead, bytesPerSecond);
             DispatcherHelper.PostOnMainThread(() =>
-                Instances.TaskQueueViewModel.OutputDownloadProgress(
+                Instances.InstanceTabBarViewModel.ActiveTab?.TaskQueueViewModel.OutputDownloadProgress(
                     totalBytesRead,
                     totalBytes ?? totalBytesRead,
                     (int)bytesPerSecond,

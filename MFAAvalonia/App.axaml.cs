@@ -8,6 +8,7 @@ using MFAAvalonia.Configuration;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper;
+using MFAAvalonia.ViewModels.Other;
 using MFAAvalonia.ViewModels.Pages;
 using MFAAvalonia.ViewModels.UsersControls;
 using MFAAvalonia.ViewModels.UsersControls.Settings;
@@ -95,6 +96,8 @@ public partial class App : Application
 
                 Services = services.BuildServiceProvider();
 
+                MaaProcessorManager.Instance.LoadInstanceConfig();
+
                 DataTemplates.Add(new ViewLocator(views));
 
                 var window = views.CreateView<RootViewModel>(Services) as Window;
@@ -126,6 +129,8 @@ public partial class App : Application
 
                 Services = services.BuildServiceProvider();
 
+                MaaProcessorManager.Instance.LoadInstanceConfig();
+
                 DataTemplates.Add(new ViewLocator(views));
 
                 var mainView = views.CreateView<RootViewModel>(Services);
@@ -156,9 +161,16 @@ public partial class App : Application
     private void OnShutdownRequested(object sender, ShutdownRequestedEventArgs e)
     {
         TrayIconManager.DisposeTrayIcon(this);
-        ConfigurationManager.CurrentInstance.SetValue(ConfigurationKeys.TaskItems, Instances.TaskQueueViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
 
-        MaaProcessor.Instance.SetTasker();
+        foreach (var p in MaaProcessor.Processors)
+        {
+            if (p.ViewModel != null)
+            {
+                p.InstanceConfiguration.SetValue(ConfigurationKeys.TaskItems,
+                    p.ViewModel.TaskItemViewModels.ToList().Select(model => model.InterfaceItem));
+            }
+            p.SetTasker();
+        }
         GlobalHotkeyService.Shutdown();
 
         // 强制清理所有应用资源（包括字体）
@@ -228,6 +240,7 @@ public partial class App : Application
         return views
 
             // Add pages
+            .AddView<InstanceContainerView,InstanceTabBarViewModel>(services)
             .AddView<Views.Pages.CopilotView, ViewModels.Pages.CopilotViewModel>(services)
             .AddView<TaskQueueView, TaskQueueViewModel>(services)
             .AddView<RecordTaskView, RecordTaskViewModel>(services)
@@ -240,6 +253,7 @@ public partial class App : Application
             .AddView<TaskRemarkDialogView, TaskRemarkDialogViewModel>(services)
             .AddView<AdbEditorDialogView, AdbEditorDialogViewModel>(services)
             .AddView<PlayCoverEditorDialog, PlayCoverEditorDialogViewModel>(services)
+            .AddView<RenameInstanceDialog, RenameInstanceDialogViewModel>(services)
             .AddView<MultiInstanceEditorDialogView, MultiInstanceEditorDialogViewModel>(services)
             .AddView<CustomThemeDialogView, CustomThemeDialogViewModel>(services)
             .AddView<ConnectSettingsUserControl, ConnectSettingsUserControlModel>(services)
