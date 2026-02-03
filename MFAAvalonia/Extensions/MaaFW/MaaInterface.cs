@@ -908,6 +908,8 @@ public partial class MaaInterface
         public MaaResourceControllerWin32? Win32 { get; set; }
         [JsonProperty("playcover")]
         public MaaResourceControllerPlayCover? PlayCover { get; set; }
+        [JsonProperty("gamepad")]
+        public MaaResourceControllerGamepad? Gamepad { get; set; }
 
         /// <summary>显示名称（用于 UI 绑定）</summary>
         [ObservableProperty] [JsonIgnore] private string _displayName = string.Empty;

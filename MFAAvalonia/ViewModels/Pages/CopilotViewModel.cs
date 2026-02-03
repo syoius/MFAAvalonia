@@ -1222,10 +1222,8 @@ public partial class CopilotViewModel : ObservableObject
             var ok = MaaProcessor.Instance.InitializeData(currentTasks);
             DispatcherHelper.RunOnMainThread(() =>
             {
-                if (Instances.IsResolved<MFAAvalonia.Views.Pages.TaskQueueView>())
-                {
-                    Instances.TaskQueueView.ResetOptionPanels();
-                }
+                var taskView = Instances.InstanceTabBarViewModel.ActiveTab?.View as MFAAvalonia.Views.Pages.TaskQueueView;
+                taskView?.ResetOptionPanels();
             });
             return ok;
         }

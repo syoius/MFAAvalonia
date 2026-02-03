@@ -367,6 +367,26 @@ public static partial class Instances
 
     public static IClipboard? Clipboard => TopLevel?.Clipboard;
 
+    /// <summary>
+    /// Current instance TaskQueueViewModel (multi-instance aware).
+    /// </summary>
+    public static TaskQueueViewModel TaskQueueViewModel
+    {
+        get
+        {
+            if (IsResolved<InstanceTabBarViewModel>())
+            {
+                var active = InstanceTabBarViewModel.ActiveTab?.TaskQueueViewModel;
+                if (active != null)
+                {
+                    return active;
+                }
+            }
+
+            return MaaProcessorManager.Instance.Current.ViewModel!;
+        }
+    }
+
     private static InstanceContainerView _instanceContainerView;
     private static InstanceTabBarViewModel _instanceTabBarViewModel;
     private static SettingsView _settingsView;

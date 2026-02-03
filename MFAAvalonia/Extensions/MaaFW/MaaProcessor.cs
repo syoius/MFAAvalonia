@@ -57,6 +57,7 @@ public class MaaProcessor
     public static ObservableCollection<MaaProcessor> Processors { get; } = new();
     public static MaaToolkit Toolkit { get; } = new(true);
     public static MaaGlobal Global { get; } = new();
+    public static MaaProcessor Instance => MaaProcessorManager.Instance.Current;
     public string InstanceId { get; }
     public InstanceConfiguration InstanceConfiguration { get; }
     public MaaFWConfiguration Config { get; } = new();
