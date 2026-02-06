@@ -3,3 +3,8 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+# Tools and logs
+.ace-tool/
+logs/
+operations-log.md
