@@ -48,8 +48,11 @@ public partial class RecordTaskViewModel : ObservableObject
             ["5↓"] = FightActionTemplate.Swipe(begin: [646, 1060, 1, 1], end: [646, 1258, 1, 1], durationMs: 800),
             ["额外:左侧目标"] = FightActionTemplate.Click(target: [154, 648, 1, 1]),
             ["额外:右侧目标"] = FightActionTemplate.Click(target: [603, 413, 18, 21]),
-            ["额外:吕布"] = FightActionTemplate.PipelineTask("录制_吕布切换形态"),
-            ["额外:史子眇sp"] = FightActionTemplate.PipelineTask("录制_史子眇sp技能"),
+            ["1号位SP"] = FightActionTemplate.Click(target: [76, 1114, 17, 18]),
+            ["2号位SP"] = FightActionTemplate.Click(target: [214, 1116, 23, 13]),
+            ["3号位SP"] = FightActionTemplate.Click(target: [355, 1118, 17, 10]),
+            ["4号位SP"] = FightActionTemplate.Click(target: [498, 1115, 13, 16]),
+            ["5号位SP"] = FightActionTemplate.Click(target: [634, 1118, 16, 11]),
 
             // 兼容旧显示名（不会出现在按钮列表中）
             ["1号位普攻"] = FightActionTemplate.Click(target: [56, 1060, 5, 5]),
@@ -66,7 +69,8 @@ public partial class RecordTaskViewModel : ObservableObject
         "1↑","2↑", "3↑", "4↑","5↑",
         "1A", "2A", "3A","4A", "5A",
         "1↓", "2↓","3↓", "4↓", "5↓",
-        "额外:左侧目标", "额外:右侧目标","额外:吕布","额外:史子眇sp"
+        "1号位SP", "2号位SP", "3号位SP", "4号位SP", "5号位SP",
+        "额外:左侧目标", "额外:右侧目标"
     ];
 
     private const string SimingExportApiUrl = "https://share.maayuan.top/simingapi/api/export";
@@ -195,8 +199,11 @@ public partial class RecordTaskViewModel : ObservableObject
         {
             "额外:左侧目标" => "左",
             "额外:右侧目标" => "右",
-            "额外:吕布" => "吕布",
-            "额外:史子眇sp" => "史SP",
+            "1号位SP" => "1SP",
+            "2号位SP" => "2SP",
+            "3号位SP" => "3SP",
+            "4号位SP" => "4SP",
+            "5号位SP" => "5SP",
             _ => token
         };
 
@@ -800,7 +807,9 @@ public partial class RecordTaskViewModel : ObservableObject
                 var actionName = steps[i].ActionName;
                 if (TryParseSlotActionToken(actionName, out var slot, out var actionToken, out var kind))
                 {
-                    var pill = new RecordedRoundTablePillItem($"{index}{actionToken}", kind);
+                    // 简化显示：X号位SP → SP
+                    var displayToken = actionToken.Contains("号位SP", StringComparison.Ordinal) ? "SP" : actionToken;
+                    var pill = new RecordedRoundTablePillItem($"{index}{displayToken}", kind);
                     switch (slot)
                     {
                         case 1: slot1.Add(pill); break;
@@ -818,6 +827,9 @@ public partial class RecordTaskViewModel : ObservableObject
                 var displayName = actionName.StartsWith("额外:", StringComparison.Ordinal)
                     ? actionName[3..]
                     : actionName;
+                // 额外动作也简化：X号位SP → SP
+                if (displayName.Contains("号位SP", StringComparison.Ordinal))
+                    displayName = "SP";
                 extra.Add(new RecordedRoundTablePillItem($"{index}{displayName}", RecordedActionPillKind.Extra));
             }
 
