@@ -1176,6 +1176,8 @@ public partial class RecordTaskViewModel : ObservableObject
                     return $"{pos}下";
                 if (actionName.Contains("大招", StringComparison.Ordinal) || actionName.Contains("大", StringComparison.Ordinal))
                     return $"{pos}大";
+                if (actionName.Contains("SP", StringComparison.OrdinalIgnoreCase))
+                    return $"{pos}sp";
             }
         }
 
@@ -1199,6 +1201,7 @@ public partial class RecordTaskViewModel : ObservableObject
                 '大' => $"{pos}↑",
                 '下' => $"{pos}↓",
                 '上' => $"{pos}↑", // 兼容旧文件
+                's' or 'S' => $"{pos}号位SP",
                 _ => token
             };
         }
