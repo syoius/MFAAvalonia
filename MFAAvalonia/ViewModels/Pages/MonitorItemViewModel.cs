@@ -7,6 +7,7 @@ using MFAAvalonia.Helper.ValueType;
 using Avalonia.Threading;
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MFAAvalonia.ViewModels.Pages;
@@ -14,6 +15,7 @@ namespace MFAAvalonia.ViewModels.Pages;
 public partial class MonitorItemViewModel : ViewModelBase
 {
     public MaaProcessor Processor { get; }
+    private int _imageUpdateInProgress;
 
     [ObservableProperty]
     private Bitmap? _image;
@@ -73,20 +75,19 @@ public partial class MonitorItemViewModel : ViewModelBase
         CurrentTaskName = Processor.ViewModel?.CurrentTaskName ?? string.Empty;
     }
 
-    public void UpdateImage()
+    public void UpdateImage(CancellationToken token)
     {
+        if (token.IsCancellationRequested)
+            return;
+
+        if (Interlocked.Exchange(ref _imageUpdateInProgress, 1) == 1)
+            return;
+
+        try
+        {
         if (!IsConnected)
         {
-             if (Image != null)
-             {
-                 var old = Image;
-                 DispatcherHelper.PostOnMainThread(() => 
-                 {
-                     Image = null;
-                     old.Dispose();
-                     HasImage = false;
-                 });
-             }
+             ClearImage();
              return;
         }
 
@@ -97,16 +98,44 @@ public partial class MonitorItemViewModel : ViewModelBase
         }
         catch {}
 
+        if (token.IsCancellationRequested)
+        {
+            newImage?.Dispose();
+            return;
+        }
+
         if (newImage != null)
         {
             DispatcherHelper.PostOnMainThread(() => 
             {
+                if (token.IsCancellationRequested)
+                {
+                    newImage.Dispose();
+                    return;
+                }
+
                 var old = Image;
                 Image = newImage;
                 old?.Dispose();
                 HasImage = true;
             });
         }
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _imageUpdateInProgress, 0);
+        }
+    }
+
+    public void ClearImage()
+    {
+        DispatcherHelper.PostOnMainThread(() =>
+        {
+            var old = Image;
+            Image = null;
+            old?.Dispose();
+            HasImage = false;
+        });
     }
 
     [RelayCommand]
@@ -139,6 +168,6 @@ public partial class MonitorItemViewModel : ViewModelBase
 
     public void Dispose()
     {
-        Image?.Dispose();
+        ClearImage();
     }
 }

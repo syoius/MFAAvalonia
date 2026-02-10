@@ -34,10 +34,10 @@
     </Design.DataContext>
     <UserControl.Resources>
         <ContextMenu x:Key="TaskMenu">
-            <MenuItem IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+            <MenuItem IsEnabled="{Binding Path=ActiveTab.TaskQueueViewModel.Idle, Source={x:Static helper:Instances.InstanceTabBarViewModel}}"
                       Click="RunSingleTask"
                       Header="{markup:I18n {x:Static helper:LangKeys.RunSingle}}" />
-            <MenuItem IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+            <MenuItem IsEnabled="{Binding Path=ActiveTab.TaskQueueViewModel.Idle, Source={x:Static helper:Instances.InstanceTabBarViewModel}}"
                       Click="RunCheckedFromCurrent"
                       Header="{markup:I18n {x:Static helper:LangKeys.RunCheckedFromCurrent}}" />
             <MenuItem Click="EditTaskRemark"
@@ -479,7 +479,7 @@
                         </Button>
                         <Button Classes="BasicTight TaskQueueBasicTight"
                                 Command="{Binding ReconnectCommand}"
-                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                IsEnabled="{Binding Idle}"
                                 Padding="0"
                                 Width="24"
                                 Height="24"
@@ -820,7 +820,7 @@
                             </Button>
                             <Button Classes="BasicTight TaskQueueBasicTight"
                                     Command="{Binding ReconnectCommand}"
-                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                    IsEnabled="{Binding Idle}"
                                     Padding="0"
                                     Width="24"
                                     Height="24"
@@ -900,7 +900,7 @@
                             <ComboBox DockPanel.Dock="Right"
                                       ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
                                       DisplayMemberBinding="{Binding Name}"
-                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      IsEnabled="{Binding DataContext.Idle, ElementName=MainGrid}"
                                       ItemsSource="{Binding BeforeTaskList}"
                                       SelectedValue="{Binding BeforeTask}"
                                       SelectedValueBinding="{Binding ResourceKey}"
@@ -914,7 +914,7 @@
                             <ComboBox DockPanel.Dock="Right"
                                       ex:ComboBoxExtensions.DisableNavigationOnLostFocus="True"
                                       DisplayMemberBinding="{Binding Name}"
-                                      IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                      IsEnabled="{Binding DataContext.Idle, ElementName=MainGrid}"
                                       ItemsSource="{Binding AfterTaskList}"
                                       SelectedValue="{Binding AfterTask}"
                                       SelectedValueBinding="{Binding ResourceKey}"
@@ -1009,7 +1009,7 @@
                                 ClipToBounds="False"
                                 Command="{Binding SelectAllCommand}"
                                 Height="16"
-                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                IsEnabled="{Binding Idle}"
                                 Margin="7,0,0,0"
                                 Padding="0"
                                 ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.SelectAll}}"
@@ -1020,7 +1020,7 @@
                                 ClipToBounds="False"
                                 Command="{Binding SelectNoneCommand}"
                                 Height="16"
-                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                IsEnabled="{Binding Idle}"
                                 Margin="7,0,0,0"
                                 Padding="0"
                                 ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.DeselectAll}}"
@@ -1031,7 +1031,7 @@
                                 ClipToBounds="False"
                                 Command="{Binding AddTaskCommand}"
                                 Height="16"
-                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                IsEnabled="{Binding Idle}"
                                 Margin="7,0,0,0"
                                 Padding="0"
                                 ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.AddTask}}">
@@ -1039,7 +1039,7 @@
                         </Button>
                         <Button Classes="BasicTight TaskQueueBasicTight SyncButton"
                                 Command="{Binding ResetTasksCommand}"
-                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                IsEnabled="{Binding Idle}"
                                 Margin="2,0,2,0"
                                 Padding="0"
                                 Width="24"
@@ -1109,7 +1109,7 @@
                 </dashboard:DashboardCard.HeaderActions>
                 <Grid>
                     <ListBox Classes="Fluent"
-                             DragDrop.AllowDrop="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
+                             DragDrop.AllowDrop="{Binding Idle}"
                              ex:DragDropExtensions.EnableDragDrop="True"
                              ex:DragDropExtensions.DragStartThreshold="2"
                              ex:DragDropExtensions.EnableAnimation="True"
@@ -1399,7 +1399,7 @@
                                 HorizontalAlignment="Right">
                         <Button Classes="BasicTight TaskQueueBasicTight"
                                 Command="{Binding ExportCommand}"
-                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                IsEnabled="{Binding Idle}"
                                 Padding="0"
                                 Margin="3,-3,3,0"
                                 ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ExportLog}}"
@@ -1412,7 +1412,7 @@
                         </Button>
                         <Button Classes="BasicTight TaskQueueBasicTight SyncButton"
                                 Command="{Binding ClearCommand}"
-                                IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                IsEnabled="{Binding Idle}"
                                 Margin="3,0,3,0"
                                 Padding="0"
                                 Width="24"

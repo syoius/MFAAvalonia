@@ -413,7 +413,14 @@ public partial class CopilotView : UserControl
         try
         {
             try { await RenderSelectedTaskDetailsAsync(); } catch { }
-            try { await vm.LoadSelectedAsync(); } catch { }
+            if (vm.CanChangeActiveJob)
+            {
+                try { await vm.LoadSelectedAsync(); } catch { }
+            }
+            else
+            {
+                ToastHelper.Warn("同资源运行中，无法切换作业");
+            }
         }
         finally
         {
@@ -614,7 +621,7 @@ public partial class CopilotView : UserControl
             Increment = 1,
             Minimum = -1,
         };
-        numericUpDown.Bind(IsEnabledProperty, new Binding("Idle") { Source = Instances.RootViewModel });
+        numericUpDown.Bind(IsEnabledProperty, new Binding("ActiveTab.TaskQueueViewModel.Idle") { Source = Instances.InstanceTabBarViewModel });
         numericUpDown.ValueChanged += (_, _) =>
         {
             source.InterfaceItem.RepeatCount = Convert.ToInt32(numericUpDown.Value);
@@ -690,7 +697,7 @@ public partial class CopilotView : UserControl
                     return itemText.IndexOf(search, StringComparison.InvariantCultureIgnoreCase) >= 0;
                 },
             };
-            autoCompleteBox.Bind(IsEnabledProperty, new Binding("Idle") { Source = Instances.RootViewModel });
+            autoCompleteBox.Bind(IsEnabledProperty, new Binding("ActiveTab.TaskQueueViewModel.Idle") { Source = Instances.InstanceTabBarViewModel });
             var completionItems = new List<string>();
             if (interfaceOption.Default != null && interfaceOption.Default.Count > i)
             {
@@ -813,7 +820,7 @@ public partial class CopilotView : UserControl
             Tag = option.Name,
             VerticalAlignment = VerticalAlignment.Center
         };
-        button.Bind(IsEnabledProperty, new Binding("Idle") { Source = Instances.RootViewModel });
+        button.Bind(IsEnabledProperty, new Binding("ActiveTab.TaskQueueViewModel.Idle") { Source = Instances.InstanceTabBarViewModel });
         button.IsCheckedChanged += (_, _) => { option.Index = button.IsChecked == true ? yesValue : noValue; CopilotSaveConfiguration(); };
         button.SetValue(ToolTip.TipProperty, LanguageHelper.GetLocalizedString(option.Name));
         var textBlock = new TextBlock
@@ -879,7 +886,7 @@ public partial class CopilotView : UserControl
             }),
             SelectedIndex = option.Index ?? 0,
         };
-        combo.Bind(IsEnabledProperty, new Binding("Idle") { Source = Instances.RootViewModel });
+        combo.Bind(IsEnabledProperty, new Binding("ActiveTab.TaskQueueViewModel.Idle") { Source = Instances.InstanceTabBarViewModel });
         combo.HorizontalContentAlignment = HorizontalAlignment.Stretch;
         combo.Padding = new Thickness(2, 0, 2, 0);
         combo.SelectionChanged += (_, _) => { option.Index = combo.SelectedIndex; CopilotSaveConfiguration(); };

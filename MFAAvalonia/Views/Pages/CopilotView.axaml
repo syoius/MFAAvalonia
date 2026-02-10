@@ -245,7 +245,7 @@
                                 </Button>
                                 <Button Classes="BasicTight TaskQueueBasicTight"
                                         Command="{Binding ReconnectCommand}"
-                                        IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                        IsEnabled="{Binding Idle}"
                                         Padding="0"
                                         Width="24"
                                         Height="24"
@@ -486,7 +486,7 @@
                                     </Button>
                                     <Button Classes="BasicTight TaskQueueBasicTight"
                                             Command="{Binding ReconnectCommand}"
-                                            IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                            IsEnabled="{Binding Idle}"
                                             Padding="0"
                                             Width="24"
                                             Height="24"
@@ -605,6 +605,7 @@
                                     <fluent:FluentIcon Icon="ArrowClockwise" IconSize="Size16" IconVariant="Regular" />
                                 </Button>
                                 <Button Classes="Basic Round" Height="16" Padding="0" Margin="7,0,8,0"
+                                        IsEnabled="{Binding CanChangeActiveJob}"
                                         ToolTip.Tip="卸载当前激活的文件" Click="OnUnloadActiveJob">
                                     <fluent:FluentIcon Icon="FolderArrowLeft" IconSize="Size16" IconVariant="Regular" />
                                 </Button>
@@ -862,7 +863,7 @@
                                     Classes="Basic Round"
                                     Command="{Binding ExportCommand}"
                                     Height="17"
-                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                    IsEnabled="{Binding Source={x:Static helper:Instances.InstanceTabBarViewModel}, Path=ActiveTab.TaskQueueViewModel.Idle}"
                                     Margin="3,0,3,0"
                                     Padding="0"
 
@@ -879,7 +880,7 @@
                                     Classes="Basic Round"
                                     Command="{Binding ClearCommand}"
                                     Height="17"
-                                    IsEnabled="{Binding Idle, Source={x:Static helper:Instances.RootViewModel}}"
+                                    IsEnabled="{Binding Source={x:Static helper:Instances.InstanceTabBarViewModel}, Path=ActiveTab.TaskQueueViewModel.Idle}"
                                     Margin="3,0,3,0"
                                     Padding="0"
 

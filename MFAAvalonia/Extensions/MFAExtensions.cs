@@ -460,16 +460,14 @@ public static class MFAExtensions
 
         try
         {
-
-            encodedDataStream.Seek(0, SeekOrigin.Begin);
-            return new Bitmap(encodedDataStream);
-
+            using var stream = encodedDataStream;
+            if (stream.CanSeek)
+                stream.Seek(0, SeekOrigin.Begin);
+            return new Bitmap(stream);
         }
         catch (Exception ex)
         {
             LoggerHelper.Error($"Bitmap 创建失败: {ex.Message}");
-            // 确保异常情况下也释放 Stream
-            encodedDataStream?.Dispose();
             return null;
         }
     }

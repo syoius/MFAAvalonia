@@ -803,9 +803,9 @@ public partial class TaskQueueView : UserControl
             Increment = 1,
             Minimum = -1,
         };
-        numericUpDown.Bind(IsEnabledProperty, new Binding("Idle")
+        numericUpDown.Bind(IsEnabledProperty, new Binding("DataContext.Idle")
         {
-            Source = Instances.RootViewModel
+            Source = this
         });
         numericUpDown.ValueChanged += (_, _) =>
         {
@@ -994,9 +994,9 @@ public partial class TaskQueueView : UserControl
 
 
             // 绑定启用状态
-            autoCompleteBox.Bind(IsEnabledProperty, new Binding("Idle")
+            autoCompleteBox.Bind(IsEnabledProperty, new Binding("DataContext.Idle")
             {
-                Source = Instances.RootViewModel
+                Source = this
             });
             var completionItems = new List<string>();
             // 生成补全列表（从Default获取）
@@ -1242,9 +1242,9 @@ public partial class TaskQueueView : UserControl
                     textBox.Bind(TextBox.WatermarkProperty, new ResourceBinding(input.PatternMsg));
 
                 // 绑定启用状态
-                textBox.Bind(IsEnabledProperty, new Binding("Idle")
+                textBox.Bind(IsEnabledProperty, new Binding("DataContext.Idle")
                 {
-                    Source = Instances.RootViewModel
+                    Source = this
                 });
 // 验证和保存
                 var fieldName = input.Name;
@@ -1509,9 +1509,9 @@ public partial class TaskQueueView : UserControl
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        toggleSwitch.Bind(IsEnabledProperty, new Binding("Idle")
+        toggleSwitch.Bind(IsEnabledProperty, new Binding("DataContext.Idle")
         {
-            Source = Instances.RootViewModel
+            Source = this
         });
 
         toggleSwitch.Bind(ToolTip.TipProperty, new ResourceBindingWithFallback(input.DisplayName, input.Name));
@@ -1628,9 +1628,9 @@ public partial class TaskQueueView : UserControl
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        button.Bind(IsEnabledProperty, new Binding("Idle")
+        button.Bind(IsEnabledProperty, new Binding("DataContext.Idle")
         {
-            Source = Instances.RootViewModel
+            Source = this
         });
 
         // 更新子配置项显示的方法
@@ -1935,9 +1935,9 @@ public partial class TaskQueueView : UserControl
         };
 
 
-        combo.Bind(IsEnabledProperty, new Binding("Idle")
+        combo.Bind(IsEnabledProperty, new Binding("DataContext.Idle")
         {
-            Source = Instances.RootViewModel
+            Source = this
         });
 
         // 更新子配置项显示的方法

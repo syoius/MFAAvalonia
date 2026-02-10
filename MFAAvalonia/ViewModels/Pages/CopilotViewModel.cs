@@ -15,12 +15,15 @@ using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Other;
 using MFAAvalonia.Helper.ValueType;
 using MaaFramework.Binding;
+using MaaFramework.Binding.Buffers;
 using Avalonia;
 using Avalonia.Threading;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input.Platform;
 using System.Diagnostics;
 using System.ComponentModel;
+using System.Collections.Specialized;
+using MFAAvalonia.Configuration;
 
 namespace MFAAvalonia.ViewModels.Pages;
 
@@ -42,6 +45,14 @@ public partial class CopilotViewModel : ObservableObject
 
     private static MaaProcessor? ActiveProcessor =>
         Instances.InstanceTabBarViewModel.ActiveTab?.Processor;
+
+    [ObservableProperty]
+    private bool _isCopilotResourceLocked;
+
+    public bool CanChangeActiveJob => !IsCopilotResourceLocked;
+
+    private readonly HashSet<MaaProcessor> _resourceLockProcessors = new();
+    private TaskQueueViewModel? _resourceLockTaskViewModel;
 
     private static string GetActiveResourceBase()
     {
@@ -116,6 +127,13 @@ public partial class CopilotViewModel : ObservableObject
     public CopilotViewModel()
     {
         Instances.InstanceTabBarViewModel.PropertyChanged += OnInstanceTabBarPropertyChanged;
+        MaaProcessor.Processors.CollectionChanged += OnProcessorsCollectionChanged;
+        foreach (var processor in MaaProcessor.Processors)
+        {
+            AttachProcessorForResourceLock(processor);
+        }
+        HookActiveTaskViewModelForResourceLock();
+        RefreshResourceLockState();
     }
 
     private void OnInstanceTabBarPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -128,7 +146,110 @@ public partial class CopilotViewModel : ObservableObject
             OnPropertyChanged(nameof(CurrentController));
             OnPropertyChanged(nameof(LogItemViewModels));
             _ = UpdateActiveJobFromDiskAsync();
+            HookActiveTaskViewModelForResourceLock();
+            RefreshResourceLockState();
         }
+    }
+
+    partial void OnIsCopilotResourceLockedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanChangeActiveJob));
+    }
+
+    private void OnProcessorsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems != null)
+        {
+            foreach (var item in e.OldItems.OfType<MaaProcessor>())
+            {
+                DetachProcessorForResourceLock(item);
+            }
+        }
+
+        if (e.NewItems != null)
+        {
+            foreach (var item in e.NewItems.OfType<MaaProcessor>())
+            {
+                AttachProcessorForResourceLock(item);
+            }
+        }
+
+        RefreshResourceLockState();
+    }
+
+    private void AttachProcessorForResourceLock(MaaProcessor processor)
+    {
+        if (_resourceLockProcessors.Add(processor))
+        {
+            processor.TaskQueue.CountChanged += OnProcessorTaskQueueCountChanged;
+        }
+    }
+
+    private void DetachProcessorForResourceLock(MaaProcessor processor)
+    {
+        if (_resourceLockProcessors.Remove(processor))
+        {
+            processor.TaskQueue.CountChanged -= OnProcessorTaskQueueCountChanged;
+        }
+    }
+
+    private void OnProcessorTaskQueueCountChanged(object? sender, ObservableQueue<MFATask>.CountChangedEventArgs e)
+    {
+        RequestResourceLockRefresh();
+    }
+
+    private void HookActiveTaskViewModelForResourceLock()
+    {
+        var next = ActiveTaskViewModel;
+        if (ReferenceEquals(next, _resourceLockTaskViewModel))
+        {
+            return;
+        }
+
+        if (_resourceLockTaskViewModel != null)
+        {
+            _resourceLockTaskViewModel.PropertyChanged -= OnResourceLockTaskViewModelPropertyChanged;
+        }
+
+        _resourceLockTaskViewModel = next;
+
+        if (_resourceLockTaskViewModel != null)
+        {
+            _resourceLockTaskViewModel.PropertyChanged += OnResourceLockTaskViewModelPropertyChanged;
+        }
+    }
+
+    private void OnResourceLockTaskViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TaskQueueViewModel.CurrentResource)
+            || e.PropertyName == nameof(TaskQueueViewModel.CurrentResources))
+        {
+            RequestResourceLockRefresh();
+        }
+    }
+
+    private void RequestResourceLockRefresh()
+    {
+        DispatcherHelper.PostOnMainThread(RefreshResourceLockState);
+    }
+
+    private void RefreshResourceLockState()
+    {
+        var activeResource = ActiveTaskViewModel?.CurrentResource;
+        if (string.IsNullOrWhiteSpace(activeResource))
+        {
+            IsCopilotResourceLocked = false;
+            return;
+        }
+
+        var locked = MaaProcessor.Processors.Any(processor =>
+            processor.TaskQueue.Count > 0
+            && string.Equals(
+                processor.InstanceConfiguration.GetValue(ConfigurationKeys.Resource, string.Empty),
+                activeResource,
+                StringComparison.OrdinalIgnoreCase));
+
+        IsCopilotResourceLocked = locked;
     }
 
     partial void OnSelectedFileChanged(CopilotFileItem? value)
@@ -383,7 +504,7 @@ public partial class CopilotViewModel : ObservableObject
         try
         {
             // 若任务正在运行，避免修改选择
-            if (Instances.RootViewModel.IsRunning)
+            if (ActiveTaskViewModel?.IsRunning == true)
                 return;
 
             var vm = ActiveTaskViewModel;
@@ -435,23 +556,15 @@ public partial class CopilotViewModel : ObservableObject
     {
         try
         {
-            if (Instances.RootViewModel.IsRunning)
-            {
-                if (ActiveTaskViewModel?.IsRunning == true)
-                {
-                    ActiveTaskViewModel.StopTask();
-                }
-                else
-                {
-                    ToastHelper.Warn("其他实例正在运行，请切换到运行中的实例后停止");
-                }
-                return Task.CompletedTask;
-            }
-
             var vm = ActiveTaskViewModel;
             if (vm == null)
             {
                 ToastHelper.Error("未找到当前实例，无法启动");
+                return Task.CompletedTask;
+            }
+            if (vm.IsRunning)
+            {
+                vm.StopTask();
                 return Task.CompletedTask;
             }
             var items = vm.TaskItemViewModels;
@@ -1168,9 +1281,14 @@ public partial class CopilotViewModel : ObservableObject
     public async Task LoadSelectedAsync()
     {
         if (SelectedFile == null) { ToastHelper.Warn("请选择要加载的作业"); return; }
-        if (Instances.RootViewModel.IsRunning)
+        if (ActiveTaskViewModel?.IsRunning == true)
         {
             ToastHelper.Warn("任务运行中，停止后再加载");
+            return;
+        }
+        if (IsCopilotResourceLocked)
+        {
+            ToastHelper.Warn("同资源运行中，无法切换作业");
             return;
         }
         EnsureDirs();
@@ -1220,6 +1338,11 @@ public partial class CopilotViewModel : ObservableObject
     {
         try
         {
+            if (IsCopilotResourceLocked)
+            {
+                ToastHelper.Warn("同资源运行中，无法卸载作业");
+                return;
+            }
             var hasActiveJob = Directory.Exists(CopilotActiveDir) &&
                                Directory.EnumerateFiles(CopilotActiveDir, "*.*", SearchOption.TopDirectoryOnly)
                                    .Any(file =>

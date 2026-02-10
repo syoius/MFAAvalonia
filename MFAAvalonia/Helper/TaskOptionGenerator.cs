@@ -737,7 +737,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
     private void BindIdleEnabled(Control control)
     {
-        control.Bind(Control.IsEnabledProperty, new Binding("Idle") { Source = Instances.RootViewModel });
+        control.Bind(Control.IsEnabledProperty, new Binding(nameof(TaskQueueViewModel.Idle)) { Source = viewModel });
     }
 
     private void AddResponsiveBehavior(Grid grid, Control label, Control input)

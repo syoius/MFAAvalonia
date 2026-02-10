@@ -53,7 +53,7 @@ public static class IconHelper
             var uri = new Uri("avares://MFAAvalonia.Core/Assets/logo.ico");
             if (AssetLoader.Exists(uri))
             {
-                var assets = AssetLoader.Open(uri);
+                using var assets = AssetLoader.Open(uri);
                 return new Bitmap(assets);
             }
 

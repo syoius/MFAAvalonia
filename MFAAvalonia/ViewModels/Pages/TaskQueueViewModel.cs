@@ -62,7 +62,10 @@ public partial class TaskQueueViewModel : ViewModelBase
         _liveViewTimer = new System.Timers.Timer();
         _liveViewTimer.Elapsed += OnLiveViewTimerElapsed;
         UpdateLiveViewTimerInterval();
-        _liveViewTimer.Start();
+        if (_enableLiveView)
+        {
+            _liveViewTimer.Start();
+        }
 
         IsRunning = _processorField.TaskQueue.Count > 0;
         _processorField.TaskQueue.CountChanged += OnTaskQueueCountChanged;
@@ -1568,6 +1571,9 @@ public partial class TaskQueueViewModel : ViewModelBase
 
         try
         {
+            if (!EnableLiveView)
+                return;
+
             if (Processor.IsClosed)
                 return;
 
@@ -1588,7 +1594,7 @@ public partial class TaskQueueViewModel : ViewModelBase
             }
             if (!IsLiveViewExpanded)
                 return;
-            if (EnableLiveView && IsConnected)
+            if (IsConnected)
             {
                 var status = Processor.PostScreencap();
                 if (status != MaaJobStatus.Succeeded)
@@ -1611,7 +1617,7 @@ public partial class TaskQueueViewModel : ViewModelBase
             }
             else
             {
-                _ = UpdateLiveViewImageAsync(null);
+                ClearLiveViewImage();
             }
         }
         catch
@@ -1638,6 +1644,16 @@ public partial class TaskQueueViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(IsLiveViewVisible));
         Processor.InstanceConfiguration.SetValue(ConfigurationKeys.EnableLiveView, value);
+        if (value)
+        {
+            UpdateLiveViewTimerInterval();
+            _liveViewTimer.Start();
+        }
+        else
+        {
+            _liveViewTimer.Stop();
+            ClearLiveViewImage();
+        }
     }
 
     partial void OnLiveViewRefreshRateChanged(double value)
@@ -1746,15 +1762,7 @@ public partial class TaskQueueViewModel : ViewModelBase
 
             if (buffer == null)
             {
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    LiveViewImage = null;
-                    _liveViewWriteableBitmap?.Dispose();
-                    _liveViewWriteableBitmap = null;
-                    Array.Fill(_liveViewImageCache, null);
-                    _liveViewImageNewestCount = 0;
-                    _liveViewImageCount = 0;
-                });
+                ClearLiveViewImage();
                 return;
             }
 
@@ -1929,6 +1937,19 @@ public partial class TaskQueueViewModel : ViewModelBase
     public void RequestSetOption(DragItemViewModel item, bool value)
     {
         SetOptionRequested?.Invoke(item, value);
+    }
+
+    private void ClearLiveViewImage()
+    {
+        DispatcherHelper.PostOnMainThread(() =>
+        {
+            LiveViewImage = null;
+            _liveViewWriteableBitmap?.Dispose();
+            _liveViewWriteableBitmap = null;
+            Array.Fill(_liveViewImageCache, null);
+            _liveViewImageNewestCount = 0;
+            _liveViewImageCount = 0;
+        });
     }
 
     [ObservableProperty] private string? _currentConfiguration;
