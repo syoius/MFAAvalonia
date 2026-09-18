@@ -29,7 +29,6 @@ namespace MFAAvalonia.ViewModels.Pages;
 
 public partial class CopilotViewModel : ObservableObject
 {
-    private const string DefaultCopilotTaskName = "✨ 自动抄作业V3";
     // 主备域：当主域不可用时自动回退到备域
     private static readonly string SharePrimaryBase = "https://share.maayuan.top";
     private static readonly string ShareBackupBase = "https://share-backend.maayuan.fun:16666";
@@ -53,6 +52,16 @@ public partial class CopilotViewModel : ObservableObject
 
     private readonly HashSet<MaaProcessor> _resourceLockProcessors = new();
     private TaskQueueViewModel? _resourceLockTaskViewModel;
+
+    private DragItemViewModel? _copilotTask;
+    private MaaInterface? _copilotTaskInterface;
+    private MFAConfiguration? _copilotTaskConfiguration;
+
+    [ObservableProperty]
+    private bool _showSettings;
+
+    [ObservableProperty]
+    private bool _isCommon = true;
 
     private static string GetActiveResourceBase()
     {
@@ -496,59 +505,39 @@ public partial class CopilotViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 将主页任务选择固定为"✨ 自动抄作业V3"，并取消勾选其余任务。
-    /// </summary>
-    private async Task EnsureDefaultTaskSelectedAsync()
+    public DragItemViewModel? GetCopilotTask()
     {
-        try
-        {
-            // 若任务正在运行，避免修改选择
-            if (ActiveTaskViewModel?.IsRunning == true)
-                return;
+        var vm = ActiveTaskViewModel;
+        if (vm == null)
+            return null;
 
-            var vm = ActiveTaskViewModel;
-            if (vm == null)
-            {
-                return;
-            }
-            var items = vm.TaskItemViewModels;
-            // Avoid forcing a full InitializeData() refresh if the task list is already present,
-            // otherwise it can drop in-memory edits made in TaskQueue.
-            if (items == null || items.Count == 0)
-            {
-                ActiveProcessor?.InitializeData();
-                items = vm.TaskItemViewModels;
-            }
-            if (items == null || items.Count == 0)
-                return;
+        var maaInterface = MaaProcessor.Interface;
+        var configuration = ConfigurationManager.GetConfigForInstance(vm.Processor.InstanceId);
+        if (_copilotTask != null
+            && ReferenceEquals(_copilotTask.OwnerViewModel, vm)
+            && ReferenceEquals(_copilotTaskInterface, maaInterface)
+            && ReferenceEquals(_copilotTaskConfiguration, configuration))
+            return _copilotTask;
 
-            // 先全部取消勾选
-            foreach (var it in items)
-                it.IsCheckedWithNull = false;
+        var saved = vm.Processor.InstanceConfiguration.GetValue<MaaInterface.MaaInterfaceTask?>(
+            ConfigurationKeys.CopilotTask, null);
+        var task = CopilotTaskFactory.Create(maaInterface, saved);
+        _copilotTaskInterface = maaInterface;
+        _copilotTaskConfiguration = configuration;
+        _copilotTask = task == null ? null : new DragItemViewModel(task) { OwnerViewModel = vm };
+        return _copilotTask;
+    }
 
-            // 按名称匹配（兼容已本地化的名称）
-            var target = items.FirstOrDefault(i => string.Equals(i.Name, DefaultCopilotTaskName, StringComparison.OrdinalIgnoreCase))
-                         ?? items.FirstOrDefault(i => string.Equals(i.InterfaceItem?.Name, DefaultCopilotTaskName, StringComparison.OrdinalIgnoreCase));
+    public void SaveCopilotTask(DragItemViewModel source)
+    {
+        var vm = source.OwnerViewModel;
+        // Ignore events from controls that belonged to a previous instance/configuration/render.
+        if (vm == null || !ReferenceEquals(source, _copilotTask)
+            || !ReferenceEquals(vm, ActiveTaskViewModel)
+            || !ReferenceEquals(_copilotTaskConfiguration, ConfigurationManager.GetConfigForInstance(vm.Processor.InstanceId)))
+            return;
 
-            if (target != null)
-            {
-                target.IsCheckedWithNull = true; // 三态为 true
-                // 默认展开设置（若在主页查看），这里不强依赖面板，仅保证配置为该任务
-                vm.ShowSettings = false;
-                await Task.CompletedTask;
-                return;
-            }
-
-            // 未命中则写日志但不抛异常，避免阻塞界面
-            LoggerHelper.Warning($"Copilot: 未找到默认任务 '{DefaultCopilotTaskName}'");
-        }
-        catch (Exception ex)
-        {
-            LoggerHelper.Warning($"设置默认任务失败: {ex.Message}");
-        }
-
-        await Task.CompletedTask;
+        vm.Processor.InstanceConfiguration.SetValue(ConfigurationKeys.CopilotTask, source.InterfaceItem?.Clone());
     }
 
     [RelayCommand]
@@ -567,24 +556,18 @@ public partial class CopilotViewModel : ObservableObject
                 vm.StopTask();
                 return Task.CompletedTask;
             }
-            var items = vm.TaskItemViewModels;
-            if (items == null || items.Count == 0)
-            {
-                ToastHelper.Error("默认任务列表为空，无法启动");
-                return Task.CompletedTask;
-            }
-
-            var source = items.FirstOrDefault(i => string.Equals(i.Name, DefaultCopilotTaskName, StringComparison.OrdinalIgnoreCase))
-                         ?? items.FirstOrDefault(i => string.Equals(i.InterfaceItem?.Name, DefaultCopilotTaskName, StringComparison.OrdinalIgnoreCase));
+            var source = GetCopilotTask();
             if (source?.InterfaceItem == null)
             {
-                ToastHelper.Error($"未找到默认任务：{DefaultCopilotTaskName}");
+                ToastHelper.Error($"未找到默认任务：{CopilotTaskFactory.DefaultTaskName}");
                 return Task.CompletedTask;
             }
 
-            var taskClone = source.Clone();
+            SaveCopilotTask(source);
+            // Snapshot only Copilot state; DragItemViewModel.Clone also persists main-page check state.
+            var taskClone = new DragItemViewModel(source.InterfaceItem.Clone()) { OwnerViewModel = vm };
             var taskList = new List<DragItemViewModel> { taskClone };
-            ActiveProcessor?.Start(taskList);
+            vm.Processor.Start(taskList);
         }
         catch (Exception ex)
         {

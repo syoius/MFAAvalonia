@@ -22,6 +22,7 @@ public static class ConfigurationKeys
 
     public const string EnableEdit = "EnableEdit";
     public const string TaskItems = "TaskItems";
+    public const string CopilotTask = "CopilotTask";
     public const string ResourceOptionItems = "ResourceOptionItems";
 
     #endregion
@@ -184,6 +185,7 @@ public static class ConfigurationKeys
     public static readonly HashSet<string> InstanceScopedKeys = new()
     {
         TaskItems,
+        CopilotTask,
         CurrentTasks,
         ResourceOptionItems,
         BeforeTask,

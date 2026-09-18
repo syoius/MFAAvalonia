@@ -57,7 +57,8 @@ public partial class CopilotView : UserControl
     private const double TopToolbarCompactWidthThreshold = 980;
     private bool _isTopToolbarCompact;
     private TaskQueueViewModel? _currentTaskViewModel;
-    private ObservableCollection<DragItemViewModel>? _currentTaskItems;
+    private ObservableCollection<DragItemViewModel>? _currentTaskDefinitions;
+    private DragItemViewModel? _renderedCopilotTask;
     private bool _isSettingsRenderQueued;
     private bool _isCopilotRefreshQueued;
     public CopilotView()
@@ -111,25 +112,25 @@ public partial class CopilotView : UserControl
             _currentTaskViewModel.PropertyChanged += OnTaskQueueViewModelPropertyChanged;
         }
 
-        HookTaskItemsCollection(_currentTaskViewModel);
+        HookTaskDefinitions(_currentTaskViewModel);
     }
 
-    private void HookTaskItemsCollection(TaskQueueViewModel? viewModel)
+    private void HookTaskDefinitions(TaskQueueViewModel? viewModel)
     {
-        if (_currentTaskItems != null)
+        if (_currentTaskDefinitions != null)
         {
-            _currentTaskItems.CollectionChanged -= OnTaskItemsCollectionChanged;
+            _currentTaskDefinitions.CollectionChanged -= OnTaskDefinitionsChanged;
         }
 
-        _currentTaskItems = viewModel?.TaskItemViewModels;
+        _currentTaskDefinitions = viewModel?.Processor.TasksSource;
 
-        if (_currentTaskItems != null)
+        if (_currentTaskDefinitions != null)
         {
-            _currentTaskItems.CollectionChanged += OnTaskItemsCollectionChanged;
+            _currentTaskDefinitions.CollectionChanged += OnTaskDefinitionsChanged;
         }
     }
 
-    private void OnTaskItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    private void OnTaskDefinitionsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         QueueRenderDefaultTaskSettings();
     }
@@ -429,34 +430,20 @@ public partial class CopilotView : UserControl
     }
 
     /// <summary>
-    /// 对齐主页“连接”区域的动态布局逻辑，避免控件在不同宽度下重叠。
+    /// 使用 Copilot 独立的任务状态渲染设置。
     /// </summary>
     private async Task RenderDefaultTaskSettingsAsync()
     {
-        // 等待 Task 列表就绪
+        // 仅等待资源定义就绪，不依赖主页是否添加了同名任务。
         for (int i = 0; i < 20; i++)
         {
-            var items = ActiveTaskViewModel?.TaskItemViewModels;
-            if (items != null && items.Count > 0)
+            if (MaaProcessor.Interface?.Task != null)
                 break;
             await Task.Delay(100);
         }
 
         try
         {
-            var items = ActiveTaskViewModel?.TaskItemViewModels;
-            if (items == null || items.Count == 0) return;
-
-            // 仅获取“✨ 自动抄作业V3”
-            var name = "✨ 自动抄作业V3";
-            var dragItem = items.FirstOrDefault(i => string.Equals(i.Name, name, StringComparison.OrdinalIgnoreCase))
-                           ?? items.FirstOrDefault(i => string.Equals(i.InterfaceItem?.Name, name, StringComparison.OrdinalIgnoreCase));
-            if (dragItem == null)
-            {
-                LoggerHelper.Warning($"Copilot: 未找到默认任务 '{name}' 用于渲染设置");
-                return;
-            }
-
             // 获取面板控件（容错）
             var commonPanel = CopilotCommonOptionSettings ?? this.FindControl<StackPanel>("CopilotCommonOptionSettings");
             var advancedPanel = CopilotAdvancedOptionSettings ?? this.FindControl<StackPanel>("CopilotAdvancedOptionSettings");
@@ -468,8 +455,20 @@ public partial class CopilotView : UserControl
             }
 
             // 清空面板
+            _renderedCopilotTask = null;
             commonPanel.Children.Clear();
             advancedPanel.Children.Clear();
+
+            var vm = DataContext as CopilotViewModel;
+            if (vm == null) return;
+            vm.ShowSettings = false;
+            var dragItem = vm.GetCopilotTask();
+            if (dragItem == null)
+            {
+                LoggerHelper.Warning($"Copilot: 未找到默认任务 '{CopilotTaskFactory.DefaultTaskName}' 用于渲染设置");
+                return;
+            }
+            _renderedCopilotTask = dragItem;
 
             // 渲染通用与高级设置
             CopilotAddRepeatOption(commonPanel, dragItem);
@@ -484,18 +483,13 @@ public partial class CopilotView : UserControl
             {
                 foreach (var option in dragItem.InterfaceItem.Advanced)
                 {
-                    CopilotAddAdvancedOption(advancedPanel, option);
+                    CopilotAddAdvancedOption(advancedPanel, option, dragItem);
                 }
             }
 
             // 是否显示“通用/高级”切换
             var hasAny = (dragItem.InterfaceItem?.Advanced?.Count > 0) == true || (dragItem.InterfaceItem?.Option?.Count > 0) == true || dragItem.InterfaceItem?.Repeatable == true;
-            var taskVm = ActiveTaskViewModel;
-            if (taskVm != null)
-            {
-                taskVm.ShowSettings = hasAny;
-                taskVm.IsCommon = true;
-            }
+            vm.ShowSettings = hasAny;
 
             // 渲染说明：首次进入强制显示默认说明，不展示默认任务的 doc
             introView.Markdown = DefaultCopilotIntro;
@@ -576,16 +570,10 @@ public partial class CopilotView : UserControl
         }
     }
 
-    private void CopilotSaveConfiguration()
+    private void CopilotSaveConfiguration(DragItemViewModel source)
     {
-        var taskVm = ActiveTaskViewModel;
-        if (taskVm == null)
-        {
-            return;
-        }
-
-        taskVm.Processor.InstanceConfiguration.SetValue(ConfigurationKeys.TaskItems,
-            taskVm.TaskItemViewModels.Select(m => m.InterfaceItem));
+        if (ReferenceEquals(source, _renderedCopilotTask))
+            (DataContext as CopilotViewModel)?.SaveCopilotTask(source);
     }
 
     private void CopilotAddRepeatOption(Panel panel, DragItemViewModel source)
@@ -625,7 +613,7 @@ public partial class CopilotView : UserControl
         numericUpDown.ValueChanged += (_, _) =>
         {
             source.InterfaceItem.RepeatCount = Convert.ToInt32(numericUpDown.Value);
-            CopilotSaveConfiguration();
+            CopilotSaveConfiguration(source);
         };
         Grid.SetColumn(numericUpDown, 1);
         grid.SizeChanged += (sender, e) =>
@@ -660,7 +648,7 @@ public partial class CopilotView : UserControl
         panel.Children.Add(grid);
     }
 
-    private void CopilotAddAdvancedOption(Panel panel, MaaInterface.MaaInterfaceSelectAdvanced option)
+    private void CopilotAddAdvancedOption(Panel panel, MaaInterface.MaaInterfaceSelectAdvanced option, DragItemViewModel source)
     {
         if (MaaProcessor.Interface?.Advanced?.TryGetValue(option.Name, out var interfaceOption) != true) return;
         for (int i = 0; interfaceOption.Field != null && i < interfaceOption.Field.Count; i++)
@@ -724,7 +712,7 @@ public partial class CopilotView : UserControl
                 }
                 option.Data[field] = autoCompleteBox.Text;
                 option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
-                CopilotSaveConfiguration();
+                CopilotSaveConfiguration(source);
             };
             autoCompleteBox.SelectionChanged += (_, _) =>
             {
@@ -733,7 +721,7 @@ public partial class CopilotView : UserControl
                     autoCompleteBox.Text = selectedText;
                     option.Data[field] = selectedText;
                     option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data);
-                    CopilotSaveConfiguration();
+                    CopilotSaveConfiguration(source);
                 }
             };
             Grid.SetColumn(autoCompleteBox, 1);
@@ -807,7 +795,7 @@ public partial class CopilotView : UserControl
         if (option.Index == null)
         {
             option.Index = noValue;
-            CopilotSaveConfiguration();
+            CopilotSaveConfiguration(source);
         }
         
         var button = new ToggleSwitch
@@ -821,7 +809,7 @@ public partial class CopilotView : UserControl
             VerticalAlignment = VerticalAlignment.Center
         };
         button.Bind(IsEnabledProperty, new Binding("ActiveTab.TaskQueueViewModel.Idle") { Source = Instances.InstanceTabBarViewModel });
-        button.IsCheckedChanged += (_, _) => { option.Index = button.IsChecked == true ? yesValue : noValue; CopilotSaveConfiguration(); };
+        button.IsCheckedChanged += (_, _) => { option.Index = button.IsChecked == true ? yesValue : noValue; CopilotSaveConfiguration(source); };
         button.SetValue(ToolTip.TipProperty, LanguageHelper.GetLocalizedString(option.Name));
         var textBlock = new TextBlock
         {
@@ -856,7 +844,7 @@ public partial class CopilotView : UserControl
         if (option.Index == null)
         {
             option.Index = 0;
-            CopilotSaveConfiguration();
+            CopilotSaveConfiguration(source);
         }
         
         var grid = new Grid
@@ -889,7 +877,7 @@ public partial class CopilotView : UserControl
         combo.Bind(IsEnabledProperty, new Binding("ActiveTab.TaskQueueViewModel.Idle") { Source = Instances.InstanceTabBarViewModel });
         combo.HorizontalContentAlignment = HorizontalAlignment.Stretch;
         combo.Padding = new Thickness(2, 0, 2, 0);
-        combo.SelectionChanged += (_, _) => { option.Index = combo.SelectedIndex; CopilotSaveConfiguration(); };
+        combo.SelectionChanged += (_, _) => { option.Index = combo.SelectedIndex; CopilotSaveConfiguration(source); };
         ComboBoxExtensions.SetDisableNavigationOnLostFocus(combo, true);
         Grid.SetColumn(combo, 1);
         var textBlock = new TextBlock
@@ -977,6 +965,7 @@ public partial class CopilotView : UserControl
 
     private void OnTopToolbarUnloaded(object? sender, RoutedEventArgs e)
     {
+        _renderedCopilotTask = null;
         if (TopToolbar == null)
         {
             return;
@@ -989,9 +978,9 @@ public partial class CopilotView : UserControl
             _currentTaskViewModel.PropertyChanged -= OnTaskQueueViewModelPropertyChanged;
         }
 
-        if (_currentTaskItems != null)
+        if (_currentTaskDefinitions != null)
         {
-            _currentTaskItems.CollectionChanged -= OnTaskItemsCollectionChanged;
+            _currentTaskDefinitions.CollectionChanged -= OnTaskDefinitionsChanged;
         }
 
         Instances.InstanceTabBarViewModel.PropertyChanged -= OnInstanceTabBarPropertyChanged;
@@ -1007,13 +996,6 @@ public partial class CopilotView : UserControl
         if (e.PropertyName == nameof(TaskQueueViewModel.CurrentController))
         {
             UpdateDeviceColumns();
-            return;
-        }
-
-        if (e.PropertyName == nameof(TaskQueueViewModel.TaskItemViewModels))
-        {
-            HookTaskItemsCollection(_currentTaskViewModel);
-            QueueRenderDefaultTaskSettings();
             return;
         }
 

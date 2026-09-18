@@ -30,6 +30,8 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         ref bool firstTask,
         IList<DragItemViewModel>? oldDrags = null)
     {
+        // Keep interface definitions separate from editable task state, including Copilot's defaults.
+        tasks = tasks.Select(task => task.Clone()).ToList();
         var instanceConfig = taskQueueViewModel.Processor.InstanceConfiguration;
         var currentTasks = instanceConfig.GetValue(ConfigurationKeys.CurrentTasks, new List<string>());
         if (currentTasks.Any(t => t.Contains(OLD_SEPARATOR) && !t.Contains(NEW_SEPARATOR)))
