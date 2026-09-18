@@ -309,8 +309,8 @@ public partial class CopilotView : UserControl
         try
         {
             // 主域与备用域
-            var primary = "https://share.maayuan.top/";
-            var backup = "https://share.maayuan.fun:16666/";
+            var primary = "https://share.maayuan.com/";
+            var backup = "https://share.maayuan.top/";
             // 快速探测主域可用性（短超时，避免阻塞）
             var openUrl = primary;
             try

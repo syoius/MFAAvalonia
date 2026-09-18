@@ -73,7 +73,7 @@ public partial class RecordTaskViewModel : ObservableObject
         "额外:左侧目标", "额外:右侧目标"
     ];
 
-    private const string SimingExportApiUrl = "https://share.maayuan.top/simingapi/api/export";
+    private const string SimingExportApiUrl = "https://share.maayuan.com/simingapi/api/export";
     private static string CopilotCacheDir => Path.Combine(MaaProcessor.Resource, "copilot-cache");
     private static string RecordingsDir => Path.Combine(MaaProcessor.Resource, "recordings");
     private static string LegacyRecordingsDir => Path.Combine(CopilotCacheDir, "recordings");

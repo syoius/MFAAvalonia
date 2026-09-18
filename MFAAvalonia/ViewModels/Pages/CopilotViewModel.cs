@@ -30,8 +30,8 @@ namespace MFAAvalonia.ViewModels.Pages;
 public partial class CopilotViewModel : ObservableObject
 {
     // 主备域：当主域不可用时自动回退到备域
-    private static readonly string SharePrimaryBase = "https://share.maayuan.top";
-    private static readonly string ShareBackupBase = "https://share-backend.maayuan.fun:16666";
+    private static readonly string SharePrimaryBase = "https://share.maayuan.com";
+    private static readonly string ShareBackupBase = "https://share.maayuan.top";
 
     private static string ResourceRoot => MaaProcessor.Resource; // 资源根目录（与 base/pipeline 同级）
     private static string ResourceBase => MaaProcessor.ResourceBase; // 简中基准资源，用于缓存与默认路径
