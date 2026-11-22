@@ -1119,6 +1119,7 @@ public class MaaProcessor
             maaResource = await TaskManager.RunTaskAsync(() =>
             {
                 token.ThrowIfCancellationRequested();
+                CopilotJobFormat.QuarantineInvalidActiveJobs(resources, message => AddLog(message, Brushes.Orange, changeColor: false));
                 return new MaaResource(resources);
             }, token: token, name: "资源检测", catchException: true, shouldLog: false, handleError: exception =>
             {

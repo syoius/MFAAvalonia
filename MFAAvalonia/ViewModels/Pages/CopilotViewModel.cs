@@ -612,6 +612,7 @@ public partial class CopilotViewModel : ObservableObject
 
         var subDirs = Directory.EnumerateDirectories(directory)
             .Where(d => !string.Equals(Path.GetFileName(d), "recordings", StringComparison.OrdinalIgnoreCase))
+            .Where(d => !Path.GetFileName(d).StartsWith('_'))
             .OrderBy(d => Path.GetFileName(d), StringComparer.OrdinalIgnoreCase);
 
         foreach (var dir in subDirs)
@@ -653,19 +654,70 @@ public partial class CopilotViewModel : ObservableObject
     public async Task ImportLocalJsonAsync(string? path)
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
-        EnsureDirs();
         try
         {
             var name = Path.GetFileName(path);
-            var dest = UniquePath(Path.Combine(CopilotCacheDir, name));
-            File.Copy(path, dest, false);
-            ToastHelper.Success($"已导入：{Path.GetFileName(dest)}");
+            var raw = await File.ReadAllTextAsync(path, Encoding.UTF8);
+            if (CopilotJobFormat.Parse(raw) is not JsonObject job)
+            {
+                ToastHelper.Error("不是有效的作业文件，未导入");
+                return;
+            }
+
+            if (CopilotJobFormat.IsRecording(job))
+            {
+                var converted = await ConvertRecordingAsync(raw, job, name);
+                if (converted is not { } result) return;
+
+                EnsureDirs();
+                var dest = RecordTaskViewModel.UniquePath(Path.Combine(CopilotCacheDir, result.FileName));
+                await File.WriteAllTextAsync(dest, result.CacheJson, new UTF8Encoding(false));
+                ToastHelper.Success($"已识别为录制文件，已转换后导入：{Path.GetFileName(dest)}");
+            }
+            else if (CopilotJobFormat.GetPipeline(job) != null)
+            {
+                EnsureDirs();
+                var dest = UniquePath(Path.Combine(CopilotCacheDir, name));
+                File.Copy(path, dest, false);
+                ToastHelper.Success($"已导入：{Path.GetFileName(dest)}");
+            }
+            else
+            {
+                ToastHelper.Error("不是有效的作业文件，未导入");
+                return;
+            }
+
             await RefreshAsync();
         }
         catch (Exception ex)
         {
             LoggerHelper.Error(ex);
             ToastHelper.Error("本地导入失败");
+        }
+    }
+
+    private static async Task<(string CacheJson, JsonObject Pipeline, string FileName)?> ConvertRecordingAsync(
+        string raw, JsonObject recording, string fileName)
+    {
+        try
+        {
+            var title = recording["level_name"] is JsonValue value &&
+                        value.TryGetValue<string>(out var levelName) && !string.IsNullOrWhiteSpace(levelName)
+                ? levelName
+                : Path.GetFileNameWithoutExtension(fileName);
+            var result = await RecordTaskViewModel.CallSimingExportAsync(raw);
+            var cacheJson = RecordTaskViewModel.BuildCopilotCacheJobJson(title, result.Actions)
+                .ToString(Newtonsoft.Json.Formatting.Indented);
+            if (CopilotJobFormat.Parse(cacheJson) is not JsonObject job || CopilotJobFormat.GetPipeline(job) is not { } pipeline)
+                throw new InvalidOperationException("simingapi/export content 不是有效的 pipeline");
+
+            return (cacheJson, pipeline, RecordTaskViewModel.SanitizeJobFileName(result.FileName, title));
+        }
+        catch (Exception ex)
+        {
+            LoggerHelper.Error(ex);
+            ToastHelper.Error("录制文件转换失败，请检查网络后重试");
+            return null;
         }
     }
 
@@ -1263,8 +1315,10 @@ public partial class CopilotViewModel : ObservableObject
 
     public async Task LoadSelectedAsync()
     {
-        if (SelectedFile == null) { ToastHelper.Warn("请选择要加载的作业"); return; }
-        if (ActiveTaskViewModel?.IsRunning == true)
+        var selectedFile = SelectedFile;
+        if (selectedFile == null) { ToastHelper.Warn("请选择要加载的作业"); return; }
+        var taskViewModel = ActiveTaskViewModel;
+        if (taskViewModel?.IsRunning == true)
         {
             ToastHelper.Warn("任务运行中，停止后再加载");
             return;
@@ -1274,47 +1328,96 @@ public partial class CopilotViewModel : ObservableObject
             ToastHelper.Warn("同资源运行中，无法切换作业");
             return;
         }
-        EnsureDirs();
+        var activeDir = CopilotActiveDir;
+        string? stagedCache = null;
+        string? stagedActive = null;
         try
         {
-            // 清理 copilot 目录：仅保留 copilot_config.json，其余 *.json/*.jsonc 删除
-            ClearCopilotActiveDir();
-            var dest = Path.Combine(CopilotActiveDir, SelectedFile.Name);
-            // 若缓存文件为"完整 content"，则仅将其中的 actions 写入引擎目录，避免不兼容的元字段（如 difficulty 数字）
-            try
+            var raw = await File.ReadAllTextAsync(selectedFile.FullPath, Encoding.UTF8);
+            if (CopilotJobFormat.Parse(raw) is not JsonObject job ||
+                selectedFile.Name.Equals("copilot_config.json", StringComparison.OrdinalIgnoreCase))
             {
-                var raw = await File.ReadAllTextAsync(SelectedFile.FullPath, Encoding.UTF8);
-                JsonNode? node = null;
-                try { node = JsonNode.Parse(raw); } catch { node = null; }
-                if (node is JsonObject rootObj && rootObj["actions"] is JsonObject actionsObj)
-                {
-                    var prettyActions = actionsObj.ToJsonString(new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-                    await File.WriteAllTextAsync(dest, prettyActions, new UTF8Encoding(false));
-                }
-                else
-                {
-                    // 兼容旧文件（直接为 actions 映射或其他合法格式）
-                    await File.WriteAllTextAsync(dest, raw, new UTF8Encoding(false));
-                }
+                ToastHelper.Error("不是有效的作业文件，未加载");
+                return;
             }
-            catch
-            {
-                // 回退为直接复制
-                File.Copy(SelectedFile.FullPath, dest, true);
-            }
-            // 重载资源
-            var ok = ReloadResourcesForCopilot();
-            if (ok) ToastHelper.Success("已加载到资源并刷新");
-            else ToastHelper.Error("资源重载失败");
 
-            // 更新当前激活文本
-            ActiveJob = SelectedFile.DisplayName;
+            JsonObject? pipeline;
+            if (CopilotJobFormat.IsRecording(job))
+            {
+                var converted = await ConvertRecordingAsync(raw, job, selectedFile.Name);
+                if (converted is not { } result) return;
+
+                stagedCache = $"{selectedFile.FullPath}.{Guid.NewGuid():N}.tmp";
+                await File.WriteAllTextAsync(stagedCache, result.CacheJson, new UTF8Encoding(false));
+                pipeline = result.Pipeline;
+            }
+            else
+            {
+                pipeline = CopilotJobFormat.GetPipeline(job);
+            }
+
+            if (pipeline == null)
+            {
+                ToastHelper.Error("不是有效的作业文件，未加载");
+                return;
+            }
+
+            var pipelineJson = pipeline.ToJsonString(new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+            Directory.CreateDirectory(activeDir);
+            var dest = Path.Combine(activeDir, selectedFile.Name);
+            stagedActive = $"{dest}.{Guid.NewGuid():N}.tmp";
+            await File.WriteAllTextAsync(stagedActive, pipelineJson, new UTF8Encoding(false));
+
+            // 转换期间可能切换实例、资源或启动任务，写入前重新检查。
+            if (!ReferenceEquals(SelectedFile, selectedFile) || !ReferenceEquals(ActiveTaskViewModel, taskViewModel) ||
+                !string.Equals(CopilotActiveDir, activeDir, StringComparison.Ordinal))
+                return;
+
+            RefreshResourceLockState();
+            if (taskViewModel?.IsRunning == true || IsCopilotResourceLocked)
+            {
+                ToastHelper.Warn("同资源运行中，无法切换作业");
+                return;
+            }
+
+            if (stagedCache != null)
+                File.Move(stagedCache, selectedFile.FullPath, overwrite: true);
+
+            ClearCopilotActiveDir();
+            File.Move(stagedActive, dest, overwrite: true);
+            if (!ReloadResourcesForCopilot())
+            {
+                ClearCopilotActiveDir();
+                ReloadResourcesForCopilot();
+                await UpdateActiveJobFromDiskAsync();
+                ToastHelper.Error("该作业与当前资源不兼容，已撤销加载");
+                return;
+            }
+
+            ActiveJob = selectedFile.DisplayName;
+            ToastHelper.Success("已加载到资源并刷新");
         }
         catch (Exception ex)
         {
             LoggerHelper.Error(ex);
             ToastHelper.Error("加载失败");
         }
+        finally
+        {
+            DeleteStagedJob(stagedCache);
+            DeleteStagedJob(stagedActive);
+        }
+    }
+
+    private static void DeleteStagedJob(string? path)
+    {
+        if (path == null) return;
+        try { File.Delete(path); }
+        catch (Exception ex) { LoggerHelper.Warning($"清理作业暂存文件失败：{path}，{ex.Message}"); }
     }
 
     public async Task UnloadActiveJobAsync()
