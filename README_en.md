@@ -181,6 +181,14 @@ MaaFramework project templates come with MFAAvalonia pre-configured.
 |:--|:--|:--|
 | `uuid` | string | Optional. Target app bundle identifier, default `maa.playcover` |
 
+### Global Resource Options
+
+`resource[].option` lists names from the top-level `option` definitions. On desktop, top-level `type: "input"` options appear below the controller bar. Other options remain in resource settings at the top of the task list.
+
+Input values are saved in the current instance's configuration. Editing a resource input also saves its value for any resource in that instance that declares the same top-level input option.
+
+Set the optional `"secret": true` on an `inputs[]` entry to mask the value by default and provide a show/hide button. The default is `false`. Input values are saved in the existing configuration format.
+
 ### Task Configuration Details
 
 #### External Notifications

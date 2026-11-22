@@ -3404,22 +3404,14 @@ public class MaaProcessor
     /// </summary>
     private void MergeResourceOptionParams(ref MaaToken taskModels)
     {
-        // 获取当前资源
-        var currentResourceName = ViewModel?.CurrentResource;
-        var currentResource = ViewModel?.CurrentResources
-            .FirstOrDefault(r => r.Name == currentResourceName);
-
-        if (currentResource?.SelectOptions == null || currentResource.SelectOptions.Count == 0)
+        var viewModel = ViewModel;
+        if (viewModel?.CurrentResourceOptions is not { Count: > 0 })
             return;
 
-        // 查找任务列表中的资源设置项，获取用户选择的值
-        var resourceOptionItem = ViewModel?.TaskItemViewModels
-            .FirstOrDefault(t => t.IsResourceOptionItem && t.ResourceItem?.Name == currentResourceName);
-
-        var selectOptions = resourceOptionItem?.ResourceItem?.SelectOptions ?? currentResource.SelectOptions;
-
-        // 处理资源的全局选项
-        ProcessOptions(ref taskModels, selectOptions);
+        var options = DispatcherHelper.RunOnMainThread(() =>
+            viewModel.CurrentResourceOptions?.Select(TaskLoader.CloneResourceOption).ToList());
+        if (options is { Count: > 0 })
+            ProcessOptions(ref taskModels, options);
     }
 
     private void InitializeConnectionTasksAsync(CancellationToken token)

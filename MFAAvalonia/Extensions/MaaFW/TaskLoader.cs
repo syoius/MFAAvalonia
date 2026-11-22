@@ -60,7 +60,7 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
 
         if (firstTask)
         {
-            InitializeResources();
+            DispatcherHelper.RunOnMainThread(InitializeResources);
             firstTask = false;
         }
 
@@ -69,7 +69,7 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         
         updateList.RemoveAll(d => removeList.Contains(d));
 
-        UpdateViewModels(updateList, tasks, tasksSource);
+        UpdateViewModels(updateList, tasks, tasksSource, reloadResourceOptions: oldDrags == null);
     }
 
     private void InitializeResources()
@@ -95,8 +95,6 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
         foreach (var resource in filteredResources)
         {
             resource.InitializeDisplayName();
-            // 初始化资源的 SelectOptions
-            InitializeResourceSelectOptions(resource, maaInterface, taskQueueViewModel.Processor.InstanceConfiguration);
         }
         taskQueueViewModel.CurrentResources = new ObservableCollection<MaaInterface.MaaInterfaceResource>(filteredResources);
         taskQueueViewModel.CurrentResource = instanceConfig.GetValue(ConfigurationKeys.Resource, string.Empty);
@@ -104,104 +102,58 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
             taskQueueViewModel.CurrentResource = taskQueueViewModel.CurrentResources[0].Name ?? "Default";
     }
 
-    /// <summary>
-    /// 初始化资源的 SelectOptions（从 Option 字符串列表转换为 MaaInterfaceSelectOption 列表）
-    /// 只初始化顶级选项，子选项会在运行时由 UpdateSubOptions 动态创建
-    /// 会保留已有的值并从配置中恢复保存的值
-    /// </summary>
-    public static void InitializeResourceSelectOptions(MaaInterface.MaaInterfaceResource resource, MaaInterface? maaInterface, InstanceConfiguration config)
+    internal static List<MaaInterface.MaaInterfaceSelectOption> CreateResourceOptions(
+        MaaInterface.MaaInterfaceResource resource,
+        MaaInterface maaInterface,
+        List<MaaInterface.MaaInterfaceSelectOption>? savedOptions)
     {
-        if (resource.Option == null || resource.Option.Count == 0)
-        {
-            resource.SelectOptions = null;
-            return;
-        }
+        if (resource.Option is not { Count: > 0 } optionNames) return [];
 
         // 收集所有子选项名称（这些选项不应该在顶级初始化）
         var subOptionNames = new HashSet<string>();
-        foreach (var optionName in resource.Option)
+        foreach (var optionName in optionNames)
         {
-            if (maaInterface?.Option?.TryGetValue(optionName, out var interfaceOption) == true)
+            if (maaInterface.Option?.TryGetValue(optionName, out var interfaceOption) == true
+                && interfaceOption.Cases != null)
             {
-                if (interfaceOption.Cases != null)
+                foreach (var caseOption in interfaceOption.Cases)
                 {
-                    foreach (var caseOption in interfaceOption.Cases)
-                    {
-                        if (caseOption.Option != null)
-                        {
-                            foreach (var subOptionName in caseOption.Option)
-                            {
-                                subOptionNames.Add(subOptionName);
-                            }
-                        }
-                    }
+                    if (caseOption.Option != null)
+                        subOptionNames.UnionWith(caseOption.Option);
                 }
             }
         }
 
-        // 获取已保存的配置
-        var savedResourceOptions = config.GetValue(
-            ConfigurationKeys.ResourceOptionItems,
-            new Dictionary<string, List<MaaInterface.MaaInterfaceSelectOption>>());
-
-        Dictionary<string, MaaInterface.MaaInterfaceSelectOption>? savedDict = null;
-        if (savedResourceOptions.TryGetValue(resource.Name ?? string.Empty, out var savedOptions) && savedOptions != null)
-        {
-            savedDict = savedOptions.ToDictionary(o => o.Name ?? string.Empty);
-        }
-
-        // 保留已有的 SelectOptions 值
-        var existingDict = resource.SelectOptions?.ToDictionary(o => o.Name ?? string.Empty)
-            ?? new Dictionary<string, MaaInterface.MaaInterfaceSelectOption>();
-
-        // 只初始化顶级选项（不是子选项的选项）
-        resource.SelectOptions = resource.Option
+        return optionNames
             .Where(optionName => !subOptionNames.Contains(optionName))
+            .Distinct()
             .Select(optionName =>
             {
-                // 优先使用已有的值（保留运行时的修改）
-                if (existingDict.TryGetValue(optionName, out var existingOpt))
-                {
-                    return existingOpt;
-                }
+                var savedOption = savedOptions?.FirstOrDefault(option => option.Name == optionName);
+                if (savedOption != null) return CloneResourceOption(savedOption);
 
-                // 其次使用配置中保存的值
-                if (savedDict?.TryGetValue(optionName, out var savedOpt) == true)
-                {
-                    // 克隆保存的选项，避免引用问题
-                    var clonedOpt = new MaaInterface.MaaInterfaceSelectOption
-                    {
-                        Name = savedOpt.Name,
-                        Index = savedOpt.Index,
-                        Data = savedOpt.Data != null ? new Dictionary<string, string?>(savedOpt.Data) : null,
-                        SubOptions = savedOpt.SubOptions != null ? CloneSubOptions(savedOpt.SubOptions) : null
-                    };
-                    return clonedOpt;
-                }
-
-                // 最后创建新的并设置默认值
-                var selectOption = new MaaInterface.MaaInterfaceSelectOption
-                {
-                    Name = optionName
-                };
+                var selectOption = new MaaInterface.MaaInterfaceSelectOption { Name = optionName };
                 SetDefaultOptionValue(maaInterface, selectOption);
                 return selectOption;
             }).ToList();
     }
 
-    /// <summary>
-    /// 克隆子选项列表
-    /// </summary>
-    private static List<MaaInterface.MaaInterfaceSelectOption> CloneSubOptions(List<MaaInterface.MaaInterfaceSelectOption> subOptions)
+    internal static MaaInterface.MaaInterfaceSelectOption CloneResourceOption(MaaInterface.MaaInterfaceSelectOption option)
     {
-        return subOptions.Select(opt => new MaaInterface.MaaInterfaceSelectOption
+        return new MaaInterface.MaaInterfaceSelectOption
         {
-            Name = opt.Name,
-            Index = opt.Index,
-            Data = opt.Data != null ? new Dictionary<string, string?>(opt.Data) : null,
-            SubOptions = opt.SubOptions != null ? CloneSubOptions(opt.SubOptions) : null
-        }).ToList();
+            Name = option.Name,
+            Index = option.Index,
+            Data = option.Data != null ? new Dictionary<string, string?>(option.Data) : null,
+            SubOptions = option.SubOptions?.Select(CloneResourceOption).ToList()
+        };
     }
+
+    internal static bool IsInlineResourceOption(MaaInterface.MaaInterfaceSelectOption option) =>
+        !OperatingSystem.IsAndroid()
+        && MaaProcessor.Interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var definition) == true
+        && definition.IsInput;
+
     /// <summary>
     /// 获取当前控制器的名称
     /// </summary>
@@ -449,144 +401,33 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
 
     }
 
-    private void UpdateViewModels(IList<DragItemViewModel> drags, List<MaaInterface.MaaInterfaceTask> tasks, ObservableCollection<DragItemViewModel> tasksSource)
+    private void UpdateViewModels(IList<DragItemViewModel> drags, List<MaaInterface.MaaInterfaceTask> tasks,
+        ObservableCollection<DragItemViewModel> tasksSource, bool reloadResourceOptions)
     {
         var newItems = tasks.Select(t => new DragItemViewModel(t) { OwnerViewModel = taskQueueViewModel }).ToList();
-        foreach (var item in newItems)
+        if (drags.Count == 0)
         {
-            if (item.InterfaceItem?.Option != null && !drags.Any())
-                item.InterfaceItem.Option.ForEach(option => SetDefaultOptionValue(maaInterface, option));
-        }
-
-        // 检查当前资源是否有全局选项配置
-        var currentResourceName = taskQueueViewModel.CurrentResource;
-        var currentResource = taskQueueViewModel.CurrentResources
-            .FirstOrDefault(r => r.Name == currentResourceName);
-
-        // 创建最终的任务列表
-        var finalItems = new List<DragItemViewModel>();
-        
-        // 如果当前资源有 option 配置，在最前面添加资源设置项
-        if (currentResource?.Option is {Count: > 0})
-        {
-            var resourceOptionItem = CreateResourceOptionItem(currentResource, drags);
-            if (resourceOptionItem != null)
-            {
-                finalItems.Add(resourceOptionItem);
-            }
-        }
-
-        // 添加普通任务项
-        if (drags.Any())
-        {
-            // 过滤掉已存在的资源设置项，避免重复
-            finalItems.AddRange(drags.Where(d => !d.IsResourceOptionItem));
-        }
-        else
-        {
-            finalItems.AddRange(newItems);
+            foreach (var item in newItems)
+                item.InterfaceItem?.Option?.ForEach(option => SetDefaultOptionValue(maaInterface, option));
         }
 
         // UI 线程更新集合，确保 TaskList 刷新
         DispatcherHelper.RunOnMainThread(() =>
         {
+            if (reloadResourceOptions)
+                taskQueueViewModel.ResetResourceOptions();
+
             tasksSource.Clear();
             foreach (var item in newItems) tasksSource.Add(item);
 
+            var resourceItem = taskQueueViewModel.TaskItemViewModels.FirstOrDefault(item => item.IsResourceOptionItem);
             taskQueueViewModel.TaskItemViewModels.Clear();
-            foreach (var item in finalItems)
-            {
+            if (resourceItem != null)
+                taskQueueViewModel.TaskItemViewModels.Add(resourceItem);
+            foreach (var item in (drags.Count > 0 ? drags : newItems).Where(item => !item.IsResourceOptionItem))
                 taskQueueViewModel.TaskItemViewModels.Add(item);
-            }
 
-            // 根据当前资源更新任务的可见性
-            taskQueueViewModel.UpdateTasksForResource(currentResourceName);
+            taskQueueViewModel.UpdateTasksForResource(taskQueueViewModel.CurrentResource);
         });
-    }
-
-    /// <summary>
-    /// 创建资源全局选项的任务项
-    /// </summary>
-    private DragItemViewModel? CreateResourceOptionItem(MaaInterface.MaaInterfaceResource resource, IList<DragItemViewModel>? existingDrags)
-    {
-        if (resource.Option == null || resource.Option.Count == 0)
-            return null;
-
-        // 从配置中加载已保存的资源选项
-        var savedResourceOptions = taskQueueViewModel.Processor.InstanceConfiguration.GetValue(
-            ConfigurationKeys.ResourceOptionItems,
-            new Dictionary<string, List<MaaInterface.MaaInterfaceSelectOption>>());
-
-        // 检查是否已经存在对应的资源设置项
-        var existingResourceItem = existingDrags?.FirstOrDefault(d =>
-            d.IsResourceOptionItem && d.ResourceItem?.Name == resource.Name);
-
-        if (existingResourceItem != null)
-        {
-            // 更新已存在的资源设置项的 SelectOptions
-            if (resource.SelectOptions != null && existingResourceItem.ResourceItem != null)
-            {
-                // 合并已保存的选项值
-                MergeResourceSelectOptions(existingResourceItem.ResourceItem, resource);
-            }
-            return existingResourceItem;
-        }
-
-        // 如果配置中有保存的选项值，恢复它们
-        if (savedResourceOptions.TryGetValue(resource.Name ?? string.Empty, out var savedOptions) && savedOptions != null)
-        {
-            // 恢复配置中保存的选项值到 resource.SelectOptions
-            if (resource.SelectOptions != null)
-            {
-                var savedDict = savedOptions.ToDictionary(o => o.Name ?? string.Empty);
-                foreach (var opt in resource.SelectOptions)
-                {
-                    if (savedDict.TryGetValue(opt.Name ?? string.Empty, out var savedOpt))
-                    {
-                        opt.Index = savedOpt.Index;
-                        opt.Data = savedOpt.Data;
-                        opt.SubOptions = savedOpt.SubOptions;
-                    }
-                }
-            }
-        }
-
-        // 创建新的资源设置项
-        var resourceItem = new DragItemViewModel(resource) { OwnerViewModel = taskQueueViewModel };
-
-        // 设置 IsVisible 为 true，因为资源设置项有选项需要显示
-        resourceItem.IsVisible = true;
-
-        return resourceItem;
-    }
-
-    /// <summary>
-    /// 合并资源的 SelectOptions（保留用户已选择的值）
-    /// </summary>
-    private void MergeResourceSelectOptions(MaaInterface.MaaInterfaceResource existingResource, MaaInterface.MaaInterfaceResource newResource)
-    {
-        if (newResource.SelectOptions == null)
-        {
-            existingResource.SelectOptions = null;
-            return;
-        }
-
-        var existingDict = existingResource.SelectOptions?.ToDictionary(o => o.Name ?? string.Empty)
-            ?? new Dictionary<string, MaaInterface.MaaInterfaceSelectOption>();
-
-        existingResource.SelectOptions = newResource.SelectOptions.Select(newOpt =>
-        {
-            if (existingDict.TryGetValue(newOpt.Name ?? string.Empty, out var existingOpt))
-            {
-                // 保留用户选择的值
-                if (existingOpt.Index.HasValue)
-                    newOpt.Index = existingOpt.Index;
-                if (existingOpt.Data?.Count > 0)
-                    newOpt.Data = existingOpt.Data;
-                if (existingOpt.SubOptions?.Count > 0)
-                    newOpt.SubOptions = existingOpt.SubOptions;
-            }
-            return newOpt;
-        }).ToList();
     }
 }

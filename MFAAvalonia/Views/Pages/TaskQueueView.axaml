@@ -287,7 +287,7 @@
 
         <!-- 第一行：顶部工具栏（资源选择 + 连接设置） -->
         <suki:GlassCard Grid.Row="0" Margin="15,15,15,5" Padding="12,8" IsAnimated="False">
-            <Grid x:Name="TopToolbar">
+            <Grid x:Name="TopToolbar" RowDefinitions="Auto,Auto">
                 <Grid x:Name="TopToolbarWide">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -857,6 +857,8 @@
                         </StackPanel>
                     </Grid>
                 </Grid>
+                <WrapPanel x:Name="InlineResourceOptionsPanel" Grid.Row="1"
+                           Margin="0,6,0,0" IsVisible="False" />
             </Grid>
         </suki:GlassCard>
 
