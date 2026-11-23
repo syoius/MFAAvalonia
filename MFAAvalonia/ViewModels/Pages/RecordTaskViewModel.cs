@@ -1227,9 +1227,9 @@ public partial class RecordTaskViewModel : ObservableObject
         };
     }
 
-    private sealed record SimingExportResult(string FileName, JObject Actions);
+    internal sealed record SimingExportResult(string FileName, JObject Actions);
 
-    private static async Task<SimingExportResult> CallSimingExportAsync(string requestJson)
+    internal static async Task<SimingExportResult> CallSimingExportAsync(string requestJson)
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(12) };
         using var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
@@ -1254,7 +1254,7 @@ public partial class RecordTaskViewModel : ObservableObject
         return new SimingExportResult(filename, actionsObj);
     }
 
-    private static JObject BuildCopilotCacheJobJson(string title, JObject actions)
+    internal static JObject BuildCopilotCacheJobJson(string title, JObject actions)
     {
         var safeTitle = string.IsNullOrWhiteSpace(title) ? "录制作业" : title.Trim();
         var stageName = Path.GetFileNameWithoutExtension(SanitizeFileName(safeTitle));
@@ -1285,7 +1285,7 @@ public partial class RecordTaskViewModel : ObservableObject
         };
     }
 
-    private static string SanitizeJobFileName(string apiFileName, string fallbackBaseName)
+    internal static string SanitizeJobFileName(string apiFileName, string fallbackBaseName)
     {
         var name = apiFileName;
         if (string.IsNullOrWhiteSpace(name) || string.Equals(name.Trim(), ".json", StringComparison.OrdinalIgnoreCase))
@@ -1300,7 +1300,7 @@ public partial class RecordTaskViewModel : ObservableObject
         return name;
     }
 
-    private static string UniquePath(string path)
+    internal static string UniquePath(string path)
     {
         if (!File.Exists(path))
             return path;
@@ -1322,7 +1322,7 @@ public partial class RecordTaskViewModel : ObservableObject
         return Path.Combine(dir, $"{name}-{DateTime.Now:yyyyMMdd-HHmmssfff}{ext}");
     }
 
-    private static string SanitizeFileName(string name)
+    internal static string SanitizeFileName(string name)
     {
         var invalids = Path.GetInvalidFileNameChars();
         var sb = new StringBuilder(name.Length);
