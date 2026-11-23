@@ -5,6 +5,7 @@ using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.ViewModels.Pages;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace MFAAvalonia.Helper.ValueType;
@@ -31,9 +32,11 @@ public partial class DragItemViewModel : ObservableObject
     /// 构造函数，用于创建全局资源设置项
     /// </summary>
     /// <param name="resource">资源配置</param>
-    public DragItemViewModel(MaaInterface.MaaInterfaceResource resource)
+    /// <param name="options">所属实例的资源选项</param>
+    public DragItemViewModel(MaaInterface.MaaInterfaceResource resource, List<MaaInterface.MaaInterfaceSelectOption> options)
     {
         ResourceItem = resource;
+        ResourceOptions = options;
         IsResourceOptionItem = true;
         // 使用 i18n 本地化名称 "资源预设配置"
         Name = LangKeys.ResourcePresetConfig.ToLocalization();
@@ -145,7 +148,10 @@ public partial class DragItemViewModel : ObservableObject
     /// 对应的资源配置（仅当 IsResourceOptionItem 为 true 时有效）
     /// </summary>
     [JsonIgnore]
-    public MaaInterface.MaaInterfaceResource? ResourceItem { get; set; }
+    public MaaInterface.MaaInterfaceResource? ResourceItem { get; }
+
+    [JsonIgnore]
+    public List<MaaInterface.MaaInterfaceSelectOption>? ResourceOptions { get; }
     
     /// <summary>
     /// 指示任务是否支持当前选中的资源包。
@@ -326,10 +332,10 @@ public partial class DragItemViewModel : ObservableObject
     {
         DragItemViewModel clone;
 
-        if (IsResourceOptionItem && ResourceItem != null)
+        if (IsResourceOptionItem && ResourceItem != null && ResourceOptions != null)
         {
-            // 克隆资源设置项
-            clone = new DragItemViewModel(ResourceItem) { OwnerViewModel = this.OwnerViewModel };
+            // 资源设置项仍引用所属实例的选项。
+            clone = new DragItemViewModel(ResourceItem, ResourceOptions) { OwnerViewModel = this.OwnerViewModel };
         }
         else
         {

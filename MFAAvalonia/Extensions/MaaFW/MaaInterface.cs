@@ -125,6 +125,10 @@ public partial class MaaInterface
         [JsonProperty("default")]
         public string? Default { get; set; }
 
+        /// <summary>是否默认掩码显示输入内容</summary>
+        [JsonProperty("secret", DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public bool Secret { get; set; }
+
         /// <summary>pipeline_override 中的数据类型: "string", "int", "bool"</summary>
         [JsonProperty("pipeline_type")]
         public string? PipelineType { get; set; }

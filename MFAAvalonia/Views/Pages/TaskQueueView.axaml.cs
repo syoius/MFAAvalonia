@@ -79,6 +79,20 @@ public partial class TaskQueueView : UserControl
             _subscribedViewModel.SetOptionRequested += OnSetOptionRequested;
             _subscribedViewModel.LayoutReloadRequested += OnLayoutReloadRequested;
         }
+
+        UpdateInlineResourceOptions();
+    }
+
+    private void UpdateInlineResourceOptions()
+    {
+        InlineResourceOptionsPanel.Children.Clear();
+        if (_subscribedViewModel is { CurrentResourceOptions: { Count: > 0 } options } vm)
+        {
+            var resourceName = vm.CurrentResource;
+            new TaskOptionGenerator(vm, SaveConfiguration).GenerateInlineResourceOptions(InlineResourceOptionsPanel, options,
+                option => vm.SaveResourceOptionConfiguration(resourceName, options, option));
+        }
+        InlineResourceOptionsPanel.IsVisible = InlineResourceOptionsPanel.Children.Count > 0;
     }
 
     private void OnLayoutReloadRequested()
@@ -467,7 +481,7 @@ public partial class TaskQueueView : UserControl
         }
         // 资源设置项使用特殊的缓存键
         var cacheKey = dragItem.IsResourceOptionItem
-            ? $"ResourceOption_{dragItem.ResourceItem?.Name}_{dragItem.ResourceItem?.GetHashCode()}"
+            ? $"ResourceOption_{dragItem.ResourceItem?.Name}_{dragItem.ResourceOptions?.GetHashCode()}"
             : $"{dragItem.Name}_{dragItem.InterfaceItem?.Entry}_{dragItem.InterfaceItem?.GetHashCode()}";
 
         if (!value)
@@ -482,14 +496,13 @@ public partial class TaskQueueView : UserControl
         // 处理资源设置项的选项
         if (dragItem.IsResourceOptionItem)
         {
-            var hasOptions = dragItem.ResourceItem?.SelectOptions != null && dragItem.ResourceItem.SelectOptions.Count > 0;
-            if (hasOptions)
+            if (dragItem.ResourceItem?.Name is { } resourceName && dragItem.ResourceOptions is { Count: > 0 } options)
             {
                 var newPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
                 {
                     var p = new StackPanel();
-                    new TaskOptionGenerator(vm, SaveConfiguration).GenerateResourceOptionPanelContent(p, dragItem);
-                    // GenerateResourceOptionPanelContent(p, dragItem);
+                    new TaskOptionGenerator(vm, () => vm.SaveResourceOptionConfiguration(resourceName, options))
+                        .GenerateResourceOptionPanelContent(p, dragItem);
                     CommonOptionSettings.Children.Add(p);
                     return p;
                 });
@@ -595,7 +608,7 @@ public partial class TaskQueueView : UserControl
         // PopupAdvancedOptionSettings.Children.Clear();
         //
         // var cacheKey = dragItem.IsResourceOptionItem
-        //     ? $"ResourceOption_{dragItem.ResourceItem?.Name}_{dragItem.ResourceItem?.GetHashCode()}"
+        //     ? $"ResourceOption_{dragItem.ResourceItem?.Name}_{dragItem.ResourceOptions?.GetHashCode()}"
         //     : $"{dragItem.Name}_{dragItem.InterfaceItem?.Entry}_{dragItem.InterfaceItem?.GetHashCode()}";
         //
         // var juggle = dragItem.InterfaceItem is { Advanced: { Count: > 0 }, Option: { Count: > 0 } };
@@ -604,10 +617,10 @@ public partial class TaskQueueView : UserControl
         // // 处理资源设置项的选项
         // if (dragItem.IsResourceOptionItem)
         // {
-        //     var hasOptions = dragItem.ResourceItem?.SelectOptions != null && dragItem.ResourceItem.SelectOptions.Count > 0;
+        //     var hasOptions = dragItem.ResourceOptions is { Count: > 0 };
         //     if (hasOptions)
         //     {
-        //         GenerateResourceOptionPanelContent(PopupCommonOptionSettings, dragItem);
+        //         new TaskOptionGenerator(vm, SaveConfiguration).GenerateResourceOptionPanelContent(PopupCommonOptionSettings, dragItem);
         //     }
         // }
         // else
@@ -690,49 +703,6 @@ public partial class TaskQueueView : UserControl
             {
                 AddAdvancedOption(panel, option);
             }
-        }
-    }
-
-    /// <summary>
-    /// 为资源设置项生成选项面板内容
-    /// </summary>
-    private void GenerateResourceOptionPanelContent(StackPanel panel, DragItemViewModel dragItem)
-    {
-        if (dragItem.ResourceItem?.SelectOptions == null)
-            return;
-
-        // 收集所有子选项名称（这些选项不应该在顶级显示）
-        var subOptionNames = new HashSet<string>();
-        foreach (var selectOption in dragItem.ResourceItem.SelectOptions)
-        {
-            if (MaaProcessor.Interface?.Option?.TryGetValue(selectOption.Name ?? string.Empty, out var interfaceOption) == true)
-            {
-                // 收集所有 case 中定义的子选项
-                if (interfaceOption.Cases != null)
-                {
-                    foreach (var caseOption in interfaceOption.Cases)
-                    {
-                        if (caseOption.Option != null)
-                        {
-                            foreach (var subOptionName in caseOption.Option)
-                            {
-                                subOptionNames.Add(subOptionName);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 只显示顶级选项（不是子选项的选项）
-        foreach (var selectOption in dragItem.ResourceItem.SelectOptions)
-        {
-            //跳过子选项，它们会在父选项的 UpdateSubOptions 中动态添加
-            if (subOptionNames.Contains(selectOption.Name ?? string.Empty))
-                continue;
-
-            // 复用 AddOption 方法，它会根据 option 类型创建相应的控件
-            AddOption(panel, selectOption, dragItem);
         }
     }
 
@@ -2201,23 +2171,6 @@ public partial class TaskQueueView : UserControl
         // 保存普通任务项配置
         ConfigurationManager.CurrentInstance.SetValue(ConfigurationKeys.TaskItems,
             vm.TaskItemViewModels.Where(m => !m.IsResourceOptionItem).Select(m => m.InterfaceItem));
-
-        // 保存资源选项配置
-        SaveResourceOptionConfiguration(vm);
-    }
-
-    /// <summary>
-    /// 保存资源选项配置到配置文件
-    /// </summary>
-    private void SaveResourceOptionConfiguration(TaskQueueViewModel vm)
-    {
-        var resourceOptionItems = vm.TaskItemViewModels
-            .Where(m => m.IsResourceOptionItem && m.ResourceItem?.SelectOptions != null)
-            .ToDictionary(
-                m => m.ResourceItem!.Name ?? string.Empty,
-                m => m.ResourceItem!.SelectOptions!);
-
-        ConfigurationManager.CurrentInstance.SetValue(ConfigurationKeys.ResourceOptionItems, resourceOptionItems);
     }
 
     public static string ConvertCustomMarkup(string input, string outputFormat = "html")
@@ -2430,7 +2383,7 @@ public partial class TaskQueueView : UserControl
         IntroductionsCache.Clear();
 
         var cacheKey = dragItem.IsResourceOptionItem
-            ? $"ResourceOption_{dragItem.ResourceItem?.Name}_{dragItem.ResourceItem?.GetHashCode()}"
+            ? $"ResourceOption_{dragItem.ResourceItem?.Name}_{dragItem.ResourceOptions?.GetHashCode()}"
             : $"{dragItem.Name}_{dragItem.InterfaceItem?.Entry}_{dragItem.InterfaceItem?.GetHashCode()}";
 
         var introduction = dragItem.IsResourceOptionItem
@@ -2464,6 +2417,10 @@ public partial class TaskQueueView : UserControl
         if (e.PropertyName == nameof(TaskQueueViewModel.CurrentController))
         {
             UpdateDeviceColumns();
+        }
+        else if (e.PropertyName == nameof(TaskQueueViewModel.CurrentResourceOptions))
+        {
+            UpdateInlineResourceOptions();
         }
     }
 

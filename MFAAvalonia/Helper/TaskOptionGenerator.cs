@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
@@ -73,37 +74,48 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
     
     public void GenerateResourceOptionPanelContent(StackPanel panel, DragItemViewModel dragItem)
     {
-        if (dragItem.ResourceItem?.SelectOptions == null)
-            return;
+        if (dragItem.ResourceOptions == null) return;
 
-        // 收集所有子选项名称（这些选项不应该在顶级显示）
-        var subOptionNames = new HashSet<string>();
-        foreach (var selectOption in dragItem.ResourceItem.SelectOptions)
+        foreach (var option in dragItem.ResourceOptions)
         {
-            if (MaaProcessor.Interface?.Option?.TryGetValue(selectOption.Name ?? string.Empty, out var interfaceOption) == true)
-            {
-                if (interfaceOption.Cases != null)
-                {
-                    foreach (var caseOption in interfaceOption.Cases)
-                    {
-                        if (caseOption.Option != null)
-                        {
-                            foreach (var subOptionName in caseOption.Option)
-                            {
-                                subOptionNames.Add(subOptionName);
-                            }
-                        }
-                    }
-                }
-            }
+            if (!TaskLoader.IsInlineResourceOption(option))
+                AddOption(panel, option, dragItem);
         }
+    }
 
-        foreach (var selectOption in dragItem.ResourceItem.SelectOptions)
+    public void GenerateInlineResourceOptions(WrapPanel panel, List<MaaInterface.MaaInterfaceSelectOption> options,
+        System.Action<MaaInterface.MaaInterfaceSelectOption> saveInput)
+    {
+        foreach (var option in options.Where(TaskLoader.IsInlineResourceOption))
         {
-            if (subOptionNames.Contains(selectOption.Name ?? string.Empty))
+            if (MaaProcessor.Interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var definition) != true
+                || definition.Inputs is not { Count: > 0 } inputs)
                 continue;
 
-            AddOption(panel, selectOption, dragItem);
+            foreach (var input in inputs)
+            {
+                if (string.IsNullOrEmpty(input.Name)) continue;
+
+                var name = input.Label ?? (inputs.Count == 1 ? definition.Label : null) ?? input.Name;
+                var description = string.IsNullOrWhiteSpace(input.Description) ? definition.Description : input.Description;
+                var label = CreateLabelPanel(name, input.Name, description);
+                label.MinWidth = 0;
+                var value = option.Data?.GetValueOrDefault(input.Name) ?? input.Default ?? string.Empty;
+                var textBox = CreateInputTextBox(input, value);
+                textBox.Width = 160;
+                textBox.Bind(AutomationProperties.NameProperty, new ResourceBindingWithFallback(name, input.Name));
+                textBox.TextChanging += (_, _) =>
+                    HandleStringInputChange(textBox, input, option, definition, onChanged: () => saveInput(option));
+
+                var field = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    Margin = new Thickness(0, 0, 12, 0),
+                    Children = { label, AddPasswordToggle(textBox) }
+                };
+                panel.Children.Add(field);
+            }
         }
     }
 
@@ -227,20 +239,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             grid.Margin = new Thickness(0, 3, 0, 3);
         }
 
-        // TextBox
-        var displayValue = currentValue == MaaInterface.MaaInterfaceOption.ExplicitNullMarker ? "null" : currentValue;
-        var textBox = new TextBox
-        {
-            MinWidth = 120,
-            Margin = new Thickness(0, 2, 0, 2),
-            Text = displayValue,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        
-        if (!string.IsNullOrWhiteSpace(input.PatternMsg))
-            textBox.Bind(TextBox.WatermarkProperty, new ResourceBinding(input.PatternMsg));
-        
-        BindIdleEnabled(textBox);
+        var textBox = CreateInputTextBox(input, currentValue);
+        var inputControl = AddPasswordToggle(textBox);
 
         // Events
         textBox.TextChanged += (_, _) => HandleStringInputChange(textBox, input, option, interfaceOption);
@@ -260,13 +260,55 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         }
 
         Grid.SetColumn(labelPanel, 0);
-        Grid.SetColumn(textBox, 1);
+        Grid.SetColumn(inputControl, 1);
         
-        AddResponsiveBehavior(grid, labelPanel, textBox);
+        AddResponsiveBehavior(grid, labelPanel, inputControl);
         
         grid.Children.Add(labelPanel);
-        grid.Children.Add(textBox);
+        grid.Children.Add(inputControl);
 
+        return grid;
+    }
+
+    private TextBox CreateInputTextBox(MaaInterface.MaaInterfaceOptionInput input, string value)
+    {
+        var textBox = new TextBox
+        {
+            MinWidth = 120,
+            Margin = new Thickness(0, 2, 0, 2),
+            Text = value == MaaInterface.MaaInterfaceOption.ExplicitNullMarker ? "null" : value,
+            PasswordChar = input.Secret && !OperatingSystem.IsAndroid() ? '●' : '\0',
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        if (!string.IsNullOrWhiteSpace(input.PatternMsg))
+            textBox.Bind(TextBox.WatermarkProperty, new ResourceBinding(input.PatternMsg));
+        BindIdleEnabled(textBox);
+        return textBox;
+    }
+
+    private Control AddPasswordToggle(TextBox textBox)
+    {
+        if (textBox.PasswordChar == '\0') return textBox;
+
+        var toggle = new Button
+        {
+            Content = LangKeys.Show.ToLocalization(),
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(6, 0, 0, 0)
+        };
+        BindIdleEnabled(toggle);
+        toggle.Click += (_, _) =>
+        {
+            textBox.RevealPassword = !textBox.RevealPassword;
+            toggle.Content = (textBox.RevealPassword ? LangKeys.Hide : LangKeys.Show).ToLocalization();
+        };
+
+        var grid = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) },
+            Children = { textBox, toggle }
+        };
+        Grid.SetColumn(toggle, 1);
         return grid;
     }
 
@@ -778,7 +820,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
     // Logic Helpers
 
-    private void HandleStringInputChange(TextBox textBox, MaaInterface.MaaInterfaceOptionInput input, MaaInterface.MaaInterfaceSelectOption option, MaaInterface.MaaInterfaceOption interfaceOption, bool silent = false)
+    private void HandleStringInputChange(TextBox textBox, MaaInterface.MaaInterfaceOptionInput input, MaaInterface.MaaInterfaceSelectOption option,
+        MaaInterface.MaaInterfaceOption interfaceOption, bool silent = false, Action? onChanged = null)
     {
         var text = textBox.Text ?? string.Empty;
         var pipelineType = input.PipelineType?.ToLower() ?? "string";
@@ -791,16 +834,36 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             return;
         }
 
+        if (onChanged != null && pipelineType == "bool")
+        {
+            text = text switch { "1" => "true", "0" => "false", _ => text };
+            if (text != "null" && !bool.TryParse(text, out _))
+            {
+                DataValidationErrors.SetErrors(textBox, new[] { "请输入 true 或 false" });
+                return;
+            }
+            DataValidationErrors.ClearErrors(textBox);
+        }
+
         if (!string.IsNullOrEmpty(input.Verify))
         {
              // Regex validation... logic as before
         }
 
-        if (!silent)
+        if (!silent && input.Name is { } name)
         {
-            option.Data[input.Name] = text == "null" ? MaaInterface.MaaInterfaceOption.ExplicitNullMarker : text;
-            UpdatePipeline(option, interfaceOption);
-            saveConfigurationAction();
+            option.Data ??= new Dictionary<string, string?>();
+            option.Data[name] = text == "null" ? MaaInterface.MaaInterfaceOption.ExplicitNullMarker : text;
+            if (onChanged != null)
+            {
+                option.PipelineOverride = "{}";
+                onChanged();
+            }
+            else
+            {
+                UpdatePipeline(option, interfaceOption);
+                saveConfigurationAction();
+            }
         }
     }
     

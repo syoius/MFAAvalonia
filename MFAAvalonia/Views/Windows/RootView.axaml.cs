@@ -311,7 +311,7 @@ public partial class RootView : SukiWindow
                         foreach (var task in vm.TaskItemViewModels)
                         {
                             // 优先选择资源选项项
-                            if (task.IsResourceOptionItem && task.ResourceItem?.SelectOptions is { Count: > 0 })
+                            if (task.IsResourceOptionItem && task.ResourceOptions is { Count: > 0 })
                             {
                                 tempTask ??= task;
                             }
